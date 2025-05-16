@@ -83,8 +83,10 @@
         <select id="envSelection">
           <option value="op_saas">운영 (SaaS)</option>
           <option value="csap">공공 (CSAP)</option>
+          <!--
           <option value="test_saas">테스트 (SaaS)</option>
           <option value="test_csap">공공 테스트 (CSAP)</option>
+          -->
         </select>
       </div>
       <!-- 선택된 URL 표시 -->
@@ -227,16 +229,14 @@
     const tokenUrlMap = {
       "op_saas": "https://kr-api.eformsign.com/v2.0/api_auth/access_token",
       "csap": "https://www.gov-eformsign.com/Service/v2.0/api_auth/access_token",
-      "test_saas": "https://test-kr-api.eformsign.com/v2.0/api_auth/access_token",
-      "test_csap": "https://test-kr-api.eformsign.com/v2.0/api_auth/access_token"
+  
     };
     
     // 환경별 문서 목록 조회 API URL 매핑
     const listDocumentUrlMap = {
       "op_saas": "https://kr-api.eformsign.com/v2.0/api/list_document",
       "csap": "https://www.gov-eformsign.com/Service/v2.0/api/list_document",
-      "test_saas": "https://test-kr-api.eformsign.com/v2.0/api/list_document",
-      "test_csap": "https://test.gov-eformsign.com/Service/v2.0/api/list_document"
+   
     };
     
     // 선택된 환경의 URL 정보를 표시하는 함수 (토큰 발급용)

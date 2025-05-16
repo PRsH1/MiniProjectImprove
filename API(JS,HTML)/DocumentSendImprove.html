@@ -130,8 +130,10 @@
       <select id="envSelection">
         <option value="op_saas">운영 (SaaS)</option>
         <option value="csap">공공 (CSAP)</option>
+        <!--
         <option value="test_saas">테스트 (SaaS)</option>
         <option value="test_csap">공공 테스트 (CSAP)</option>
+        -->
       </select>
     </label>
     <label>API KEY:
@@ -296,8 +298,7 @@
     const tokenUrlMap = {
       op_saas: 'https://kr-api.eformsign.com/v2.0/api_auth/access_token',
       csap: 'https://www.gov-eformsign.com/Service/v2.0/api_auth/access_token',
-      test_saas: 'https://test-kr-api.eformsign.com/v2.0/api_auth/access_token',
-      test_csap: 'https://test.gov-eformsign.com/Service/v2.0/api_auth/access_token'
+
     };
 
     const btnToken = document.getElementById('btnGetToken');
