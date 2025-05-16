@@ -130,10 +130,6 @@
       <select id="envSelection">
         <option value="op_saas">운영 (SaaS)</option>
         <option value="csap">공공 (CSAP)</option>
-        <!--
-        <option value="test_saas">테스트 (SaaS)</option>
-        <option value="test_csap">공공 테스트 (CSAP)</option>
-        -->
       </select>
     </label>
     <label>API KEY:
@@ -295,10 +291,15 @@
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jsrsasign/10.5.25/jsrsasign-all-min.js"></script>
   <script>
+    // Access Token 발급 URL 맵
     const tokenUrlMap = {
       op_saas: 'https://kr-api.eformsign.com/v2.0/api_auth/access_token',
-      csap: 'https://www.gov-eformsign.com/Service/v2.0/api_auth/access_token',
-
+      csap:    'https://www.gov-eformsign.com/Service/v2.0/api_auth/access_token'
+    };
+    // API 기본 URL 맵 (forms/info, documents)
+    const apiBaseMap = {
+      op_saas: 'https://kr-api.eformsign.com/v2.0/api',
+      csap:    'https://www.gov-eformsign.com/Service/v2.0/api'
     };
 
     const btnToken = document.getElementById('btnGetToken');
@@ -309,12 +310,12 @@
       const m = document.getElementById('secretMethod').value;
       const lbl = document.getElementById('secretLabel');
       const inp = document.getElementById('privateKeyHex');
-      if (m==='signature') {
-        lbl.firstChild.textContent='Secret Key (Hex):';
-        inp.placeholder='프라이빗 키(HEX) 입력';
+      if (m === 'signature') {
+        lbl.firstChild.textContent = 'Secret Key (Hex):';
+        inp.placeholder = '프라이빗 키(HEX) 입력';
       } else {
-        lbl.firstChild.textContent='Bearer Token:';
-        inp.placeholder='Bearer Token 입력';
+        lbl.firstChild.textContent = 'Bearer Token:';
+        inp.placeholder = 'Bearer Token 입력';
       }
     });
 
@@ -343,7 +344,7 @@
       if (document.getElementById('secretMethod').value === 'signature') {
         try {
           const key = KEYUTIL.getKeyFromPlainPrivatePKCS8Hex(secret);
-          const sig = new KJUR.crypto.Signature({ alg:'SHA256withECDSA' });
+          const sig = new KJUR.crypto.Signature({ alg: 'SHA256withECDSA' });
           sig.init(key); sig.updateString(execTime);
           signature = sig.sign();
         } catch {
@@ -358,13 +359,13 @@
 
       try {
         const res = await fetch(url, {
-          method:'POST',
-          headers:{
-            'Content-Type':'application/json',
-            'Authorization':'Bearer '+btoa(apiKey),
-            'eformsign_signature':signature
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + btoa(apiKey),
+            'eformsign_signature': signature
           },
-          body:JSON.stringify({ execution_time:parseInt(execTime), member_id:userId })
+          body: JSON.stringify({ execution_time: parseInt(execTime), member_id: userId })
         });
         const text = await res.text();
         let data;
@@ -372,24 +373,22 @@
         catch { throw new Error(`응답 파싱 실패 – ${text}`); }
 
         if (!res.ok) {
-          // error response with code, ErrorMessage
           const code = data.code || res.status;
           const msg  = data.ErrorMessage || res.statusText;
           throw new Error(`${code}: ${msg}`);
         }
         if (!data.oauth_token || !data.oauth_token.access_token) {
-          // missing token field
-          const code = data.code    || 'UNKNOWN';
+          const code = data.code || 'UNKNOWN';
           const msg  = data.ErrorMessage || 'access_token 없음';
           throw new Error(`${code}: ${msg}`);
         }
 
         document.getElementById('accessToken').value = data.oauth_token.access_token;
-        document.getElementById('tokenMsg').textContent = '토큰 발급 성공';
+        document.getElementById('tokenMsg').textContent    = '토큰 발급 성공';
       } catch (e) {
         document.getElementById('tokenMsg').textContent = `발급 오류: ${e.message}`;
       } finally {
-        btnToken.disabled = false;
+        btnToken.disabled    = false;
         btnToken.textContent = 'Access Token 발급';
       }
     });
@@ -398,33 +397,39 @@
     btnLoad.addEventListener('click', async () => {
       btnLoad.disabled    = true;
       btnLoad.textContent = '로딩 중...';
-      const msg = document.getElementById('templateMsg');
-      msg.textContent = '';
+      const msgEl = document.getElementById('templateMsg');
+      msgEl.textContent = '';
 
       const token      = document.getElementById('accessToken').value.trim();
       const templateId = document.getElementById('templateId').value.trim();
+      const env        = document.getElementById('envSelection').value;
+
       if (!token) {
-        msg.textContent = '먼저 Access Token을 발급받아주세요.';
-        btnLoad.disabled = false;
+        msgEl.textContent = '먼저 Access Token을 발급받아주세요.';
+        btnLoad.disabled    = false;
         btnLoad.textContent = '템플릿 정보 조회';
         return;
       }
       if (!templateId) {
-        msg.textContent = 'Template ID를 입력하세요.';
-        btnLoad.disabled = false;
+        msgEl.textContent = 'Template ID를 입력하세요.';
+        btnLoad.disabled    = false;
         btnLoad.textContent = '템플릿 정보 조회';
         return;
       }
 
       try {
-        const resp = await fetch('https://kr-api.eformsign.com/v2.0/api/forms/info', {
-          method:'POST',
-          headers:{ 'Content-Type':'application/json','Authorization':`Bearer ${token}` },
-          body:JSON.stringify({ type:'api', template_id:templateId })
+        const base = apiBaseMap[env];
+        const resp = await fetch(`${base}/forms/info`, {
+          method: 'POST',
+          headers: {
+            'Content-Type':  'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ type: 'api', template_id: templateId })
         });
         const txt = await resp.text();
         let json;
-        try { json = JSON.parse(txt); }
+        try { json = JSON.parse(txt || '{}'); }
         catch { throw new Error(`응답 파싱 실패 – ${txt}`); }
 
         if (!resp.ok) {
@@ -439,99 +444,167 @@
         document.getElementById('docName').value    = doc.document_name || '';
         document.getElementById('docComment').value = doc.comment       || '';
 
-        // fields
-        const fld = document.getElementById('fields'); fld.innerHTML = '';
+        // fields 초기화 및 추가
+        const fldEl = document.getElementById('fields');
+        fldEl.innerHTML = '';
         doc.fields.forEach(f => {
           const frag = document.getElementById('tpl-field').content.cloneNode(true);
-          const item = frag.querySelector('.list-item');
-          item.querySelector('[name=field_id]').value    = f.id;
-          item.querySelector('[name=field_value]').value = f.value || '';
-          setupRemove(item);
-          fld.appendChild(item);
-          requestAnimationFrame(()=>item.classList.add('visible'));
+          const it = frag.querySelector('.list-item');
+          it.querySelector('[name=field_id]').value    = f.id;
+          it.querySelector('[name=field_value]').value = f.value || '';
+          setupRemove(it);
+          fldEl.appendChild(it);
+          requestAnimationFrame(() => it.classList.add('visible'));
         });
 
-        // recipients (step_group → group_id 미사용)
-        const recs = document.getElementById('recipients'); recs.innerHTML = '';
+        // recipients 초기화 및 추가
+        const recEl = document.getElementById('recipients');
+        recEl.innerHTML = '';
         doc.recipients.forEach(r => {
           const frag = document.getElementById('tpl-recipient').content.cloneNode(true);
-          const item = frag.querySelector('.list-item');
-          item.querySelector('[name=step_type]').value     = r.step_type;
-          item.querySelector('[name=use_mail]').checked    = !!r.use_mail;
-          item.querySelector('[name=use_sms]').checked     = !!r.use_sms;
-          item.querySelector('[name=member_id]').value     = r.member.id || '';
-          item.querySelector('[name=member_name]').value   = r.member.name || '';
-          item.querySelector('[name=country_code]').value  = r.member.sms.country_code || '';
-          item.querySelector('[name=phone_number]').value  = r.member.sms.phone_number || '';
-          item.querySelector('[name=auth_pwd]').value      = r.auth.password   || '';
-          item.querySelector('[name=auth_pwd_hint]').value = r.auth.password_hint || '';
-          item.querySelector('[name=valid_day]').value     = r.auth.valid.day;
-          item.querySelector('[name=valid_hour]').value    = r.auth.valid.hour;
-          setupRemove(item);
-          recs.appendChild(item);
-          requestAnimationFrame(()=>item.classList.add('visible'));
+          const it = frag.querySelector('.list-item');
+          it.querySelector('[name=step_type]').value     = r.step_type;
+          it.querySelector('[name=use_mail]').checked    = !!r.use_mail;
+          it.querySelector('[name=use_sms]').checked     = !!r.use_sms;
+          it.querySelector('[name=member_id]').value     = r.member.id || '';
+          it.querySelector('[name=member_name]').value   = r.member.name || '';
+          it.querySelector('[name=country_code]').value  = r.member.sms.country_code || '';
+          it.querySelector('[name=phone_number]').value  = r.member.sms.phone_number || '';
+          it.querySelector('[name=auth_pwd]').value      = r.auth.password || '';
+          it.querySelector('[name=auth_pwd_hint]').value = r.auth.password_hint || '';
+          it.querySelector('[name=valid_day]').value     = r.auth.valid.day;
+          it.querySelector('[name=valid_hour]').value    = r.auth.valid.hour;
+          setupRemove(it);
+          recEl.appendChild(it);
+          requestAnimationFrame(() => it.classList.add('visible'));
         });
 
-        msg.textContent = '템플릿 정보 조회 성공';
+        msgEl.textContent = '템플릿 정보 조회 성공';
       } catch (e) {
         document.getElementById('templateMsg').textContent = e.message;
       } finally {
-        btnLoad.disabled = false;
+        btnLoad.disabled    = false;
         btnLoad.textContent = '템플릿 정보 조회';
       }
     });
 
     function setupRemove(item) {
-      item.querySelector('.remove-btn').addEventListener('click',()=>item.remove());
+      item.querySelector('.remove-btn')
+        .addEventListener('click', () => item.remove());
     }
-    function setupList(c,t,b){document.getElementById(b).addEventListener('click',()=>{
-      const frag=document.getElementById(t).content.cloneNode(true);
-      const item=frag.querySelector('.list-item');
-      setupRemove(item);
-      document.getElementById(c).appendChild(item);
-      requestAnimationFrame(()=>item.classList.add('visible'));
-    });}
+
+    function setupList(containerId, tplId, btnId) {
+      document.getElementById(btnId).addEventListener('click', () => {
+        const frag = document.getElementById(tplId).content.cloneNode(true);
+        const it = frag.querySelector('.list-item');
+        setupRemove(it);
+        document.getElementById(containerId).appendChild(it);
+        requestAnimationFrame(() => it.classList.add('visible'));
+      });
+    }
     setupList('recipients','tpl-recipient','addRecipient');
     setupList('fields','tpl-field','addField');
     setupList('params','tpl-param','addParam');
     setupList('notifications','tpl-notify','addNotify');
 
-    document.getElementById('docForm').addEventListener('submit',async e=>{
+    // 문서 전송
+    document.getElementById('docForm').addEventListener('submit', async e => {
       e.preventDefault();
-      const tokenVal=document.getElementById('accessToken').value.trim();
-      if(!tokenVal){alert('먼저 Access Token을 발급받아주세요.');return;}
-      const body={document:{document_name:document.getElementById('docName').value||undefined,comment:document.getElementById('docComment').value||undefined,recipients:[],fields:[],parameters:[],notification:[]}};
-      document.querySelectorAll('#recipients .list-item').forEach(el=>{
-        const rec={step_type:el.querySelector('[name=step_type]').value};
-        rec.use_mail=el.querySelector('[name=use_mail]').checked;
-        rec.use_sms=el.querySelector('[name=use_sms]').checked;
-        const mid=el.querySelector('[name=member_id]').value;
-        if(mid){
-          rec.member={id:mid,name:el.querySelector('[name=member_name]').value,sms:{country_code:el.querySelector('[name=country_code]').value,phone_number:el.querySelector('[name=phone_number]').value}};
-          rec.auth={password:el.querySelector('[name=auth_pwd]').value,password_hint:el.querySelector('[name=auth_pwd_hint]').value,valid:{day:parseInt(el.querySelector('[name=valid_day]').value)||0,hour:parseInt(el.querySelector('[name=valid_hour]').value)||0}};
+      const env      = document.getElementById('envSelection').value;
+      const apiBase  = apiBaseMap[env];
+      const tokenVal = document.getElementById('accessToken').value.trim();
+      if (!tokenVal) {
+        alert('먼저 Access Token을 발급받아주세요.');
+        return;
+      }
+
+      const body = { document: {
+        document_name: document.getElementById('docName').value || undefined,
+        comment:       document.getElementById('docComment').value || undefined,
+        recipients: [], fields: [], parameters: [], notification: []
+      }};
+
+      // recipients
+      document.querySelectorAll('#recipients .list-item').forEach(el => {
+        const rec = { step_type: el.querySelector('[name=step_type]').value };
+        rec.use_mail = el.querySelector('[name=use_mail]').checked;
+        rec.use_sms  = el.querySelector('[name=use_sms]').checked;
+        const mid = el.querySelector('[name=member_id]').value;
+        if (mid) {
+          rec.member = {
+            id:   mid,
+            name: el.querySelector('[name=member_name]').value,
+            sms: {
+              country_code: el.querySelector('[name=country_code]').value,
+              phone_number: el.querySelector('[name=phone_number]').value
+            }
+          };
+          rec.auth = {
+            password:      el.querySelector('[name=auth_pwd]').value,
+            password_hint: el.querySelector('[name=auth_pwd_hint]').value,
+            valid: {
+              day:  parseInt(el.querySelector('[name=valid_day]').value)||0,
+              hour: parseInt(el.querySelector('[name=valid_hour]').value)||0
+            }
+          };
         }
-        const gid=el.querySelector('[name=group_id]').value;
-        if(gid)rec.group={id:gid};
+        const gid = el.querySelector('[name=group_id]').value;
+        if (gid) rec.group = { id: gid };
         body.document.recipients.push(rec);
       });
-      document.querySelectorAll('#fields .list-item').forEach(el=>{
-        body.document.fields.push({id:el.querySelector('[name=field_id]').value,value:el.querySelector('[name=field_value]').value});
+
+      // fields
+      document.querySelectorAll('#fields .list-item').forEach(el => {
+        body.document.fields.push({
+          id:    el.querySelector('[name=field_id]').value,
+          value: el.querySelector('[name=field_value]').value
+        });
       });
-      document.querySelectorAll('#params .list-item').forEach(el=>{
-        body.document.parameters.push({id:el.querySelector('[name=param_id]').value,value:el.querySelector('[name=param_value]').value});
+
+      // parameters
+      document.querySelectorAll('#params .list-item').forEach(el => {
+        body.document.parameters.push({
+          id:    el.querySelector('[name=param_id]').value,
+          value: el.querySelector('[name=param_value]').value
+        });
       });
-      document.querySelectorAll('#notifications .list-item').forEach(el=>{
-        const n={name:el.querySelector('[name=notify_name]').value,email:el.querySelector('[name=notify_email]').value,sms:{country_code:el.querySelector('[name=notify_cc]').value,phone_number:el.querySelector('[name=notify_num]').value},auth:{password:el.querySelector('[name=notify_pwd]').value,valid:{day:parseInt(el.querySelector('[name=notify_day]').value)||0,hour:parseInt(el.querySelector('[name=notify_hour]').value)||0}}};
+
+      // notifications
+      document.querySelectorAll('#notifications .list-item').forEach(el => {
+        const n = {
+          name:  el.querySelector('[name=notify_name]').value,
+          email: el.querySelector('[name=notify_email]').value,
+          sms: {
+            country_code: el.querySelector('[name=notify_cc]').value,
+            phone_number: el.querySelector('[name=notify_num]').value
+          },
+          auth: {
+            password: el.querySelector('[name=notify_pwd]').value,
+            valid: {
+              day:  parseInt(el.querySelector('[name=notify_day]').value)||0,
+              hour: parseInt(el.querySelector('[name=notify_hour]').value)||0
+            }
+          }
+        };
         body.document.notification.push(n);
       });
-      const url=`https://kr-api.eformsign.com/v2.0/api/documents?template_id=${encodeURIComponent(document.getElementById('templateId').value)}`;
-      document.getElementById('result').textContent='전송 중...';
-      try{
-        const res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${tokenVal}`},body:JSON.stringify(body)});
-        const data=await res.json();
-        document.getElementById('result').textContent=JSON.stringify(data,null,2);
-      }catch(err){
-        document.getElementById('result').textContent='전송 오류: '+err;
+
+      const url = `${apiBase}/documents?template_id=${encodeURIComponent(document.getElementById('templateId').value)}`;
+      document.getElementById('result').textContent = '전송 중...';
+
+      try {
+        const res  = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type':  'application/json',
+            'Authorization': `Bearer ${tokenVal}`
+          },
+          body: JSON.stringify(body)
+        });
+        const data = await res.json();
+        document.getElementById('result').textContent = JSON.stringify(data, null, 2);
+      } catch (err) {
+        document.getElementById('result').textContent = '전송 오류: ' + err;
       }
     });
   </script>
