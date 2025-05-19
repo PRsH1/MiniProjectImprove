@@ -5,118 +5,29 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>eformsign 문서 전송 & Access Token 발급</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 2rem;
-      background: #f9f9f9;
-    }
-    fieldset {
-      margin-bottom: 1.5rem;
-      padding: 1.2rem;
-      background: #fff;
-      border: 1px solid #ddd;
-      border-radius: 6px;
-    }
-    legend {
-      font-weight: bold;
-      padding: 0 0.5rem;
-    }
-    label {
-      display: block;
-      margin-top: 0.8rem;
-    }
-    input, select, button {
-      width: 100%;
-      padding: 0.6rem;
-      margin-top: 0.3rem;
-      box-sizing: border-box;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      font-size: 1rem;
-    }
-    button {
-      background: #007bff;
-      color: #fff;
-      border: none;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-    button:disabled {
-      background: #aac;
-      cursor: default;
-    }
-    button:hover:not(:disabled) {
-      background: #0056b3;
-    }
-    .btn-inline {
-      width: auto;
-      display: inline-block;
-      margin-left: 0.5rem;
-      vertical-align: middle;
-    }
-    .helper-text {
-      font-size: 0.9rem;
-      color: #c00;
-      margin-top: 0.4rem;
-    }
-    .info-text {
-      font-size: 0.9rem;
-      color: #666;
-      margin-top: 0.4rem;
-    }
-    .list-item {
-      position: relative;
-      border: 1px solid #ccc;
-      padding: 1rem;
-      margin-bottom: 0.7rem;
-      background: #fff;
-      border-radius: 4px;
-      opacity: 0;
-      transition: opacity 0.3s ease-in;
-    }
-    .list-item.visible {
-      opacity: 1;
-    }
-    .remove-btn {
-      position: absolute;
-      top: 0.5rem;
-      right: 0.5rem;
-      cursor: pointer;
-      color: #c00;
-      font-weight: bold;
-    }
-    pre {
-      background: #eef;
-      padding: 1rem;
-      border-radius: 4px;
-      overflow-x: auto;
-    }
+    body { font-family: Arial, sans-serif; margin: 2rem; background: #f9f9f9; }
+    fieldset { margin-bottom: 1.5rem; padding: 1.2rem; background: #fff; border: 1px solid #ddd; border-radius: 6px; }
+    legend { font-weight: bold; padding: 0 0.5rem; }
+    label { display: block; margin-top: 0.8rem; }
+    input, select, button { width: 100%; padding: 0.6rem; margin-top: 0.3rem; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem; }
+    button { background: #007bff; color: #fff; border: none; cursor: pointer; transition: background 0.2s; }
+    button:disabled { background: #aac; cursor: default; }
+    button:hover:not(:disabled) { background: #0056b3; }
+    .btn-inline { width: auto; display: inline-block; margin-left: 0.5rem; vertical-align: middle; }
+    .helper-text { font-size: 0.9rem; color: #c00; margin-top: 0.4rem; }
+    .info-text { font-size: 0.9rem; color: #666; margin-top: 0.4rem; }
+    .list-item { position: relative; border: 1px solid #ccc; padding: 1rem; margin-bottom: 0.7rem; background: #fff; border-radius: 4px; opacity: 0; transition: opacity 0.3s ease-in; }
+    .list-item.visible { opacity: 1; }
+    .remove-btn { position: absolute; top: 0.5rem; right: 0.5rem; cursor: pointer; color: #c00; font-weight: bold; }
+    pre { background: #eef; padding: 1rem; border-radius: 4px; overflow-x: auto; white-space: pre-wrap; }
     /* 토글 스위치 */
-    .switch {
-      position: relative; display: inline-block; width: 50px; height: 26px;
-      margin-right: 0.5rem; vertical-align: middle;
-    }
-    .switch input {
-      opacity: 0; width: 0; height: 0;
-    }
-    .slider {
-      position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
-      background-color: #ccc; transition: .2s; border-radius: 26px;
-    }
-    .slider:before {
-      position: absolute; content: ""; height: 22px; width: 22px;
-      left: 2px; bottom: 2px; background-color: white; transition: .2s; border-radius: 50%;
-    }
-    .switch input:checked + .slider {
-      background-color: #4CAF50;
-    }
-    .switch input:checked + .slider:before {
-      transform: translateX(24px);
-    }
-    .toggle-label {
-      display: inline-flex; align-items: center;
-      font-size: 0.95rem; margin-right: 1rem; margin-top: 0.5rem;
-    }
+    .switch { position: relative; display: inline-block; width: 50px; height: 26px; margin-right: 0.5rem; vertical-align: middle; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .2s; border-radius: 26px; }
+    .slider:before { position: absolute; content: ""; height: 22px; width: 22px; left: 2px; bottom: 2px; background-color: white; transition: .2s; border-radius: 50%; }
+    .switch input:checked + .slider { background-color: #4CAF50; }
+    .switch input:checked + .slider:before { transform: translateX(24px); }
+    .toggle-label { display: inline-flex; align-items: center; font-size: 0.95rem; margin-right: 1rem; margin-top: 0.5rem; }
   </style>
 </head>
 <body>
@@ -199,6 +110,10 @@
     </fieldset>
 
     <button type="submit">문서 전송하기</button>
+    <label style="margin-top:1rem;">
+      <input type="checkbox" id="showRequestBody"/> 요청용 Request body 보기
+    </label>
+    <pre id="requestBody" style="display:none;"></pre>
   </form>
 
   <h2>응답 결과</h2>
@@ -247,8 +162,8 @@
       <h5>수신자가 문서를 열람할 수 있는 기한을 설정합니다.</h5>
       <label>
         요청 후
-        <input name="valid_day" type="number" min="0" value="0" style="width:4rem; display:inline-block;"/> 일
-        <input name="valid_hour" type="number" min="0" max="23" value="0" style="width:4rem; display:inline-block; margin-left:1rem;"/> 시간까지
+        <input name="valid_day" type="number" min="0" value="0" style="width:4rem;display:inline-block;"/> 일
+        <input name="valid_hour" type="number" min="0" max="23" value="0" style="width:4rem;display:inline-block;margin-left:1rem;"/> 시간까지
       </label>
       <h5>
         0시간으로 설정하면 문서 열람 기한이 없습니다.<br>
@@ -291,21 +206,19 @@
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jsrsasign/10.5.25/jsrsasign-all-min.js"></script>
   <script>
-    // Access Token 발급 URL 맵
+    // URL 맵
     const tokenUrlMap = {
       op_saas: 'https://kr-api.eformsign.com/v2.0/api_auth/access_token',
       csap:    'https://www.gov-eformsign.com/Service/v2.0/api_auth/access_token'
     };
-    // API 기본 URL 맵 (forms/info, documents)
     const apiBaseMap = {
       op_saas: 'https://kr-api.eformsign.com/v2.0/api',
       csap:    'https://www.gov-eformsign.com/Service/v2.0/api'
     };
 
-    const btnToken = document.getElementById('btnGetToken');
-    const btnLoad  = document.getElementById('loadTemplate');
+    let lastRequestBody = null;
 
-    // Secret Method 라벨/placeholder 전환
+    // Secret method label switch
     document.getElementById('secretMethod').addEventListener('change', () => {
       const m = document.getElementById('secretMethod').value;
       const lbl = document.getElementById('secretLabel');
@@ -320,9 +233,9 @@
     });
 
     // Access Token 발급
-    btnToken.addEventListener('click', async () => {
-      btnToken.disabled = true;
-      btnToken.textContent = '로딩 중...';
+    document.getElementById('btnGetToken').addEventListener('click', async () => {
+      const btn = document.getElementById('btnGetToken');
+      btn.disabled = true; btn.textContent = '로딩 중...';
       document.getElementById('tokenMsg').textContent = '';
 
       const env    = document.getElementById('envSelection').value;
@@ -332,14 +245,13 @@
 
       if (!apiKey || !secret || !userId) {
         document.getElementById('tokenMsg').textContent = '모든 필드를 입력해주세요.';
-        btnToken.disabled = false;
-        btnToken.textContent = 'Access Token 발급';
+        btn.disabled = false; btn.textContent = 'Access Token 발급';
         return;
       }
 
-      const url      = tokenUrlMap[env];
+      const url = tokenUrlMap[env];
       const execTime = Date.now().toString();
-      let signature  = '';
+      let signature = '';
 
       if (document.getElementById('secretMethod').value === 'signature') {
         try {
@@ -349,8 +261,7 @@
           signature = sig.sign();
         } catch {
           document.getElementById('tokenMsg').textContent = '비밀 키가 잘못되었습니다.';
-          btnToken.disabled = false;
-          btnToken.textContent = 'Access Token 발급';
+          btn.disabled = false; btn.textContent = 'Access Token 발급';
           return;
         }
       } else {
@@ -377,43 +288,40 @@
           const msg  = data.ErrorMessage || res.statusText;
           throw new Error(`${code}: ${msg}`);
         }
-        if (!data.oauth_token || !data.oauth_token.access_token) {
+        if (!data.oauth_token?.access_token) {
           const code = data.code || 'UNKNOWN';
           const msg  = data.ErrorMessage || 'access_token 없음';
           throw new Error(`${code}: ${msg}`);
         }
 
         document.getElementById('accessToken').value = data.oauth_token.access_token;
-        document.getElementById('tokenMsg').textContent    = '토큰 발급 성공';
+        document.getElementById('tokenMsg').textContent = '토큰 발급 성공';
       } catch (e) {
         document.getElementById('tokenMsg').textContent = `발급 오류: ${e.message}`;
       } finally {
-        btnToken.disabled    = false;
-        btnToken.textContent = 'Access Token 발급';
+        btn.disabled = false; btn.textContent = 'Access Token 발급';
       }
     });
 
-    // 템플릿 정보 조회
-    btnLoad.addEventListener('click', async () => {
-      btnLoad.disabled    = true;
-      btnLoad.textContent = '로딩 중...';
+    // Template 조회
+    document.getElementById('loadTemplate').addEventListener('click', async () => {
+      const btn = document.getElementById('loadTemplate');
+      btn.disabled = true; btn.textContent = '로딩 중...';
       const msgEl = document.getElementById('templateMsg');
       msgEl.textContent = '';
 
-      const token      = document.getElementById('accessToken').value.trim();
+      const token = document.getElementById('accessToken').value.trim();
       const templateId = document.getElementById('templateId').value.trim();
-      const env        = document.getElementById('envSelection').value;
+      const env = document.getElementById('envSelection').value;
 
       if (!token) {
         msgEl.textContent = '먼저 Access Token을 발급받아주세요.';
-        btnLoad.disabled    = false;
-        btnLoad.textContent = '템플릿 정보 조회';
+        btn.disabled = false; btn.textContent = '템플릿 정보 조회';
         return;
       }
       if (!templateId) {
         msgEl.textContent = 'Template ID를 입력하세요.';
-        btnLoad.disabled    = false;
-        btnLoad.textContent = '템플릿 정보 조회';
+        btn.disabled = false; btn.textContent = '템플릿 정보 조회';
         return;
       }
 
@@ -422,7 +330,7 @@
         const resp = await fetch(`${base}/forms/info`, {
           method: 'POST',
           headers: {
-            'Content-Type':  'application/json',
+            'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
           },
           body: JSON.stringify({ type: 'api', template_id: templateId })
@@ -434,46 +342,46 @@
 
         if (!resp.ok) {
           const code = json.code || resp.status;
-          const em   = json.ErrorMessage || resp.statusText;
+          const em = json.ErrorMessage || resp.statusText;
           throw new Error(`${code}: ${em}`);
         }
         const doc = json.document;
         if (!doc) throw new Error('문서 정보 없음');
 
-        // 문서명, 코멘트
-        document.getElementById('docName').value    = doc.document_name || '';
-        document.getElementById('docComment').value = doc.comment       || '';
+        // fill 문서명/코멘트
+        document.getElementById('docName').value = doc.document_name || '';
+        document.getElementById('docComment').value = doc.comment || '';
 
-        // fields 초기화 및 추가
+        // fields
         const fldEl = document.getElementById('fields');
         fldEl.innerHTML = '';
         doc.fields.forEach(f => {
           const frag = document.getElementById('tpl-field').content.cloneNode(true);
           const it = frag.querySelector('.list-item');
-          it.querySelector('[name=field_id]').value    = f.id;
+          it.querySelector('[name=field_id]').value = f.id;
           it.querySelector('[name=field_value]').value = f.value || '';
           setupRemove(it);
           fldEl.appendChild(it);
           requestAnimationFrame(() => it.classList.add('visible'));
         });
 
-        // recipients 초기화 및 추가
+        // recipients
         const recEl = document.getElementById('recipients');
         recEl.innerHTML = '';
         doc.recipients.forEach(r => {
           const frag = document.getElementById('tpl-recipient').content.cloneNode(true);
           const it = frag.querySelector('.list-item');
-          it.querySelector('[name=step_type]').value     = r.step_type;
-          it.querySelector('[name=use_mail]').checked    = !!r.use_mail;
-          it.querySelector('[name=use_sms]').checked     = !!r.use_sms;
-          it.querySelector('[name=member_id]').value     = r.member.id || '';
-          it.querySelector('[name=member_name]').value   = r.member.name || '';
-          it.querySelector('[name=country_code]').value  = r.member.sms.country_code || '';
-          it.querySelector('[name=phone_number]').value  = r.member.sms.phone_number || '';
-          it.querySelector('[name=auth_pwd]').value      = r.auth.password || '';
+          it.querySelector('[name=step_type]').value = r.step_type;
+          it.querySelector('[name=use_mail]').checked = !!r.use_mail;
+          it.querySelector('[name=use_sms]').checked = !!r.use_sms;
+          it.querySelector('[name=member_id]').value = r.member.id || '';
+          it.querySelector('[name=member_name]').value = r.member.name || '';
+          it.querySelector('[name=country_code]').value = r.member.sms.country_code || '';
+          it.querySelector('[name=phone_number]').value = r.member.sms.phone_number || '';
+          it.querySelector('[name=auth_pwd]').value = r.auth.password || '';
           it.querySelector('[name=auth_pwd_hint]').value = r.auth.password_hint || '';
-          it.querySelector('[name=valid_day]').value     = r.auth.valid.day;
-          it.querySelector('[name=valid_hour]').value    = r.auth.valid.hour;
+          it.querySelector('[name=valid_day]').value = r.auth.valid.day;
+          it.querySelector('[name=valid_hour]').value = r.auth.valid.hour;
           setupRemove(it);
           recEl.appendChild(it);
           requestAnimationFrame(() => it.classList.add('visible'));
@@ -483,29 +391,37 @@
       } catch (e) {
         document.getElementById('templateMsg').textContent = e.message;
       } finally {
-        btnLoad.disabled    = false;
-        btnLoad.textContent = '템플릿 정보 조회';
+        btn.disabled = false; btn.textContent = '템플릿 정보 조회';
       }
     });
 
     function setupRemove(item) {
-      item.querySelector('.remove-btn')
-        .addEventListener('click', () => item.remove());
+      item.querySelector('.remove-btn').addEventListener('click', () => item.remove());
     }
-
-    function setupList(containerId, tplId, btnId) {
+    function setupList(cid, tid, btnId) {
       document.getElementById(btnId).addEventListener('click', () => {
-        const frag = document.getElementById(tplId).content.cloneNode(true);
+        const frag = document.getElementById(tid).content.cloneNode(true);
         const it = frag.querySelector('.list-item');
         setupRemove(it);
-        document.getElementById(containerId).appendChild(it);
+        document.getElementById(cid).appendChild(it);
         requestAnimationFrame(() => it.classList.add('visible'));
       });
     }
-    setupList('recipients','tpl-recipient','addRecipient');
-    setupList('fields','tpl-field','addField');
-    setupList('params','tpl-param','addParam');
-    setupList('notifications','tpl-notify','addNotify');
+    setupList('recipients', 'tpl-recipient', 'addRecipient');
+    setupList('fields', 'tpl-field', 'addField');
+    setupList('params', 'tpl-param', 'addParam');
+    setupList('notifications', 'tpl-notify', 'addNotify');
+
+    // Request body 토글
+    document.getElementById('showRequestBody').addEventListener('change', function() {
+      const el = document.getElementById('requestBody');
+      if (this.checked && lastRequestBody) {
+        el.textContent = JSON.stringify(lastRequestBody, null, 2);
+        el.style.display = 'block';
+      } else {
+        el.style.display = 'none';
+      }
+    });
 
     // 문서 전송
     document.getElementById('docForm').addEventListener('submit', async e => {
@@ -588,6 +504,14 @@
         };
         body.document.notification.push(n);
       });
+
+      // 저장 & 표시
+      lastRequestBody = body;
+      if (document.getElementById('showRequestBody').checked) {
+        const el = document.getElementById('requestBody');
+        el.textContent = JSON.stringify(body, null, 2);
+        el.style.display = 'block';
+      }
 
       const url = `${apiBase}/documents?template_id=${encodeURIComponent(document.getElementById('templateId').value)}`;
       document.getElementById('result').textContent = '전송 중...';
