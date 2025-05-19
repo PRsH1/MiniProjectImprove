@@ -5,10 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>eformsign 문서 전송 & Access Token 발급</title>
   <style>
+    /* 기본 레이아웃 */
     body { font-family: Arial, sans-serif; margin: 2rem; background: #f9f9f9; }
     fieldset { margin-bottom: 1.5rem; padding: 1.2rem; background: #fff; border: 1px solid #ddd; border-radius: 6px; }
     legend { font-weight: bold; padding: 0 0.5rem; }
     label { display: block; margin-top: 0.8rem; }
+    .form-group { margin-top: 1rem; }
     input, select, button { width: 100%; padding: 0.6rem; margin-top: 0.3rem; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem; }
     button { background: #007bff; color: #fff; border: none; cursor: pointer; transition: background 0.2s; }
     button:disabled { background: #aac; cursor: default; }
@@ -19,22 +21,22 @@
     .list-item { position: relative; border: 1px solid #ccc; padding: 1rem; margin-bottom: 0.7rem; background: #fff; border-radius: 4px; opacity: 0; transition: opacity 0.3s ease-in; }
     .list-item.visible { opacity: 1; }
     .remove-btn { position: absolute; top: 0.5rem; right: 0.5rem; cursor: pointer; color: #c00; font-weight: bold; }
-    pre { background: #eef; padding: 1rem; border-radius: 4px; overflow-x: auto; white-space: pre-wrap; }
-    /* 토글 스위치 */
+    pre { background: #eef; padding: 1rem; border-radius: 4px; overflow-x: auto; white-space: pre-wrap; margin-top: 1rem; }
+    /* 토글 스위치 스타일 */
     .switch { position: relative; display: inline-block; width: 50px; height: 26px; margin-right: 0.5rem; vertical-align: middle; }
     .switch input { opacity: 0; width: 0; height: 0; }
     .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .2s; border-radius: 26px; }
     .slider:before { position: absolute; content: ""; height: 22px; width: 22px; left: 2px; bottom: 2px; background-color: white; transition: .2s; border-radius: 50%; }
     .switch input:checked + .slider { background-color: #4CAF50; }
     .switch input:checked + .slider:before { transform: translateX(24px); }
-    .toggle-label { display: inline-flex; align-items: center; font-size: 0.95rem; margin-right: 1rem; margin-top: 0.5rem; }
+    .toggle-label { display: inline-flex; align-items: center; font-size: 0.95rem; margin: 1rem 0; }
   </style>
 </head>
 <body>
 
   <h1>eformsign 문서 전송</h1>
 
-  <!-- Access Token 발급 -->
+  <!-- Access Token 발급 섹션 -->
   <fieldset>
     <legend>Access Token 발급</legend>
     <label>환경 선택:
@@ -65,7 +67,7 @@
     </label>
   </fieldset>
 
-  <!-- 문서 전송 폼 -->
+  <!-- 문서 전송 폼 섹션 -->
   <form id="docForm">
     <fieldset>
       <legend>문서 설정</legend>
@@ -109,20 +111,29 @@
       <button type="button" id="addNotify">+ 알림 추가</button>
     </fieldset>
 
-    <button type="submit">문서 전송하기</button>
-    <label style="margin-top:1rem;">
-      <input type="checkbox" id="showRequestBody"/> 요청용 Request body 보기
-    </label>
+    <div class="form-group">
+      <button type="submit">문서 전송하기</button>
+    </div>
+
+    <!-- 요청용 Request body 보기 토글 (토글 스위치 형태) -->
+    <div class="toggle-label">
+      <label class="switch">
+        <input type="checkbox" id="showRequestBody"/>
+        <span class="slider"></span>
+      </label>
+      요청용 Request body 보기
+    </div>
     <pre id="requestBody" style="display:none;"></pre>
   </form>
 
   <h2>응답 결과</h2>
   <pre id="result">—</pre>
 
-  <!-- 수신자 템플릿 -->
+  <!-- ===== 템플릿 블록들 ===== -->
   <template id="tpl-recipient">
     <div class="list-item">
       <span class="remove-btn">✕</span>
+      <!-- 단계 타입 선택 -->
       <label>단계 타입:
         <select name="step_type" required>
           <option value="05">05: 참여자</option>
@@ -130,34 +141,22 @@
           <option value="07">07: 열람자</option>
         </select>
       </label>
+      <!-- 메일/SMS 알림 토글 -->
       <div class="toggle-label">
-        <label class="switch">
-          <input type="checkbox" name="use_mail"><span class="slider"></span>
-        </label>메일 알림
+        <label class="switch"><input type="checkbox" name="use_mail"><span class="slider"></span></label>메일 알림
       </div>
       <div class="toggle-label">
-        <label class="switch">
-          <input type="checkbox" name="use_sms"><span class="slider"></span>
-        </label>SMS 알림
+        <label class="switch"><input type="checkbox" name="use_sms"><span class="slider"></span></label>SMS 알림
       </div>
-      <label>ID / 이메일:
-        <input name="member_id" placeholder="ID 또는 이메일"/>
-      </label>
-      <label>이름:
-        <input name="member_name" placeholder="이름"/>
-      </label>
-      <label>국가코드:
-        <input name="country_code" placeholder="+82"/>
-      </label>
-      <label>번호:
-        <input name="phone_number" placeholder="01012345678"/>
-      </label>
-      <label>비밀번호:
-        <input name="auth_pwd" placeholder="비밀번호"/>
-      </label>
-      <label>비밀번호 힌트:
-        <input name="auth_pwd_hint" placeholder="비밀번호 힌트"/>
-      </label>
+      <!-- 수신자 정보 -->
+      <label>ID / 이메일:<input name="member_id" placeholder="ID 또는 이메일"/></label>
+      <label>이름:<input name="member_name" placeholder="이름"/></label>
+      <label>국가코드:<input name="country_code" placeholder="+82"/></label>
+      <label>번호:<input name="phone_number" placeholder="01012345678"/></label>
+      <!-- 인증 정보 -->
+      <label>비밀번호:<input name="auth_pwd" placeholder="비밀번호"/></label>
+      <label>비밀번호 힌트:<input name="auth_pwd_hint" placeholder="비밀번호 힌트"/></label>
+      <!-- 문서 열람 기한 설명 -->
       <h3>문서 열람 기한</h3>
       <h5>수신자가 문서를 열람할 수 있는 기한을 설정합니다.</h5>
       <label>
@@ -165,17 +164,12 @@
         <input name="valid_day" type="number" min="0" value="0" style="width:4rem;display:inline-block;"/> 일
         <input name="valid_hour" type="number" min="0" max="23" value="0" style="width:4rem;display:inline-block;margin-left:1rem;"/> 시간까지
       </label>
-      <h5>
-        0시간으로 설정하면 문서 열람 기한이 없습니다.<br>
-        단, 수신자가 멤버가 아닌 경우 최대 50일까지 설정할 수 있습니다.
-      </h5>
-      <label>그룹 ID:
-        <input name="group_id" placeholder="그룹 ID"/>
-      </label>
+      <h5>0시간으로 설정하면 문서 열람 기한이 없습니다.<br>단, 수신자가 멤버가 아닌 경우 최대 50일까지 설정할 수 있습니다.</h5>
+      <!-- 그룹 아이디 (선택) -->
+      <label>그룹 ID:<input name="group_id" placeholder="그룹 ID"/></label>
     </div>
   </template>
 
-  <!-- 필드 템플릿 -->
   <template id="tpl-field">
     <div class="list-item"><span class="remove-btn">✕</span>
       <label>필드 ID:<input name="field_id" required/></label>
@@ -183,7 +177,6 @@
     </div>
   </template>
 
-  <!-- 파라미터 템플릿 -->
   <template id="tpl-param">
     <div class="list-item"><span class="remove-btn">✕</span>
       <label>파라미터 ID:<input name="param_id" required/></label>
@@ -191,7 +184,6 @@
     </div>
   </template>
 
-  <!-- 알림 템플릿 -->
   <template id="tpl-notify">
     <div class="list-item"><span class="remove-btn">✕</span>
       <label>이름:<input name="notify_name" required/></label>
@@ -204,9 +196,10 @@
     </div>
   </template>
 
+  <!-- JS 라이브러리 -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jsrsasign/10.5.25/jsrsasign-all-min.js"></script>
   <script>
-    // URL 맵
+    // 환경에 따른 API 엔드포인트 매핑
     const tokenUrlMap = {
       op_saas: 'https://kr-api.eformsign.com/v2.0/api_auth/access_token',
       csap:    'https://www.gov-eformsign.com/Service/v2.0/api_auth/access_token'
@@ -216,9 +209,10 @@
       csap:    'https://www.gov-eformsign.com/Service/v2.0/api'
     };
 
+    // 마지막 생성된 Request Body를 저장
     let lastRequestBody = null;
 
-    // Secret method label switch
+    // 비밀 키 방식 변경 시 label과 placeholder 업데이트
     document.getElementById('secretMethod').addEventListener('change', () => {
       const m = document.getElementById('secretMethod').value;
       const lbl = document.getElementById('secretLabel');
@@ -232,10 +226,11 @@
       }
     });
 
-    // Access Token 발급
+    // ─────────────── Access Token 발급 로직 ───────────────
     document.getElementById('btnGetToken').addEventListener('click', async () => {
       const btn = document.getElementById('btnGetToken');
-      btn.disabled = true; btn.textContent = '로딩 중...';
+      btn.disabled = true;
+      btn.textContent = '로딩 중...';
       document.getElementById('tokenMsg').textContent = '';
 
       const env    = document.getElementById('envSelection').value;
@@ -243,9 +238,11 @@
       const secret = document.getElementById('privateKeyHex').value.trim();
       const userId = document.getElementById('userIdToken').value.trim();
 
+      // 필수 입력 검증
       if (!apiKey || !secret || !userId) {
         document.getElementById('tokenMsg').textContent = '모든 필드를 입력해주세요.';
-        btn.disabled = false; btn.textContent = 'Access Token 발급';
+        btn.disabled = false;
+        btn.textContent = 'Access Token 발급';
         return;
       }
 
@@ -253,22 +250,27 @@
       const execTime = Date.now().toString();
       let signature = '';
 
+      // Signature 방식일 경우 서명 생성
       if (document.getElementById('secretMethod').value === 'signature') {
         try {
           const key = KEYUTIL.getKeyFromPlainPrivatePKCS8Hex(secret);
           const sig = new KJUR.crypto.Signature({ alg: 'SHA256withECDSA' });
-          sig.init(key); sig.updateString(execTime);
+          sig.init(key);
+          sig.updateString(execTime);
           signature = sig.sign();
         } catch {
           document.getElementById('tokenMsg').textContent = '비밀 키가 잘못되었습니다.';
-          btn.disabled = false; btn.textContent = 'Access Token 발급';
+          btn.disabled = false;
+          btn.textContent = 'Access Token 발급';
           return;
         }
       } else {
+        // Bearer token 방식
         signature = 'Bearer ' + secret;
       }
 
       try {
+        // 토큰 API 호출
         const res = await fetch(url, {
           method: 'POST',
           headers: {
@@ -276,52 +278,61 @@
             'Authorization': 'Bearer ' + btoa(apiKey),
             'eformsign_signature': signature
           },
-          body: JSON.stringify({ execution_time: parseInt(execTime), member_id: userId })
+          body: JSON.stringify({
+            execution_time: parseInt(execTime),
+            member_id: userId
+          })
         });
-        const text = await res.text();
-        let data;
-        try { data = JSON.parse(text); }
-        catch { throw new Error(`응답 파싱 실패 – ${text}`); }
+        const txt = await res.text();
+        const data = JSON.parse(txt || '{}');
 
+        // HTTP 또는 API 오류 처리
         if (!res.ok) {
           const code = data.code || res.status;
           const msg  = data.ErrorMessage || res.statusText;
           throw new Error(`${code}: ${msg}`);
         }
+        // access_token 유효성 검사
         if (!data.oauth_token?.access_token) {
           const code = data.code || 'UNKNOWN';
           const msg  = data.ErrorMessage || 'access_token 없음';
           throw new Error(`${code}: ${msg}`);
         }
 
+        // 성공 시 토큰 저장
         document.getElementById('accessToken').value = data.oauth_token.access_token;
         document.getElementById('tokenMsg').textContent = '토큰 발급 성공';
       } catch (e) {
         document.getElementById('tokenMsg').textContent = `발급 오류: ${e.message}`;
       } finally {
-        btn.disabled = false; btn.textContent = 'Access Token 발급';
+        btn.disabled = false;
+        btn.textContent = 'Access Token 발급';
       }
     });
 
-    // Template 조회
+    // ─────────────── 템플릿 정보 조회 로직 ───────────────
     document.getElementById('loadTemplate').addEventListener('click', async () => {
-      const btn = document.getElementById('loadTemplate');
-      btn.disabled = true; btn.textContent = '로딩 중...';
+      const btn   = document.getElementById('loadTemplate');
       const msgEl = document.getElementById('templateMsg');
+      btn.disabled = true;
+      btn.textContent = '로딩 중...';
       msgEl.textContent = '';
 
-      const token = document.getElementById('accessToken').value.trim();
+      const token      = document.getElementById('accessToken').value.trim();
       const templateId = document.getElementById('templateId').value.trim();
-      const env = document.getElementById('envSelection').value;
+      const env        = document.getElementById('envSelection').value;
 
+      // 토큰 및 템플릿 ID 검증
       if (!token) {
         msgEl.textContent = '먼저 Access Token을 발급받아주세요.';
-        btn.disabled = false; btn.textContent = '템플릿 정보 조회';
+        btn.disabled = false;
+        btn.textContent = '템플릿 정보 조회';
         return;
       }
       if (!templateId) {
         msgEl.textContent = 'Template ID를 입력하세요.';
-        btn.disabled = false; btn.textContent = '템플릿 정보 조회';
+        btn.disabled = false;
+        btn.textContent = '템플릿 정보 조회';
         return;
       }
 
@@ -335,53 +346,53 @@
           },
           body: JSON.stringify({ type: 'api', template_id: templateId })
         });
-        const txt = await resp.text();
-        let json;
-        try { json = JSON.parse(txt || '{}'); }
-        catch { throw new Error(`응답 파싱 실패 – ${txt}`); }
+        const txt  = await resp.text();
+        const json = JSON.parse(txt || '{}');
 
+        // 에러 응답 처리
         if (!resp.ok) {
           const code = json.code || resp.status;
-          const em = json.ErrorMessage || resp.statusText;
+          const em   = json.ErrorMessage || resp.statusText;
           throw new Error(`${code}: ${em}`);
         }
+
         const doc = json.document;
         if (!doc) throw new Error('문서 정보 없음');
 
-        // fill 문서명/코멘트
-        document.getElementById('docName').value = doc.document_name || '';
-        document.getElementById('docComment').value = doc.comment || '';
+        // 문서명·코멘트 자동 채우기
+        document.getElementById('docName').value    = doc.document_name || '';
+        document.getElementById('docComment').value = doc.comment        || '';
 
-        // fields
+        // fields 초기화 및 추가
         const fldEl = document.getElementById('fields');
         fldEl.innerHTML = '';
         doc.fields.forEach(f => {
           const frag = document.getElementById('tpl-field').content.cloneNode(true);
-          const it = frag.querySelector('.list-item');
-          it.querySelector('[name=field_id]').value = f.id;
+          const it   = frag.querySelector('.list-item');
+          it.querySelector('[name=field_id]').value    = f.id;
           it.querySelector('[name=field_value]').value = f.value || '';
           setupRemove(it);
           fldEl.appendChild(it);
           requestAnimationFrame(() => it.classList.add('visible'));
         });
 
-        // recipients
+        // recipients 초기화 및 추가
         const recEl = document.getElementById('recipients');
         recEl.innerHTML = '';
         doc.recipients.forEach(r => {
           const frag = document.getElementById('tpl-recipient').content.cloneNode(true);
-          const it = frag.querySelector('.list-item');
-          it.querySelector('[name=step_type]').value = r.step_type;
-          it.querySelector('[name=use_mail]').checked = !!r.use_mail;
-          it.querySelector('[name=use_sms]').checked = !!r.use_sms;
-          it.querySelector('[name=member_id]').value = r.member.id || '';
-          it.querySelector('[name=member_name]').value = r.member.name || '';
-          it.querySelector('[name=country_code]').value = r.member.sms.country_code || '';
-          it.querySelector('[name=phone_number]').value = r.member.sms.phone_number || '';
-          it.querySelector('[name=auth_pwd]').value = r.auth.password || '';
+          const it   = frag.querySelector('.list-item');
+          it.querySelector('[name=step_type]').value     = r.step_type;
+          it.querySelector('[name=use_mail]').checked    = !!r.use_mail;
+          it.querySelector('[name=use_sms]').checked     = !!r.use_sms;
+          it.querySelector('[name=member_id]').value     = r.member.id || '';
+          it.querySelector('[name=member_name]').value   = r.member.name || '';
+          it.querySelector('[name=country_code]').value  = r.member.sms.country_code || '';
+          it.querySelector('[name=phone_number]').value  = r.member.sms.phone_number || '';
+          it.querySelector('[name=auth_pwd]').value      = r.auth.password || '';
           it.querySelector('[name=auth_pwd_hint]').value = r.auth.password_hint || '';
-          it.querySelector('[name=valid_day]').value = r.auth.valid.day;
-          it.querySelector('[name=valid_hour]').value = r.auth.valid.hour;
+          it.querySelector('[name=valid_day]').value     = r.auth.valid.day;
+          it.querySelector('[name=valid_hour]').value    = r.auth.valid.hour;
           setupRemove(it);
           recEl.appendChild(it);
           requestAnimationFrame(() => it.classList.add('visible'));
@@ -391,28 +402,32 @@
       } catch (e) {
         document.getElementById('templateMsg').textContent = e.message;
       } finally {
-        btn.disabled = false; btn.textContent = '템플릿 정보 조회';
+        btn.disabled = false;
+        btn.textContent = '템플릿 정보 조회';
       }
     });
 
+    // ─────────────── 동적 리스트 추가/삭제 헬퍼 ───────────────
     function setupRemove(item) {
+      // 각 항목의 삭제 버튼에 이벤트 바인딩
       item.querySelector('.remove-btn').addEventListener('click', () => item.remove());
     }
-    function setupList(cid, tid, btnId) {
+    function setupList(containerId, tplId, btnId) {
+      // 리스트 항목 추가 버튼에 공통 로직 적용
       document.getElementById(btnId).addEventListener('click', () => {
-        const frag = document.getElementById(tid).content.cloneNode(true);
-        const it = frag.querySelector('.list-item');
+        const frag = document.getElementById(tplId).content.cloneNode(true);
+        const it   = frag.querySelector('.list-item');
         setupRemove(it);
-        document.getElementById(cid).appendChild(it);
+        document.getElementById(containerId).appendChild(it);
         requestAnimationFrame(() => it.classList.add('visible'));
       });
     }
-    setupList('recipients', 'tpl-recipient', 'addRecipient');
-    setupList('fields', 'tpl-field', 'addField');
-    setupList('params', 'tpl-param', 'addParam');
-    setupList('notifications', 'tpl-notify', 'addNotify');
+    setupList('recipients','tpl-recipient','addRecipient');
+    setupList('fields','tpl-field','addField');
+    setupList('params','tpl-param','addParam');
+    setupList('notifications','tpl-notify','addNotify');
 
-    // Request body 토글
+    // ─────────────── Request Body 보기 토글 ───────────────
     document.getElementById('showRequestBody').addEventListener('change', function() {
       const el = document.getElementById('requestBody');
       if (this.checked && lastRequestBody) {
@@ -423,9 +438,10 @@
       }
     });
 
-    // 문서 전송
+    // ─────────────── 문서 전송 로직 ───────────────
     document.getElementById('docForm').addEventListener('submit', async e => {
       e.preventDefault();
+
       const env      = document.getElementById('envSelection').value;
       const apiBase  = apiBaseMap[env];
       const tokenVal = document.getElementById('accessToken').value.trim();
@@ -434,13 +450,14 @@
         return;
       }
 
+      // Request body 조립
       const body = { document: {
         document_name: document.getElementById('docName').value || undefined,
         comment:       document.getElementById('docComment').value || undefined,
         recipients: [], fields: [], parameters: [], notification: []
       }};
 
-      // recipients
+      // recipients 배열 채우기
       document.querySelectorAll('#recipients .list-item').forEach(el => {
         const rec = { step_type: el.querySelector('[name=step_type]').value };
         rec.use_mail = el.querySelector('[name=use_mail]').checked;
@@ -459,8 +476,8 @@
             password:      el.querySelector('[name=auth_pwd]').value,
             password_hint: el.querySelector('[name=auth_pwd_hint]').value,
             valid: {
-              day:  parseInt(el.querySelector('[name=valid_day]').value)||0,
-              hour: parseInt(el.querySelector('[name=valid_hour]').value)||0
+              day:  parseInt(el.querySelector('[name=valid_day]').value)  || 0,
+              hour: parseInt(el.querySelector('[name=valid_hour]').value) || 0
             }
           };
         }
@@ -469,23 +486,19 @@
         body.document.recipients.push(rec);
       });
 
-      // fields
+      // fields, parameters, notifications도 동일한 패턴으로 채움
       document.querySelectorAll('#fields .list-item').forEach(el => {
         body.document.fields.push({
           id:    el.querySelector('[name=field_id]').value,
           value: el.querySelector('[name=field_value]').value
         });
       });
-
-      // parameters
       document.querySelectorAll('#params .list-item').forEach(el => {
         body.document.parameters.push({
           id:    el.querySelector('[name=param_id]').value,
           value: el.querySelector('[name=param_value]').value
         });
       });
-
-      // notifications
       document.querySelectorAll('#notifications .list-item').forEach(el => {
         const n = {
           name:  el.querySelector('[name=notify_name]').value,
@@ -497,15 +510,15 @@
           auth: {
             password: el.querySelector('[name=notify_pwd]').value,
             valid: {
-              day:  parseInt(el.querySelector('[name=notify_day]').value)||0,
-              hour: parseInt(el.querySelector('[name=notify_hour]').value)||0
+              day:  parseInt(el.querySelector('[name=notify_day]').value)  || 0,
+              hour: parseInt(el.querySelector('[name=notify_hour]').value)|| 0
             }
           }
         };
         body.document.notification.push(n);
       });
 
-      // 저장 & 표시
+      // Request body 저장 및 화면 표시
       lastRequestBody = body;
       if (document.getElementById('showRequestBody').checked) {
         const el = document.getElementById('requestBody');
@@ -513,9 +526,9 @@
         el.style.display = 'block';
       }
 
+      // API 호출
       const url = `${apiBase}/documents?template_id=${encodeURIComponent(document.getElementById('templateId').value)}`;
       document.getElementById('result').textContent = '전송 중...';
-
       try {
         const res  = await fetch(url, {
           method: 'POST',
