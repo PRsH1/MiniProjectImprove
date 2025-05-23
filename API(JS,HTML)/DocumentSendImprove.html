@@ -79,6 +79,10 @@
       <div class="info-text">
         *템플릿 ID로 템플릿 정보 조회 시 해당 템플릿에 세팅된 수신자 및 필드를 자동으로 채웁니다.
       </div>
+      <!-- 여기에 "Response된 data 보기" 버튼과 pre를 추가할 컨테이너 -->
+      <div id="templateActions" class="form-group"></div>
+      <pre id="templateResponse" style="display:none;"></pre>
+
       <label>문서 제목 (<code>document_name</code>):
         <input type="text" id="docName" placeholder="문서 제목"/>
       </label>
@@ -115,7 +119,7 @@
       <button type="submit">문서 전송하기</button>
     </div>
 
-    <!-- 요청용 Request body 보기 토글 (토글 스위치 형태) -->
+    <!-- 요청용 Request body 보기 토글 -->
     <div class="toggle-label">
       <label class="switch">
         <input type="checkbox" id="showRequestBody"/>
@@ -199,7 +203,7 @@
   <!-- JS 라이브러리 -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jsrsasign/10.5.25/jsrsasign-all-min.js"></script>
   <script>
-    // 환경에 따른 API 엔드포인트 매핑
+    // 환경별 엔드포인트 맵
     const tokenUrlMap = {
       op_saas: 'https://kr-api.eformsign.com/v2.0/api_auth/access_token',
       csap:    'https://www.gov-eformsign.com/Service/v2.0/api_auth/access_token'
@@ -209,48 +213,49 @@
       csap:    'https://www.gov-eformsign.com/Service/v2.0/api'
     };
 
-    // 마지막 생성된 Request Body를 저장
-    let lastRequestBody = null;
+    let lastRequestBody      = null;
+    let lastTemplateResponse = null;  // 템플릿 조회 응답 저장
 
-    // 비밀 키 방식 변경 시 label과 placeholder 업데이트
+    // 비밀 키 방식 전환 시 placeholder 갱신
     document.getElementById('secretMethod').addEventListener('change', () => {
-      const m = document.getElementById('secretMethod').value;
+      const m   = document.getElementById('secretMethod').value;
       const lbl = document.getElementById('secretLabel');
       const inp = document.getElementById('privateKeyHex');
       if (m === 'signature') {
         lbl.firstChild.textContent = 'Secret Key (Hex):';
-        inp.placeholder = '프라이빗 키(HEX) 입력';
+        inp.placeholder            = '프라이빗 키(HEX) 입력';
       } else {
         lbl.firstChild.textContent = 'Bearer Token:';
-        inp.placeholder = 'Bearer Token 입력';
+        inp.placeholder            = 'Bearer Token 입력';
       }
     });
 
-    // ─────────────── Access Token 발급 로직 ───────────────
+    // ───────────── Access Token 발급 로직 ─────────────
     document.getElementById('btnGetToken').addEventListener('click', async () => {
-      const btn = document.getElementById('btnGetToken');
+      const btn    = document.getElementById('btnGetToken');
+      const tokenMsg = document.getElementById('tokenMsg');
       btn.disabled = true;
       btn.textContent = '로딩 중...';
-      document.getElementById('tokenMsg').textContent = '';
+      tokenMsg.textContent = '';
 
       const env    = document.getElementById('envSelection').value;
       const apiKey = document.getElementById('apiKey').value.trim();
       const secret = document.getElementById('privateKeyHex').value.trim();
       const userId = document.getElementById('userIdToken').value.trim();
 
-      // 필수 입력 검증
+      // 입력 검증
       if (!apiKey || !secret || !userId) {
-        document.getElementById('tokenMsg').textContent = '모든 필드를 입력해주세요.';
+        tokenMsg.textContent = '모든 필드를 입력해주세요.';
         btn.disabled = false;
         btn.textContent = 'Access Token 발급';
         return;
       }
 
-      const url = tokenUrlMap[env];
+      const url      = tokenUrlMap[env];
       const execTime = Date.now().toString();
-      let signature = '';
+      let signature  = '';
 
-      // Signature 방식일 경우 서명 생성
+      // Signature 방식
       if (document.getElementById('secretMethod').value === 'signature') {
         try {
           const key = KEYUTIL.getKeyFromPlainPrivatePKCS8Hex(secret);
@@ -259,18 +264,17 @@
           sig.updateString(execTime);
           signature = sig.sign();
         } catch {
-          document.getElementById('tokenMsg').textContent = '비밀 키가 잘못되었습니다.';
+          tokenMsg.textContent = '비밀 키가 잘못되었습니다.';
           btn.disabled = false;
           btn.textContent = 'Access Token 발급';
           return;
         }
       } else {
-        // Bearer token 방식
+        // Bearer 방식
         signature = 'Bearer ' + secret;
       }
 
       try {
-        // 토큰 API 호출
         const res = await fetch(url, {
           method: 'POST',
           headers: {
@@ -278,61 +282,58 @@
             'Authorization': 'Bearer ' + btoa(apiKey),
             'eformsign_signature': signature
           },
-          body: JSON.stringify({
-            execution_time: parseInt(execTime),
-            member_id: userId
-          })
+          body: JSON.stringify({ execution_time: parseInt(execTime), member_id: userId })
         });
-        const txt = await res.text();
+        const txt  = await res.text();
         const data = JSON.parse(txt || '{}');
 
-        // HTTP 또는 API 오류 처리
+        // 오류 처리
         if (!res.ok) {
           const code = data.code || res.status;
           const msg  = data.ErrorMessage || res.statusText;
           throw new Error(`${code}: ${msg}`);
         }
-        // access_token 유효성 검사
         if (!data.oauth_token?.access_token) {
           const code = data.code || 'UNKNOWN';
           const msg  = data.ErrorMessage || 'access_token 없음';
           throw new Error(`${code}: ${msg}`);
         }
 
-        // 성공 시 토큰 저장
         document.getElementById('accessToken').value = data.oauth_token.access_token;
-        document.getElementById('tokenMsg').textContent = '토큰 발급 성공';
+        tokenMsg.textContent = '토큰 발급 성공';
       } catch (e) {
-        document.getElementById('tokenMsg').textContent = `발급 오류: ${e.message}`;
+        tokenMsg.textContent = `발급 오류: ${e.message}`;
       } finally {
         btn.disabled = false;
         btn.textContent = 'Access Token 발급';
       }
     });
 
-    // ─────────────── 템플릿 정보 조회 로직 ───────────────
+    // ──────────── 템플릿 정보 조회 로직 ────────────
     document.getElementById('loadTemplate').addEventListener('click', async () => {
-      const btn   = document.getElementById('loadTemplate');
-      const msgEl = document.getElementById('templateMsg');
+      const btn    = document.getElementById('loadTemplate');
+      const msgEl  = document.getElementById('templateMsg');
+      const actEl  = document.getElementById('templateActions');
+      const respEl = document.getElementById('templateResponse');
       btn.disabled = true;
       btn.textContent = '로딩 중...';
       msgEl.textContent = '';
+      actEl.innerHTML = '';      // 이전 버튼 제거
+      respEl.style.display = 'none';
 
       const token      = document.getElementById('accessToken').value.trim();
       const templateId = document.getElementById('templateId').value.trim();
       const env        = document.getElementById('envSelection').value;
 
-      // 토큰 및 템플릿 ID 검증
+      // 사전 검증
       if (!token) {
         msgEl.textContent = '먼저 Access Token을 발급받아주세요.';
-        btn.disabled = false;
-        btn.textContent = '템플릿 정보 조회';
+        btn.disabled = false; btn.textContent = '템플릿 정보 조회';
         return;
       }
       if (!templateId) {
         msgEl.textContent = 'Template ID를 입력하세요.';
-        btn.disabled = false;
-        btn.textContent = '템플릿 정보 조회';
+        btn.disabled = false; btn.textContent = '템플릿 정보 조회';
         return;
       }
 
@@ -349,21 +350,21 @@
         const txt  = await resp.text();
         const json = JSON.parse(txt || '{}');
 
-        // 에러 응답 처리
         if (!resp.ok) {
           const code = json.code || resp.status;
           const em   = json.ErrorMessage || resp.statusText;
           throw new Error(`${code}: ${em}`);
         }
-
         const doc = json.document;
         if (!doc) throw new Error('문서 정보 없음');
 
-        // 문서명·코멘트 자동 채우기
+        // 저장
+        lastTemplateResponse = json;
+
+        // 화면 자동 채우기
         document.getElementById('docName').value    = doc.document_name || '';
         document.getElementById('docComment').value = doc.comment        || '';
 
-        // fields 초기화 및 추가
         const fldEl = document.getElementById('fields');
         fldEl.innerHTML = '';
         doc.fields.forEach(f => {
@@ -376,7 +377,6 @@
           requestAnimationFrame(() => it.classList.add('visible'));
         });
 
-        // recipients 초기화 및 추가
         const recEl = document.getElementById('recipients');
         recEl.innerHTML = '';
         doc.recipients.forEach(r => {
@@ -398,27 +398,35 @@
           requestAnimationFrame(() => it.classList.add('visible'));
         });
 
+        // “Response된 data 보기” 버튼 생성
+        const viewBtn = document.createElement('button');
+        viewBtn.type  = 'button';
+        viewBtn.textContent = 'Response된 data 보기';
+        viewBtn.addEventListener('click', () => {
+          respEl.textContent = JSON.stringify(lastTemplateResponse, null, 2);
+          respEl.style.display = respEl.style.display === 'block' ? 'none' : 'block';
+        });
+        actEl.appendChild(viewBtn);
+
         msgEl.textContent = '템플릿 정보 조회 성공';
       } catch (e) {
-        document.getElementById('templateMsg').textContent = e.message;
+        msgEl.textContent = e.message;
       } finally {
         btn.disabled = false;
         btn.textContent = '템플릿 정보 조회';
       }
     });
 
-    // ─────────────── 동적 리스트 추가/삭제 헬퍼 ───────────────
+    // 동적 리스트 추가/삭제 헬퍼
     function setupRemove(item) {
-      // 각 항목의 삭제 버튼에 이벤트 바인딩
       item.querySelector('.remove-btn').addEventListener('click', () => item.remove());
     }
-    function setupList(containerId, tplId, btnId) {
-      // 리스트 항목 추가 버튼에 공통 로직 적용
+    function setupList(cid, tid, btnId) {
       document.getElementById(btnId).addEventListener('click', () => {
-        const frag = document.getElementById(tplId).content.cloneNode(true);
+        const frag = document.getElementById(tid).content.cloneNode(true);
         const it   = frag.querySelector('.list-item');
         setupRemove(it);
-        document.getElementById(containerId).appendChild(it);
+        document.getElementById(cid).appendChild(it);
         requestAnimationFrame(() => it.classList.add('visible'));
       });
     }
@@ -427,7 +435,7 @@
     setupList('params','tpl-param','addParam');
     setupList('notifications','tpl-notify','addNotify');
 
-    // ─────────────── Request Body 보기 토글 ───────────────
+    // Request Body 보기 토글
     document.getElementById('showRequestBody').addEventListener('change', function() {
       const el = document.getElementById('requestBody');
       if (this.checked && lastRequestBody) {
@@ -438,7 +446,7 @@
       }
     });
 
-    // ─────────────── 문서 전송 로직 ───────────────
+    // 문서 전송 로직
     document.getElementById('docForm').addEventListener('submit', async e => {
       e.preventDefault();
 
@@ -486,7 +494,7 @@
         body.document.recipients.push(rec);
       });
 
-      // fields, parameters, notifications도 동일한 패턴으로 채움
+      // fields, parameters, notifications 채우기
       document.querySelectorAll('#fields .list-item').forEach(el => {
         body.document.fields.push({
           id:    el.querySelector('[name=field_id]').value,
@@ -510,15 +518,15 @@
           auth: {
             password: el.querySelector('[name=notify_pwd]').value,
             valid: {
-              day:  parseInt(el.querySelector('[name=notify_day]').value)  || 0,
-              hour: parseInt(el.querySelector('[name=notify_hour]').value)|| 0
+              day:  parseInt(el.querySelector('[name=notify_DAY]').value)||0,
+              hour: parseInt(el.querySelector('[name=notify_hour]').value)||0
             }
           }
         };
         body.document.notification.push(n);
       });
 
-      // Request body 저장 및 화면 표시
+      // Request body 저장
       lastRequestBody = body;
       if (document.getElementById('showRequestBody').checked) {
         const el = document.getElementById('requestBody');
