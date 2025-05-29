@@ -391,16 +391,22 @@ $('#toggleActionSwitch').prop('checked', false).trigger('change');
         alert("문서 생성 실패\n 코드: " + response.code + "\n 메시지:" + response.message);
       };
 
-      var action_callback = function (response) {
-        var actions = Array.isArray(response.data) ? response.data : [response.data];
-        actions.forEach(function (action) {
-          var btn = $('#btn_' + action.code);
-          if (btn.length) {
-            btn.text(action.name).attr('title', action.name).show();
-          }
-        });
-        console.log("Actions:", actions);
-      };
+      var action_callback = function(response) {
+  // 1) 우선 모든 버튼을 숨긴다
+  $('#buttonList button').hide();
+
+  // 2) 서버에서 받은 액션 배열을 순회하며, 해당 버튼만 show()
+  var actions = Array.isArray(response.data) ? response.data : [response.data];
+  actions.forEach(function(action) {
+    var btn = $('#btn_' + action.code);
+    if (btn.length) {
+      btn
+        .text(action.name)
+        .attr('title', action.name)
+        .show();
+    }
+  });
+};
 
       eformsign.document(document_option, "eformsign_iframe",
         success_callback, error_callback, action_callback
