@@ -369,10 +369,10 @@
           company: { id: company_id, country_code: $("#company_country_code").val() || "kr" },
           user: { id: $("#user_id").val(), access_token: access_token, refresh_token: refresh_token },
           mode: {
-            type: $("#mode_type").val(),
-            template_type: $("#template_type").val(),
-            template_id: $("#template_id").val() || ""
-          },
+  			type: $("#mode_type").val(),
+  			template_type: $("#templateTypeSelect").val(),
+  			template_id: $("#template_id").val() || ""
+		},
           layout: { lang_code: "ko", header: true, footer: true },
           prefill: { template_name: $("#template_name").val(), step_settings: stepSettings },
           template_file: {
@@ -390,16 +390,22 @@
         };
 
         // Action callback
-        var action_callback = function (response) {
-        var actions = Array.isArray(response.data) ? response.data : [response.data];
-        actions.forEach(function (action) {
-          var btn = $('#btn_' + action.code);
-          if (btn.length) {
-            btn.text(action.name).attr('title', action.name).show();
-          }
-        });
-        console.log("Actions:", actions);
-      };
+        var action_callback = function(response) {
+  // 1) 우선 모든 버튼을 숨긴다
+  $('#buttonList button').hide();
+
+  // 2) 서버에서 받은 액션 배열을 순회하며, 해당 버튼만 show()
+  var actions = Array.isArray(response.data) ? response.data : [response.data];
+  actions.forEach(function(action) {
+    var btn = $('#btn_' + action.code);
+    if (btn.length) {
+      btn
+        .text(action.name)
+        .attr('title', action.name)
+        .show();
+    }
+  });
+};
         eformsign.template(opts, "eformsign_iframe", success, error, action_callback);
         eformsign.open();
       });
@@ -543,10 +549,15 @@ function removeStepSetting(button) {
       <input type="text" id="refresh_token" readonly />
 
       <h3>Mode</h3>
-      <label>Type (01:생성,02:수정,03:복제,04:비정형):</label>
+      <label>Type (01:생성,02:수정,03:복제,04:미리보기):</label>
       <input type="text" id="mode_type" placeholder="01" required />
-      <label>Template Type:</label>
-      <input type="text" id="template_type" placeholder="form" required />
+	   <div class="form-group-horizontal">
+		   <label for="templateTypeSelect">Template Type:</label>
+		   <select id="templateTypeSelect" required>
+		     <option value="form">템플릿 (form)</option>
+		     <option value="unstructured_form">내 파일로 문서 작성 (unstructured_form)</option>
+		   </select>
+		 </div>
 
       <div id="template_id_section">
         <h3>Template ID</h3>
