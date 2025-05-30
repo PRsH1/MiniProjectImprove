@@ -1,16 +1,17 @@
 <!DOCTYPE html>
-<html>
-
+<html lang="ko">
 <head>
-  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
   <title>템플릿으로 문서 작성, 수정, 미리보기</title>
 
+  <!-- 라이브러리 -->
   <script src="https://www.eformsign.com/plugins/jquery/jquery.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jsrsasign/8.0.20/jsrsasign-all-min.js"></script>
   <script src="https://www.eformsign.com/lib/js/efs_embedded_v2.js"></script>
 
   <style>
+    /* 기본 레이아웃 */
     body {
       font-family: Arial, sans-serif;
       background-color: #eef2f7;
@@ -21,347 +22,219 @@
       height: 100vh;
       box-sizing: border-box;
     }
-
-    h2 {
-      text-align: center;
-      color: #333;
-      margin-bottom: 20px;
-      font-size: 1.5em;
-    }
-
-    .left-panel,
-    .right-panel {
+    .left-panel, .right-panel {
       padding: 20px;
-      background: #ffffff;
+      background: #fff;
       border-radius: 8px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
       box-sizing: border-box;
     }
-
     .left-panel {
-      width: 45%;
-      overflow-y: auto;
-      margin-right: 5%;
+      width: 45%; overflow-y: auto; margin-right: 5%;
     }
-
     .right-panel {
-      width: 50%;
-      display: flex;
-      flex-direction: column;
+      width: 50%; display: flex; flex-direction: column;
     }
-
+    h2 {
+      text-align: center; color: #333; margin-bottom: 20px; font-size: 1.5em;
+    }
     .form-group {
-      margin-bottom: 15px;
-      display: flex;
-      flex-direction: column;
-      width: 100%;
+      margin-bottom: 15px; display: flex; flex-direction: column;
     }
-
     .form-group label {
-      font-weight: bold;
-      margin-bottom: 5px;
-      color: #555;
+      font-weight: bold; margin-bottom: 5px; color: #555;
     }
-
-    .form-group input,
-    .form-group select {
-      width: 100%;
-      padding: 10px;
-      font-size: 14px;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      transition: border-color 0.3s;
-      box-sizing: border-box;
+    .form-group input, .form-group select {
+      width: 100%; padding: 10px; font-size: 14px;
+      border: 1px solid #ccc; border-radius: 4px;
+      transition: border-color 0.3s; box-sizing: border-box;
     }
-
-    .form-group input:focus,
-    .form-group select:focus {
-      outline: none;
-      border-color: #007bff;
+    .form-group input:focus, .form-group select:focus {
+      outline: none; border-color: #007bff;
     }
-
     .btn {
-      width: 100%;
-      padding: 12px;
-      font-size: 16px;
-      font-weight: bold;
-      color: #ffffff;
-      background-color: #007bff;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      transition: background-color 0.3s ease;
-      margin-top: 10px;
+      width: 100%; padding: 12px; font-size: 16px;
+      font-weight: bold; color: #fff; background: #007bff;
+      border: none; border-radius: 4px; cursor: pointer;
+      transition: background 0.3s; margin-top: 10px;
     }
-
     .btn:hover {
-      background-color: #0056b3;
+      background: #0056b3;
     }
 
+    /* 액션 버튼 리스트 */
     #buttonList {
-      display: none;
-      flex-direction: row;
-      flex-wrap: wrap;
-      gap: 10px;
-      justify-content: center;
+      display: none; flex-wrap: wrap; gap: 10px; justify-content: center;
     }
-
     #buttonList button {
-      width: 100px;
-      height: 35px;
-      border-radius: 4px;
-      background-color: #6c757d;
-      color: #ffffff;
-      border: none;
-      cursor: pointer;
-      font-size: 14px;
-      display: none;
-      transition: background-color 0.3s;
+      width: 100px; height: 35px; border-radius: 4px;
+      background: #6c757d; color: #fff; border: none;
+      cursor: pointer; font-size: 14px; display: none;
+      transition: background 0.3s;
     }
-
     #buttonList button:hover {
-      background-color: #5a6268;
+      background: #5a6268;
     }
 
+    /* iframe */
     .iframe-title {
-      text-align: center;
-      font-weight: bold;
-      color: #444;
+      text-align: center; font-weight: bold; color: #444;
       margin-bottom: 10px;
     }
-
     .iframe-container {
-      flex: 1;
-      border: 2px solid #ddd;
-      border-radius: 8px;
-      overflow: hidden;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      flex: 1; border: 2px solid #ddd; border-radius: 8px;
+      overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.1);
     }
-
     iframe {
-      width: 100%;
-      height: 100%;
-      border: none;
+      width: 100%; height: 100%; border: none;
     }
 
-    @media only screen and (max-width: 768px) {
-      .left-panel,
-      .right-panel {
-        width: 100%;
-        margin: 0;
-      }
+    /* 추가 옵션 패널 */
+    #additionalOptions {
+      display: none; margin-top: 10px; padding: 15px;
+      background: #f8f9fa; border: 1px solid #ddd; border-radius: 6px;
     }
 
-    @media only screen and (max-width: 600px) {
-      .btn,
-      #buttonList button {
-        font-size: 14px;
-        padding: 10px;
-      }
-    }
-
+    /* 토글 스위치 */
     .switch {
-      position: relative;
-      display: inline-block;
-      width: 50px;
-      height: 24px;
-      vertical-align: middle;
+      position: relative; display: inline-block;
+      width: 50px; height: 24px; vertical-align: middle;
     }
-
     .switch input {
-      opacity: 0;
-      width: 0;
-      height: 0;
+      opacity: 0; width: 0; height: 0;
     }
-
     .slider {
-      position: absolute;
-      cursor: pointer;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background-color: #ccc;
-      transition: 0.4s;
-      border-radius: 24px;
+      position: absolute; cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: #ccc; transition: 0.4s; border-radius: 24px;
     }
-
     .slider:before {
-      position: absolute;
-      content: "";
-      height: 18px;
-      width: 18px;
-      left: 3px;
-      bottom: 3px;
-      background-color: white;
-      transition: 0.4s;
-      border-radius: 50%;
+      position: absolute; content: "";
+      height: 18px; width: 18px; left: 3px; bottom: 3px;
+      background-color: white; transition: 0.4s; border-radius: 50%;
     }
-
-    input:checked+.slider {
+    .switch input:checked + .slider {
       background-color: #007bff;
     }
-
-    input:checked+.slider:before {
+    .switch input:checked + .slider:before {
       transform: translateX(26px);
+    }
+
+    /* 반응형 */
+    @media (max-width: 768px) {
+      .left-panel, .right-panel {
+        width: 100%; margin: 0;
+      }
+    }
+    @media (max-width: 600px) {
+      .btn, #buttonList button {
+        font-size: 14px; padding: 10px;
+      }
     }
   </style>
 
-  <script type="text/javascript">
-    var rs = KJUR;
-    var execution_time = Date.now() + "";
-    console.log("Execution Time:", execution_time);
-    var eformsign, apiKey;
-
-    $(document).ready(function () {
-      eformsign = new EformSignDocument();
-
-      // 서버 URL 업데이트
-      $('#serverType').change(updateServerUrl);
-      $('#customServerUrl').on('input', updateServerUrl);
+  <script>
+    $(function(){
+      window.eformsign = new EformSignDocument();
+      $('#serverType').on('change input', updateServerUrl);
       updateServerUrl();
 
-      // 토큰 방식 select → 라벨/플레이스홀더 변경
-      $('#tokenMethodSelect').on('change', function () {
-        var method = $(this).val();
-        if (method === 'signature') {
+      $('#tokenMethodSelect').on('change', function(){
+        if(this.value === 'signature') {
           $('#secretKeyLabel').text('Private Key Hex:');
-          $('#privateKeyHex').attr('placeholder', '비밀키 입력');
+          $('#privateKeyHex').attr('placeholder','비밀키 입력');
         } else {
           $('#secretKeyLabel').text('Bearer Token:');
-          $('#privateKeyHex').attr('placeholder', 'Bearer 토큰 입력');
+          $('#privateKeyHex').attr('placeholder','Bearer 토큰 입력');
         }
       });
 
-      // 문서 ID 필드 토글
-      $('#modeTypeSelect').on('change', toggleDocumentIdField);
-      toggleDocumentIdField();
+      $('#modeTypeSelect').on('change', function(){
+        const v = this.value;
+        $('#docIdGroup')[ (v==='02'||v==='03') ? 'show':'hide' ]();
+      }).trigger('change');
 
-      // 액션 버튼 토글 스위치
-      $('#toggleActionSwitch').on('change', function () {
-        if (this.checked) {
-          $('#buttonList').css('display', 'flex');
-          $('#toggleActionLabel').text('Action 버튼 숨기기');
-        } else {
-          $('#buttonList').css('display', 'none');
-          $('#toggleActionLabel').text('Action 버튼 보이기');
-        }
-      });
-      $('#toggleActionSwitch').prop('checked', false).trigger('change');
+      $('#toggleOptionsBtn').click(()=>$('#additionalOptions').slideToggle());
+      $('#toggleActionSwitch').on('change', function(){
+        $('#buttonList').css('display', this.checked?'flex':'none');
+        $('#toggleActionLabel').text(this.checked?'Action 버튼 숨기기':'Action 버튼 보이기');
+      }).prop('checked', false).trigger('change');
 
-      // 토큰 발급
       $('#getTokenButton').click(getAccessToken);
-
-      // 문서 시작
-      $('#startButton').click(function () {
-        if (!$('#accessToken').val() || !$('#refreshToken').val()) {
-          alert("먼저 Access Token을 발급하세요.");
-          return;
-        }
-        startDocument();
-      });
+      $('#startButton').click(startDocument);
     });
 
-    function toggleDocumentIdField() {
-      var mode = $('#modeTypeSelect').val();
-      if (mode === '02' || mode === '03') {
-        $('#documentIdGroup').show();
-        $('#documentId').prop('required', true);
-      } else {
-        $('#documentIdGroup').hide();
-        $('#documentId').prop('required', false).val('');
-      }
+    let execution_time = '';
+    function updateServerUrl(){
+      const type = $('#serverType').val();
+      let url = '';
+      if(type==='public') url = 'https://www.gov-eformsign.com/Service/v2.0/api_auth/access_token';
+      else if(type==='custom') url = $('#customServerUrl').val();
+      else url = 'https://api.eformsign.com/v2.0/api_auth/access_token';
+      $('#selectedServerUrl').text(url||'URL을 입력하세요');
+      $('#customServerField').toggle(type==='custom');
     }
 
-    function getAccessToken() {
-      var method = $('#tokenMethodSelect').val();
-      execution_time = Date.now() + "";
-      console.log("Updated Execution Time:", execution_time);
+    function getAccessToken(){
+      execution_time = Date.now() + '';
+      const method = $('#tokenMethodSelect').val();
+      const apiKey = $('#apiKey').val();
+      const memberId = $('#userId').val();
+      const requestURL = $('#selectedServerUrl').text();
+      const body = { execution_time, member_id: memberId };
 
-      apiKey = $('#apiKey').val();
-      var user_id = $('#user_id').val();
-      var serverType = $('#serverType').val();
-      var requestURL = getApiUrl(serverType);
-
-      var requestBody = {
-        execution_time: execution_time,
-        member_id: user_id
-      };
-
-      var signatureValue;
-      if (method === 'signature') {
-        var privateKeyHex = $('#privateKeyHex').val();
-        var privateKey = KEYUTIL.getKeyFromPlainPrivatePKCS8Hex(privateKeyHex);
-        var s_sig = new rs.crypto.Signature({ alg: 'SHA256withECDSA' });
-        s_sig.init(privateKey);
-        s_sig.updateString(execution_time);
-        signatureValue = s_sig.sign();
+      let signatureValue;
+      if(method==='signature'){
+        const pk = KEYUTIL.getKeyFromPlainPrivatePKCS8Hex($('#privateKeyHex').val());
+        const sig = new KJUR.crypto.Signature({ alg: 'SHA256withECDSA' });
+        sig.init(pk); sig.updateString(execution_time);
+        signatureValue = sig.sign();
       } else {
-        var bearerInput = $('#privateKeyHex').val();
-        signatureValue = 'Bearer ' + bearerInput;
+        signatureValue = 'Bearer ' + $('#privateKeyHex').val();
       }
 
       $.ajax({
-        url: requestURL,
-        type: 'POST',
+        url: requestURL, type: 'POST',
         contentType: 'application/json; charset=UTF-8',
-        data: JSON.stringify(requestBody),
-        beforeSend: function (request) {
-          request.setRequestHeader('eformsign_signature', signatureValue);
-          request.setRequestHeader('Authorization', 'Bearer ' + btoa(apiKey));
+        data: JSON.stringify(body),
+        beforeSend: req=>{
+          req.setRequestHeader('eformsign_signature', signatureValue);
+          req.setRequestHeader('Authorization', 'Bearer '+btoa(apiKey));
         },
-        success: function (data) {
-          console.log("Access Token 발급 성공:", data);
+        success: data=>{
           $('#accessToken').val(data.oauth_token.access_token);
           $('#refreshToken').val(data.oauth_token.refresh_token);
           $('#companyId').val(data.api_key.company.company_id);
         },
-        error: function (jqXHR) {
-          var responseData = JSON.parse(jqXHR.responseText);
-          alert('발급 실패:\n코드: ' + responseData.code + '\n메시지: ' + responseData.ErrorMessage);
-          console.error("Error Data:", responseData);
+        error: xhr=>{
+          const r = JSON.parse(xhr.responseText);
+          alert(`발급 실패:\n코드:${r.code}\n메시지:${r.ErrorMessage}`);
         }
       });
     }
 
-    function getApiUrl(serverType) {
-      switch (serverType) {
-        case 'public':
-          return 'https://www.gov-eformsign.com/Service/v2.0/api_auth/access_token';
-        case 'custom':
-          return $('#customServerUrl').val();
-        default:
-          return 'https://api.eformsign.com/v2.0/api_auth/access_token';
+    function startDocument(){
+      if(!$('#accessToken').val()){
+        return alert('먼저 Access Token을 발급하세요.');
       }
-    }
-
-    function updateServerUrl() {
-      var serverType = $('#serverType').val();
-      var url = getApiUrl(serverType);
-      $('#selectedServerUrl').text(url || 'URL을 입력하세요');
-      if (serverType === 'custom') {
-        $('#customServerField').show();
-      } else {
-        $('#customServerField').hide();
-      }
-    }
-
-    function startDocument() {
-      window.actionTest = function(actionCode) {
-        eformsign.sendAction({ type: '01', code: actionCode });
-      }
-
-      var serverType = $('#serverType').val();
-      var domainUrl = getDomainUrl(serverType);
-
-      var document_option = {
+      const layoutOpts = {
+        lang_code: $('#layoutLang').val(),
+        header: $('#layoutHeader').is(':checked'),
+        footer: $('#layoutFooter').is(':checked'),
+        zoom: $('#layoutZoom').val(),
+        viewer_toolbar: {
+          'toolbar.save': $('#layoutSave').is(':checked'),
+          'toolbar.print': $('#layoutPrint').is(':checked')
+        }
+      };
+      const docOpt = {
         company: {
           id: $('#companyId').val(),
-          country_code: $('#countryCode').val() || "kr",
-          user_key: ""
+          country_code: $('#countryCode').val()||'kr',
+          user_key: ''
         },
         user: {
-          type: "01",
+          type: '01',
           id: $('#userId').val(),
           refresh_token: $('#refreshToken').val(),
           access_token: $('#accessToken').val()
@@ -369,50 +242,34 @@
         mode: {
           type: $('#modeTypeSelect').val(),
           template_id: $('#templateId').val(),
-          document_id: $('#documentId').val()
+          document_id: $('#documentId').val()||''
         },
-        layout: {
-          context_menu: "true"
+        layout: layoutOpts
+      };
+      console.log('User Input JSON:', JSON.stringify(docOpt, null,2));
+      eformsign.document(
+        docOpt,
+        'eformsign_iframe',
+        res=>{
+          $('#eformsign_iframe').attr('src','');
+          alert(`문서 작성 성공\n문서 ID:${res.document_id}\n문서 제목:${res.title}`);
+        },
+        err=>{
+          alert(`문서 생성 실패\n코드:${err.code}\n메시지:${err.message}`);
+        },
+        actions=>{
+          $('#buttonList button').hide();
+          const arr = Array.isArray(actions.data)?actions.data:[actions.data];
+          arr.forEach(a=>{
+            $(`#btn_${a.code}`).text(a.name).show();
+          });
         }
-      };
-
-      console.log("User Input JSON:", JSON.stringify(document_option, null, 2));
-
-      var success_callback = function (response) {
-        $('#eformsign_iframe').attr('src', '');
-        alert("문서 작성 성공\n문서 ID: " + response.document_id + "\n문서 제목: " + response.title);
-        console.log("Response:", response);
-      };
-
-      var error_callback = function (response) {
-        alert("문서 생성 실패\n 코드: " + response.code + "\n 메시지:" + response.message);
-      };
-
-      var action_callback = function(response) {
-        $('#buttonList button').hide();
-        var actions = Array.isArray(response.data) ? response.data : [response.data];
-        actions.forEach(function(action) {
-          var btn = $('#btn_' + action.code);
-          if (btn.length) {
-            btn.text(action.name).attr('title', action.name).show();
-          }
-        });
-      };
-
-      eformsign.document(document_option, "eformsign_iframe",
-        success_callback, error_callback, action_callback
       );
-      if (domainUrl) eformsign.setDomain(domainUrl);
       eformsign.open();
     }
 
-    function getDomainUrl(serverType) {
-      switch (serverType) {
-        case 'test': return 'https://test.eformsign.com';
-        case 'public': return 'https://www.gov-eformsign.com';
-        case 'custom': return $('#customServerUrl').val();
-        default: return '';
-      }
+    function actionTest(code){
+      eformsign.sendAction({ type: '01', code });
     }
   </script>
 </head>
@@ -421,135 +278,154 @@
   <div class="left-panel">
     <h2>템플릿으로 문서 작성, 수정, 미리보기</h2>
 
+    <!-- 서버 설정 -->
     <div class="form-group">
-      <label for="serverType">서버 유형:</label>
-      <span id="selectedServerUrl" style="margin-left: 10px; font-style: italic; color: #555;">
-        URL을 선택하세요
-      </span>
+      <label>서버 유형:</label>
+      <span id="selectedServerUrl" style="margin-left:10px;color:#555;font-style:italic"></span>
       <select id="serverType">
         <option value="default">기본 서버(SaaS)</option>
         <option value="public">공공 서버</option>
         <option value="custom">사용자 지정 서버</option>
       </select>
     </div>
-
-    <div class="form-group" id="customServerField" style="display: none;">
-      <label for="customServerUrl">사용자 지정 서버 URL:</label>
-      <input type="text" id="customServerUrl" placeholder="사용자 서버 URL 입력" />
+    <div class="form-group" id="customServerField">
+      <label>사용자 지정 서버 URL:</label>
+      <input id="customServerUrl" placeholder="https://your.server/v2.0/api_auth/access_token" />
     </div>
 
+    <!-- 인증 -->
     <div class="form-group">
-      <label for="tokenMethodSelect">토큰 발급 방식:</label>
+      <label>토큰 발급 방식:</label>
       <select id="tokenMethodSelect">
         <option value="signature">Signature 방식</option>
         <option value="bearer">Bearer 방식</option>
       </select>
     </div>
-
     <div class="form-group">
-      <label id="secretKeyLabel" for="privateKeyHex">Private Key Hex:</label>
-      <input type="text" id="privateKeyHex" placeholder="비밀키 입력" />
+      <label id="secretKeyLabel">Private Key Hex:</label>
+      <input id="privateKeyHex" placeholder="비밀키 입력" />
     </div>
-
     <div class="form-group">
-      <label for="apiKey">API Key:</label>
-      <input type="text" id="apiKey" placeholder="API Key 입력" />
+      <label>API Key:</label>
+      <input id="apiKey" placeholder="API Key 입력" />
     </div>
-
     <div class="form-group">
-      <label for="user_id">User ID:</label>
-      <input type="text" id="user_id" placeholder="User ID 입력" />
+      <label>멤버 ID (로그인용):</label>
+      <input id="userId" placeholder="이메일 등 식별자 입력" />
     </div>
+    <button id="getTokenButton" class="btn">Get Access Token</button>
 
-    <button type="button" id="getTokenButton" class="btn">Get Access Token</button>
+    <!-- 토큰 결과 -->
+    <div class="form-group"><label>Access Token:</label><input id="accessToken" readonly /></div>
+    <div class="form-group"><label>Refresh Token:</label><input id="refreshToken" readonly /></div>
+    <div class="form-group"><label>회사 ID:</label><input id="companyId" readonly /></div>
 
+    <!-- 문서 옵션 -->
     <div class="form-group">
-      <label for="accessToken">Access Token:</label>
-      <input type="text" id="accessToken" placeholder="발급된 Access Token" readonly />
+      <label>Country Code:</label>
+      <input id="countryCode" placeholder="기본 kr" />
     </div>
-
     <div class="form-group">
-      <label for="refreshToken">Refresh Token:</label>
-      <input type="text" id="refreshToken" placeholder="발급된 Refresh Token" readonly />
-    </div>
-
-    <div class="form-group">
-      <label for="companyId">회사 ID:</label>
-      <input type="text" id="companyId" placeholder="발급된 회사 ID" readonly />
-    </div>
-
-    <div class="form-group">
-      <label for="userId">멤버 ID:</label>
-      <input type="text" id="userId" placeholder="멤버 ID 입력" />
-    </div>
-
-    <div class="form-group">
-      <label for="countryCode">Country Code (기본값: kr):</label>
-      <input type="text" id="countryCode" placeholder="국가 코드 입력(기본값:kr)" />
-    </div>
-
-    <div class="form-group">
-      <label for="modeTypeSelect">Mode Type:</label>
+      <label>Mode Type:</label>
       <select id="modeTypeSelect">
         <option value="01">문서 작성 (01)</option>
         <option value="02">문서 처리 (02)</option>
         <option value="03">미리 보기 (03)</option>
       </select>
     </div>
-
-    <div class="form-group" id="documentIdGroup" style="display:none;">
-      <label for="documentId">문서 ID (Mode type 02,03일 경우 필수):</label>
-      <input type="text" id="documentId" placeholder="문서 ID 입력" />
-    </div>
-
     <div class="form-group">
-      <label for="templateId">템플릿 ID:</label>
-      <input type="text" id="templateId" placeholder="템플릿 ID 입력" />
+      <label>템플릿 ID:</label>
+      <input id="templateId" placeholder="템플릿 ID 입력" />
+    </div>
+    <div class="form-group" id="docIdGroup">
+      <label>문서 ID (Mode 02,03 필수):</label>
+      <input id="documentId" placeholder="문서 ID 입력" />
     </div>
 
-    <button type="button" id="startButton" class="btn">Start</button>
+    <!-- 추가 옵션 -->
+    <button id="toggleOptionsBtn" class="btn">추가 옵션 설정</button>
+    <div id="additionalOptions">
+      <div class="form-group">
+        <label>언어 (layout.lang_code):</label>
+        <select id="layoutLang">
+          <option value="ko">ko</option>
+          <option value="en">en</option>
+          <option value="ja">ja</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>상단바 표시</label>
+        <label class="switch">
+          <input type="checkbox" id="layoutHeader" checked />
+          <span class="slider"></span>
+        </label>
+      </div>
+      <div class="form-group">
+        <label>하단바 표시</label>
+        <label class="switch">
+          <input type="checkbox" id="layoutFooter" checked />
+          <span class="slider"></span>
+        </label>
+      </div>
+      <div class="form-group">
+        <label>줌 레벨 (layout.zoom):</label>
+        <input id="layoutZoom" value="1.0" placeholder="예: 0.5" />
+      </div>
+      <div class="form-group">
+        <label>저장 버튼 표시</label>
+        <label class="switch">
+          <input type="checkbox" id="layoutSave" checked />
+          <span class="slider"></span>
+        </label>
+      </div>
+      <div class="form-group">
+        <label>인쇄 버튼 표시</label>
+        <label class="switch">
+          <input type="checkbox" id="layoutPrint" checked />
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
+
+    <button id="startButton" class="btn">Start</button>
   </div>
 
   <div class="right-panel">
     <h2 class="iframe-title">문서 영역</h2>
-
     <div class="form-group" style="margin-bottom:10px;">
       <label class="switch">
-        <input type="checkbox" id="toggleActionSwitch">
+        <input type="checkbox" id="toggleActionSwitch" />
         <span class="slider"></span>
       </label>
-      <label for="toggleActionSwitch" id="toggleActionLabel" style="margin-left:8px; vertical-align:middle;"></label>
+      <label id="toggleActionLabel" style="margin-left:8px;vertical-align:middle"></label>
     </div>
-
     <div id="buttonList">
-      <button id="btn_01" onclick="actionTest('01');"></button>
-      <button id="btn_02" onclick="actionTest('02');"></button>
-      <button id="btn_03" onclick="actionTest('03');"></button>
-      <button id="btn_04" onclick="actionTest('04');"></button>
-      <button id="btn_05" onclick="actionTest('05');"></button>
-      <button id="btn_06" onclick="actionTest('06');"></button>
-      <button id="btn_07" onclick="actionTest('07');"></button>
-      <button id="btn_08" onclick="actionTest('08');"></button>
-      <button id="btn_09" onclick="actionTest('09');"></button>
-      <button id="btn_10" onclick="actionTest('10');"></button>
-      <button id="btn_11" onclick="actionTest('11');"></button>
-      <button id="btn_12" onclick="actionTest('12');"></button>
-      <button id="btn_13" onclick="actionTest('13');"></button>
-      <button id="btn_14" onclick="actionTest('14');"></button>
-      <button id="btn_15" onclick="actionTest('15');"></button>
-      <button id="btn_16" onclick="actionTest('16');"></button>
-      <button id="btn_17" onclick="actionTest('17');"></button>
-      <button id="btn_18" onclick="actionTest('18');"></button>
-      <button id="btn_19" onclick="actionTest('19');"></button>
-      <button id="btn_20" onclick="actionTest('20');"></button>
-      <button id="btn_21" onclick="actionTest('21');"></button>
-      <button id="btn_22" style="width:150px;" onclick="actionTest('22');"></button>
+      <button id="btn_01" onclick="actionTest('01')"></button>
+      <button id="btn_02" onclick="actionTest('02')"></button>
+      <button id="btn_03" onclick="actionTest('03')"></button>
+      <button id="btn_04" onclick="actionTest('04')"></button>
+      <button id="btn_05" onclick="actionTest('05')"></button>
+      <button id="btn_06" onclick="actionTest('06')"></button>
+      <button id="btn_07" onclick="actionTest('07')"></button>
+      <button id="btn_08" onclick="actionTest('08')"></button>
+      <button id="btn_09" onclick="actionTest('09')"></button>
+      <button id="btn_10" onclick="actionTest('10')"></button>
+      <button id="btn_11" onclick="actionTest('11')"></button>
+      <button id="btn_12" onclick="actionTest('12')"></button>
+      <button id="btn_13" onclick="actionTest('13')"></button>
+      <button id="btn_14" onclick="actionTest('14')"></button>
+      <button id="btn_15" onclick="actionTest('15')"></button>
+      <button id="btn_16" onclick="actionTest('16')"></button>
+      <button id="btn_17" onclick="actionTest('17')"></button>
+      <button id="btn_18" onclick="actionTest('18')"></button>
+      <button id="btn_19" onclick="actionTest('19')"></button>
+      <button id="btn_20" onclick="actionTest('20')"></button>
+      <button id="btn_21" onclick="actionTest('21')"></button>
+      <button id="btn_22" style="width:150px" onclick="actionTest('22')"></button>
     </div>
-
     <div class="iframe-container">
       <iframe id="eformsign_iframe" name="eformsign_iframe"></iframe>
     </div>
   </div>
 </body>
-
 </html>
