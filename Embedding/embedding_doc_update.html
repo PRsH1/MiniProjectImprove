@@ -1,4 +1,4 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!DOCTYPE html>
 <html>
 
 <head>
@@ -99,12 +99,13 @@
     }
 
     #buttonList {
-  display: none;           /* 토글 스위치로 제어 */
-  flex-direction: row;     /* 좌→우 방향 */
-  flex-wrap: wrap;         /* 공간이 부족하면 다음 줄로 wrap */
-  gap: 10px;               /* 버튼 사이 간격 */
-  justify-content: center; /* 가운데 정렬 */
-}
+      display: none;
+      flex-direction: row;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+    }
+
     #buttonList button {
       width: 100px;
       height: 35px;
@@ -143,7 +144,6 @@
       border: none;
     }
 
-    /* Responsive */
     @media only screen and (max-width: 768px) {
       .left-panel,
       .right-panel {
@@ -160,7 +160,6 @@
       }
     }
 
-    /* 토글 스위치 스타일 */
     .switch {
       position: relative;
       display: inline-block;
@@ -199,11 +198,11 @@
       border-radius: 50%;
     }
 
-    input:checked+ .slider {
+    input:checked+.slider {
       background-color: #007bff;
     }
 
-    input:checked+ .slider:before {
+    input:checked+.slider:before {
       transform: translateX(26px);
     }
   </style>
@@ -214,11 +213,10 @@
     console.log("Execution Time:", execution_time);
     var eformsign, apiKey;
 
-  
     $(document).ready(function () {
       eformsign = new EformSignDocument();
 
-      // URL 업데이트
+      // 서버 URL 업데이트
       $('#serverType').change(updateServerUrl);
       $('#customServerUrl').on('input', updateServerUrl);
       updateServerUrl();
@@ -235,19 +233,21 @@
         }
       });
 
+      // 문서 ID 필드 토글
+      $('#modeTypeSelect').on('change', toggleDocumentIdField);
+      toggleDocumentIdField();
+
       // 액션 버튼 토글 스위치
       $('#toggleActionSwitch').on('change', function () {
-  if (this.checked) {
-    // container 만 flex 로 보여주기
-    $('#buttonList').css('display', 'flex');
-    $('#toggleActionLabel').text('Action 버튼 숨기기');
-  } else {
-    $('#buttonList').css('display', 'none');
-    $('#toggleActionLabel').text('Action 버튼 보이기');
-  }
-});
-// 초기 상태: 숨김
-$('#toggleActionSwitch').prop('checked', false).trigger('change');
+        if (this.checked) {
+          $('#buttonList').css('display', 'flex');
+          $('#toggleActionLabel').text('Action 버튼 숨기기');
+        } else {
+          $('#buttonList').css('display', 'none');
+          $('#toggleActionLabel').text('Action 버튼 보이기');
+        }
+      });
+      $('#toggleActionSwitch').prop('checked', false).trigger('change');
 
       // 토큰 발급
       $('#getTokenButton').click(getAccessToken);
@@ -261,6 +261,17 @@ $('#toggleActionSwitch').prop('checked', false).trigger('change');
         startDocument();
       });
     });
+
+    function toggleDocumentIdField() {
+      var mode = $('#modeTypeSelect').val();
+      if (mode === '02' || mode === '03') {
+        $('#documentIdGroup').show();
+        $('#documentId').prop('required', true);
+      } else {
+        $('#documentIdGroup').hide();
+        $('#documentId').prop('required', false).val('');
+      }
+    }
 
     function getAccessToken() {
       var method = $('#tokenMethodSelect').val();
@@ -335,24 +346,10 @@ $('#toggleActionSwitch').prop('checked', false).trigger('change');
       }
     }
 
-    function getDomainUrl(serverType) {
-      switch (serverType) {
-        case 'test':
-          return 'https://test.eformsign.com';
-        case 'public':
-          return 'https://www.gov-eformsign.com';
-        case 'custom':
-          return $('#customServerUrl').val();
-        default:
-          return '';
-      }
-    }
-
     function startDocument() {
-         
-    window.actionTest = function(actionCode) {
-      eformsign.sendAction({ type: '01', code: actionCode });
-    }
+      window.actionTest = function(actionCode) {
+        eformsign.sendAction({ type: '01', code: actionCode });
+      }
 
       var serverType = $('#serverType').val();
       var domainUrl = getDomainUrl(serverType);
@@ -370,7 +367,7 @@ $('#toggleActionSwitch').prop('checked', false).trigger('change');
           access_token: $('#accessToken').val()
         },
         mode: {
-          type: $('#modeType').val(),
+          type: $('#modeTypeSelect').val(),
           template_id: $('#templateId').val(),
           document_id: $('#documentId').val()
         },
@@ -392,27 +389,30 @@ $('#toggleActionSwitch').prop('checked', false).trigger('change');
       };
 
       var action_callback = function(response) {
-  // 1) 우선 모든 버튼을 숨긴다
-  $('#buttonList button').hide();
-
-  // 2) 서버에서 받은 액션 배열을 순회하며, 해당 버튼만 show()
-  var actions = Array.isArray(response.data) ? response.data : [response.data];
-  actions.forEach(function(action) {
-    var btn = $('#btn_' + action.code);
-    if (btn.length) {
-      btn
-        .text(action.name)
-        .attr('title', action.name)
-        .show();
-    }
-  });
-};
+        $('#buttonList button').hide();
+        var actions = Array.isArray(response.data) ? response.data : [response.data];
+        actions.forEach(function(action) {
+          var btn = $('#btn_' + action.code);
+          if (btn.length) {
+            btn.text(action.name).attr('title', action.name).show();
+          }
+        });
+      };
 
       eformsign.document(document_option, "eformsign_iframe",
         success_callback, error_callback, action_callback
       );
       if (domainUrl) eformsign.setDomain(domainUrl);
       eformsign.open();
+    }
+
+    function getDomainUrl(serverType) {
+      switch (serverType) {
+        case 'test': return 'https://test.eformsign.com';
+        case 'public': return 'https://www.gov-eformsign.com';
+        case 'custom': return $('#customServerUrl').val();
+        default: return '';
+      }
     }
   </script>
 </head>
@@ -489,18 +489,22 @@ $('#toggleActionSwitch').prop('checked', false).trigger('change');
     </div>
 
     <div class="form-group">
-      <label for="modeType">Mode Type:</label>
-      <input type="text" id="modeType" placeholder="Mode Type 입력 (01: 문서 작성, 02: 문서 처리, 03: 미리 보기)" />
+      <label for="modeTypeSelect">Mode Type:</label>
+      <select id="modeTypeSelect">
+        <option value="01">문서 작성 (01)</option>
+        <option value="02">문서 처리 (02)</option>
+        <option value="03">미리 보기 (03)</option>
+      </select>
+    </div>
+
+    <div class="form-group" id="documentIdGroup" style="display:none;">
+      <label for="documentId">문서 ID (Mode type 02,03일 경우 필수):</label>
+      <input type="text" id="documentId" placeholder="문서 ID 입력" />
     </div>
 
     <div class="form-group">
       <label for="templateId">템플릿 ID:</label>
       <input type="text" id="templateId" placeholder="템플릿 ID 입력" />
-    </div>
-
-    <div class="form-group">
-      <label for="documentId">문서 ID (Mode type 02,03일 경우 필수):</label>
-      <input type="text" id="documentId" placeholder="문서 ID 입력" />
     </div>
 
     <button type="button" id="startButton" class="btn">Start</button>
@@ -514,9 +518,7 @@ $('#toggleActionSwitch').prop('checked', false).trigger('change');
         <input type="checkbox" id="toggleActionSwitch">
         <span class="slider"></span>
       </label>
-      <label for="toggleActionSwitch" id="toggleActionLabel" style="margin-left:8px; vertical-align:middle;">
-        Action 버튼 보이기
-      </label>
+      <label for="toggleActionSwitch" id="toggleActionLabel" style="margin-left:8px; vertical-align:middle;"></label>
     </div>
 
     <div id="buttonList">
