@@ -44,12 +44,12 @@
     .form-group label {
       font-weight: bold; margin-bottom: 5px; color: #555;
     }
-    .form-group input, .form-group select {
+    .form-group input, .form-group select, .form-group textarea {
       width: 100%; padding: 10px; font-size: 14px;
       border: 1px solid #ccc; border-radius: 4px;
       transition: border-color 0.3s; box-sizing: border-box;
     }
-    .form-group input:focus, .form-group select:focus {
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
       outline: none; border-color: #007bff;
     }
     .btn {
@@ -94,6 +94,25 @@
       display: none; margin-top: 10px; padding: 15px;
       background: #f8f9fa; border: 1px solid #ddd; border-radius: 6px;
     }
+    .option-section {
+      margin-bottom: 20px; padding: 10px; border: 1px solid #ccc;
+      border-radius: 6px; background: #fff;
+    }
+    .option-section h3 {
+      margin-top: 0; margin-bottom: 10px; font-size: 1.1em; color: #007bff;
+    }
+    .entry-list {
+      margin-top: 10px;
+    }
+    .entry-item {
+      position: relative; padding: 10px; border: 1px solid #ccc;
+      border-radius: 4px; background: #fafafa; margin-bottom: 10px;
+    }
+    .entry-item .remove-entry {
+      position: absolute; top: 5px; right: 5px; background: #dc3545;
+      color: #fff; border: none; border-radius: 50%; width: 20px;
+      height: 20px; font-size: 12px; line-height: 20px; cursor: pointer;
+    }
 
     /* 토글 스위치 */
     .switch {
@@ -136,11 +155,14 @@
   <script>
     $(function(){
       window.eformsign = new EformSignDocument();
+
+      // 서버 URL 업데이트
       $('#serverType').on('change input', updateServerUrl);
       updateServerUrl();
 
+      // 토큰 방식 라벨 변경
       $('#tokenMethodSelect').on('change', function(){
-        if(this.value === 'signature') {
+        if(this.value === 'signature'){
           $('#secretKeyLabel').text('Private Key Hex:');
           $('#privateKeyHex').attr('placeholder','비밀키 입력');
         } else {
@@ -149,30 +171,45 @@
         }
       });
 
+      // Mode Type 변경 시 문서ID 표시/숨김
       $('#modeTypeSelect').on('change', function(){
         const v = this.value;
-        $('#docIdGroup')[ (v==='02'||v==='03') ? 'show':'hide' ]();
+        $('#docIdGroup')[ (v==='02' || v==='03') ? 'show' : 'hide' ]();
       }).trigger('change');
 
+      // 추가 옵션 패널 토글
       $('#toggleOptionsBtn').click(()=>$('#additionalOptions').slideToggle());
+
+      // 액션 버튼 토글 스위치
       $('#toggleActionSwitch').on('change', function(){
-        $('#buttonList').css('display', this.checked?'flex':'none');
-        $('#toggleActionLabel').text(this.checked?'Action 버튼 숨기기':'Action 버튼 보이기');
+        $('#buttonList').css('display', this.checked ? 'flex' : 'none');
+        $('#toggleActionLabel').text(this.checked ? 'Action 버튼 숨기기' : 'Action 버튼 보이기');
       }).prop('checked', false).trigger('change');
 
+      // 필드/수신자 추가 버튼 바인딩
+      $('#addFieldBtn').click(addFieldEntry);
+      $('#addRecipientBtn').click(addRecipientEntry);
+
+      // 초기 필드/수신자 항목 생성 X (사용자가 눌러야 생성)
+      // 버튼 이벤트
       $('#getTokenButton').click(getAccessToken);
       $('#startButton').click(startDocument);
     });
 
     let execution_time = '';
+
     function updateServerUrl(){
       const type = $('#serverType').val();
       let url = '';
-      if(type==='public') url = 'https://www.gov-eformsign.com/Service/v2.0/api_auth/access_token';
-      else if(type==='custom') url = $('#customServerUrl').val();
-      else url = 'https://api.eformsign.com/v2.0/api_auth/access_token';
-      $('#selectedServerUrl').text(url||'URL을 입력하세요');
-      $('#customServerField').toggle(type==='custom');
+      if(type === 'public'){
+        url = 'https://www.gov-eformsign.com/Service/v2.0/api_auth/access_token';
+      } else if(type === 'custom'){
+        url = $('#customServerUrl').val();
+      } else {
+        url = 'https://api.eformsign.com/v2.0/api_auth/access_token';
+      }
+      $('#selectedServerUrl').text(url || 'URL을 입력하세요');
+      $('#customServerField').toggle(type === 'custom');
     }
 
     function getAccessToken(){
@@ -184,39 +221,148 @@
       const body = { execution_time, member_id: memberId };
 
       let signatureValue;
-      if(method==='signature'){
+      if(method === 'signature'){
         const pk = KEYUTIL.getKeyFromPlainPrivatePKCS8Hex($('#privateKeyHex').val());
         const sig = new KJUR.crypto.Signature({ alg: 'SHA256withECDSA' });
-        sig.init(pk); sig.updateString(execution_time);
+        sig.init(pk);
+        sig.updateString(execution_time);
         signatureValue = sig.sign();
       } else {
         signatureValue = 'Bearer ' + $('#privateKeyHex').val();
       }
 
       $.ajax({
-        url: requestURL, type: 'POST',
+        url: requestURL,
+        type: 'POST',
         contentType: 'application/json; charset=UTF-8',
         data: JSON.stringify(body),
-        beforeSend: req=>{
+        beforeSend: function(req){
           req.setRequestHeader('eformsign_signature', signatureValue);
-          req.setRequestHeader('Authorization', 'Bearer '+btoa(apiKey));
+          req.setRequestHeader('Authorization', 'Bearer ' + btoa(apiKey));
         },
-        success: data=>{
+        success: function(data){
           $('#accessToken').val(data.oauth_token.access_token);
           $('#refreshToken').val(data.oauth_token.refresh_token);
           $('#companyId').val(data.api_key.company.company_id);
         },
-        error: xhr=>{
+        error: function(xhr){
           const r = JSON.parse(xhr.responseText);
-          alert(`발급 실패:\n코드:${r.code}\n메시지:${r.ErrorMessage}`);
+          alert(`발급 실패:\n코드: ${r.code}\n메시지: ${r.ErrorMessage}`);
         }
       });
+    }
+
+    // 필드 항목 추가
+    function addFieldEntry(){
+      const idx = $('.field-entry').length;
+      const entry = $(`
+        <div class="entry-item field-entry">
+          <button type="button" class="remove-entry" title="삭제">&times;</button>
+          <div class="form-group">
+            <label>필드명 (id):</label>
+            <input type="text" class="field-id" placeholder="예: 고객명" />
+          </div>
+          <div class="form-group">
+            <label>값 (value):</label>
+            <input type="text" class="field-value" placeholder="예: 홍길동" />
+          </div>
+          <div class="form-group">
+            <label>활성화 여부 (enabled):</label>
+            <label class="switch">
+              <input type="checkbox" class="field-enabled" checked />
+              <span class="slider"></span>
+            </label>
+          </div>
+          <div class="form-group">
+            <label>필수 여부 (required):</label>
+            <label class="switch">
+              <input type="checkbox" class="field-required" checked />
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+      `);
+      // 삭제 버튼 이벤트
+      entry.find('.remove-entry').click(function(){
+        entry.remove();
+      });
+      $('#fieldsList').append(entry);
+    }
+
+    // 수신자 항목 추가
+    function addRecipientEntry(){
+      const idx = $('.recipient-entry').length;
+      const entry = $(`
+        <div class="entry-item recipient-entry">
+          <button type="button" class="remove-entry" title="삭제">&times;</button>
+          <div class="form-group">
+            <label>워크플로우 순서 (step_idx):</label>
+            <input type="text" class="rec-step-idx" placeholder="예: 2" />
+          </div>
+          <div class="form-group">
+            <label>단계 종류 (step_type):</label>
+            <select class="rec-step-type">
+              <option value="05">참여자 (05)</option>
+              <option value="06">검토자 (06)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>이름 (name):</label>
+            <input type="text" class="rec-name" placeholder="예: 김테스트" />
+          </div>
+          <div class="form-group">
+            <label>ID/이메일 (id):</label>
+            <input type="text" class="rec-id" placeholder="예: test@forcs.com" />
+          </div>
+          <div class="form-group">
+            <label>핸드폰 번호 (sms):</label>
+            <input type="text" class="rec-sms" placeholder="예: 01023456789" />
+          </div>
+          <div class="form-group">
+            <label>이메일 알림 사용 (use_mail):</label>
+            <label class="switch">
+              <input type="checkbox" class="rec-use-mail" checked />
+              <span class="slider"></span>
+            </label>
+          </div>
+          <div class="form-group">
+            <label>SMS 알림 사용 (use_sms):</label>
+            <label class="switch">
+              <input type="checkbox" class="rec-use-sms" checked />
+              <span class="slider"></span>
+            </label>
+          </div>
+          <div class="form-group">
+            <label>비밀번호 (auth.password):</label>
+            <input type="text" class="rec-auth-password" placeholder="비밀번호 입력 (선택)" />
+          </div>
+          <div class="form-group">
+            <label>비밀번호 힌트 (auth.password_hint):</label>
+            <input type="text" class="rec-auth-hint" placeholder="비밀번호 힌트 입력 (선택)" />
+          </div>
+          <div class="form-group">
+            <label>전송 기한 - 일 (valid.day):</label>
+            <input type="number" class="rec-valid-day" value="7" min="0" />
+          </div>
+          <div class="form-group">
+            <label>전송 기한 - 시 (valid.hour):</label>
+            <input type="number" class="rec-valid-hour" value="0" min="0" />
+          </div>
+        </div>
+      `);
+      // 삭제 버튼 이벤트
+      entry.find('.remove-entry').click(function(){
+        entry.remove();
+      });
+      $('#recipientsList').append(entry);
     }
 
     function startDocument(){
       if(!$('#accessToken').val()){
         return alert('먼저 Access Token을 발급하세요.');
       }
+
+      // layout 옵션 수집
       const layoutOpts = {
         lang_code: $('#layoutLang').val(),
         header: $('#layoutHeader').is(':checked'),
@@ -227,10 +373,72 @@
           'toolbar.print': $('#layoutPrint').is(':checked')
         }
       };
+
+      // prefill 옵션 수집
+      const prefill = {
+        document_name: $('#prefillDocumentName').val(),
+        fields: [],
+        recipients: [],
+        comment: $('#prefillComment').val(),
+        is_hidden_stamp: $('#prefillHiddenStamp').is(':checked')
+      };
+
+      // 필드 항목들
+      $('.field-entry').each(function(){
+        const id = $(this).find('.field-id').val();
+        const value = $(this).find('.field-value').val();
+        const enabled = $(this).find('.field-enabled').is(':checked');
+        const required = $(this).find('.field-required').is(':checked');
+        if(id.trim() !== '') {
+          prefill.fields.push({
+            id: id,
+            value: value,
+            enabled: enabled,
+            required: required
+          });
+        }
+      });
+
+      // 수신자 항목들
+      $('.recipient-entry').each(function(){
+        const step_idx = $(this).find('.rec-step-idx').val();
+        const step_type = $(this).find('.rec-step-type').val();
+        const name = $(this).find('.rec-name').val();
+        const id = $(this).find('.rec-id').val();
+        const sms = $(this).find('.rec-sms').val();
+        const use_mail = $(this).find('.rec-use-mail').is(':checked');
+        const use_sms = $(this).find('.rec-use-sms').is(':checked');
+        const password = $(this).find('.rec-auth-password').val();
+        const password_hint = $(this).find('.rec-auth-hint').val();
+        const day = parseInt($(this).find('.rec-valid-day').val(), 10) || 0;
+        const hour = parseInt($(this).find('.rec-valid-hour').val(), 10) || 0;
+
+        if(id.trim() !== '') {
+          prefill.recipients.push({
+            step_idx: step_idx,
+            step_type: step_type,
+            name: name,
+            id: id,
+            sms: sms,
+            use_mail: use_mail,
+            use_sms: use_sms,
+            auth: {
+              password: password,
+              password_hint: password_hint,
+              valid: {
+                day: day,
+                hour: hour
+              }
+            }
+          });
+        }
+      });
+
+      // document_option 구성
       const docOpt = {
         company: {
           id: $('#companyId').val(),
-          country_code: $('#countryCode').val()||'kr',
+          country_code: $('#countryCode').val() || 'kr',
           user_key: ''
         },
         user: {
@@ -242,25 +450,29 @@
         mode: {
           type: $('#modeTypeSelect').val(),
           template_id: $('#templateId').val(),
-          document_id: $('#documentId').val()||''
+          document_id: $('#documentId').val() || ''
         },
-        layout: layoutOpts
+        layout: layoutOpts,
+        prefill: prefill
       };
-      console.log('User Input JSON:', JSON.stringify(docOpt, null,2));
+
+      console.log('User Input JSON:', JSON.stringify(docOpt, null, 2));
+
+      // eformsign 호출
       eformsign.document(
         docOpt,
         'eformsign_iframe',
-        res=>{
+        function(response){
           $('#eformsign_iframe').attr('src','');
-          alert(`문서 작성 성공\n문서 ID:${res.document_id}\n문서 제목:${res.title}`);
+          alert(`문서 작성 성공\n문서 ID: ${response.document_id}\n문서 제목: ${response.title}`);
         },
-        err=>{
-          alert(`문서 생성 실패\n코드:${err.code}\n메시지:${err.message}`);
+        function(err){
+          alert(`문서 생성 실패\n코드: ${err.code}\n메시지: ${err.message}`);
         },
-        actions=>{
+        function(actions){
           $('#buttonList button').hide();
-          const arr = Array.isArray(actions.data)?actions.data:[actions.data];
-          arr.forEach(a=>{
+          const arr = Array.isArray(actions.data) ? actions.data : [actions.data];
+          arr.forEach(function(a){
             $(`#btn_${a.code}`).text(a.name).show();
           });
         }
@@ -268,8 +480,9 @@
       eformsign.open();
     }
 
+    // actionTest 전역 함수
     function actionTest(code){
-      eformsign.sendAction({ type: '01', code });
+      eformsign.sendAction({ type: '01', code: code });
     }
   </script>
 </head>
@@ -345,45 +558,83 @@
     <!-- 추가 옵션 -->
     <button id="toggleOptionsBtn" class="btn">추가 옵션 설정</button>
     <div id="additionalOptions">
-      <div class="form-group">
-        <label>언어 (layout.lang_code):</label>
-        <select id="layoutLang">
-          <option value="ko">ko</option>
-          <option value="en">en</option>
-          <option value="ja">ja</option>
-        </select>
+      <!-- 레이아웃 옵션 -->
+      <div class="option-section">
+        <h3>레이아웃 옵션</h3>
+        <div class="form-group">
+          <label>언어 (layout.lang_code):</label>
+          <select id="layoutLang">
+            <option value="ko">ko</option>
+            <option value="en">en</option>
+            <option value="ja">ja</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>상단바 표시</label>
+          <label class="switch">
+            <input type="checkbox" id="layoutHeader" checked />
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="form-group">
+          <label>하단바 표시</label>
+          <label class="switch">
+            <input type="checkbox" id="layoutFooter" checked />
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="form-group">
+          <label>줌 레벨 (layout.zoom):</label>
+          <input id="layoutZoom" value="1.0" placeholder="예: 0.5" />
+        </div>
+        <div class="form-group">
+          <label>저장 버튼 표시</label>
+          <label class="switch">
+            <input type="checkbox" id="layoutSave" checked />
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="form-group">
+          <label>인쇄 버튼 표시</label>
+          <label class="switch">
+            <input type="checkbox" id="layoutPrint" checked />
+            <span class="slider"></span>
+          </label>
+        </div>
       </div>
-      <div class="form-group">
-        <label>상단바 표시</label>
-        <label class="switch">
-          <input type="checkbox" id="layoutHeader" checked />
-          <span class="slider"></span>
-        </label>
+
+      <!-- Prefill 옵션 -->
+      <div class="option-section">
+        <h3>Prefill 옵션</h3>
+        <div class="form-group">
+          <label>문서 제목 (prefill.document_name):</label>
+          <input id="prefillDocumentName" placeholder="문서 제목 입력" />
+        </div>
+        <div class="form-group">
+          <label>코멘트 (prefill.comment):</label>
+          <textarea id="prefillComment" rows="2" placeholder="메시지 입력"></textarea>
+        </div>
+        <div class="form-group">
+          <label>회사 도장 워터마크 숨기기 (prefill.is_hidden_stamp):</label>
+          <label class="switch">
+            <input type="checkbox" id="prefillHiddenStamp" />
+            <span class="slider"></span>
+          </label>
+        </div>
       </div>
-      <div class="form-group">
-        <label>하단바 표시</label>
-        <label class="switch">
-          <input type="checkbox" id="layoutFooter" checked />
-          <span class="slider"></span>
-        </label>
+
+      <!-- 필드 설정 -->
+      <div class="option-section">
+        <h3>필드 설정 (prefill.fields)</h3>
+        <button type="button" id="addFieldBtn" class="btn">필드 추가</button>
+        <div id="fieldsList" class="entry-list"></div>
       </div>
-      <div class="form-group">
-        <label>줌 레벨 (layout.zoom):</label>
-        <input id="layoutZoom" value="1.0" placeholder="예: 0.5" />
-      </div>
-      <div class="form-group">
-        <label>저장 버튼 표시</label>
-        <label class="switch">
-          <input type="checkbox" id="layoutSave" checked />
-          <span class="slider"></span>
-        </label>
-      </div>
-      <div class="form-group">
-        <label>인쇄 버튼 표시</label>
-        <label class="switch">
-          <input type="checkbox" id="layoutPrint" checked />
-          <span class="slider"></span>
-        </label>
+
+      <!-- 수신자 설정 -->
+      <div class="option-section">
+        <h3>수신자 설정 (prefill.recipients)</h3>
+        <button type="button" id="addRecipientBtn" class="btn">수신자 추가</button>
+        <div id="recipientsList" class="entry-list"></div>
       </div>
     </div>
 
