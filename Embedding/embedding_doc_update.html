@@ -177,6 +177,20 @@
         $('#docIdGroup')[ (v==='02' || v==='03') ? 'show' : 'hide' ]();
       }).trigger('change');
 
+      // User Type 변경 시: authSection, externalInfoSection 보여주기/숨기기
+      $('#userTypeSelect').on('change', function(){
+        const ut = this.value;
+        if(ut === '01'){ // 멤버
+          $('#authSection').show();
+          $('#externalInfoSection').hide();
+          $('#companyId').prop('readonly', true);  // 회사 ID는 토큰 발급 후 채워짐
+        } else { // 외부
+          $('#authSection').hide();
+          $('#externalInfoSection').show();
+          $('#companyId').prop('readonly', false).val(''); // 직접 입력하도록
+        }
+      }).trigger('change');
+
       // 추가 옵션 패널 토글
       $('#toggleOptionsBtn').click(()=>$('#additionalOptions').slideToggle());
 
@@ -190,7 +204,6 @@
       $('#addFieldBtn').click(addFieldEntry);
       $('#addRecipientBtn').click(addRecipientEntry);
 
-      // 초기 필드/수신자 항목 생성 X (사용자가 눌러야 생성)
       // 버튼 이벤트
       $('#getTokenButton').click(getAccessToken);
       $('#startButton').click(startDocument);
@@ -254,7 +267,6 @@
 
     // 필드 항목 추가
     function addFieldEntry(){
-      const idx = $('.field-entry').length;
       const entry = $(`
         <div class="entry-item field-entry">
           <button type="button" class="remove-entry" title="삭제">&times;</button>
@@ -282,16 +294,12 @@
           </div>
         </div>
       `);
-      // 삭제 버튼 이벤트
-      entry.find('.remove-entry').click(function(){
-        entry.remove();
-      });
+      entry.find('.remove-entry').click(() => entry.remove());
       $('#fieldsList').append(entry);
     }
 
     // 수신자 항목 추가
     function addRecipientEntry(){
-      const idx = $('.recipient-entry').length;
       const entry = $(`
         <div class="entry-item recipient-entry">
           <button type="button" class="remove-entry" title="삭제">&times;</button>
@@ -350,16 +358,64 @@
           </div>
         </div>
       `);
-      // 삭제 버튼 이벤트
-      entry.find('.remove-entry').click(function(){
-        entry.remove();
-      });
+      entry.find('.remove-entry').click(() => entry.remove());
       $('#recipientsList').append(entry);
     }
 
     function startDocument(){
-      if(!$('#accessToken').val()){
-        return alert('먼저 Access Token을 발급하세요.');
+      // ============================
+      // 액션 버튼 초기화
+      // ============================
+      // 이전에 표시된 버튼들을 숨기고, 텍스트도 초기화
+      $('#buttonList button').each(function(){
+        $(this).hide().text('');
+      });
+
+      const userType = $('#userTypeSelect').val();
+      const modeType = $('#modeTypeSelect').val();
+
+      // 회사 ID 유효성 검사
+      const companyIdVal = ($('#companyId').val() || '').trim();
+      if(companyIdVal === ''){
+        return alert('회사 ID를 입력하세요.');
+      }
+
+      let userObj;
+      if(userType === '01'){
+        // 멤버: 기존 flow
+        userObj = {
+          type: '01',
+          id: $('#userId').val(),
+          refresh_token: $('#refreshToken').val(),
+          access_token: $('#accessToken').val()
+        };
+        if(!userObj.access_token){
+          return alert('먼저 Access Token을 발급하세요.');
+        }
+      } else {
+        // 외부 유저
+        const externalName = ($('#externalName').val() || '').trim();
+        const externalToken = ($('#externalToken').val() || '').trim();
+        if(externalName === ''){
+          return alert('외부 사용자 이름을 입력하세요.');
+        }
+        if(modeType !== '01' && externalToken === ''){
+          return alert('외부 토큰을 입력하세요.');
+        }
+        if(modeType === '01'){
+          // 외부가 문서 작성
+          userObj = {
+            type: '02',
+            external_user_info: { name: externalName }
+          };
+        } else {
+          // 외부가 문서 처리(모드 02, 03)
+          userObj = {
+            type: '02',
+            external_token: externalToken,
+            external_user_info: { name: externalName }
+          };
+        }
       }
 
       // layout 옵션 수집
@@ -383,23 +439,15 @@
         is_hidden_stamp: $('#prefillHiddenStamp').is(':checked')
       };
 
-      // 필드 항목들
       $('.field-entry').each(function(){
         const id = $(this).find('.field-id').val();
         const value = $(this).find('.field-value').val();
         const enabled = $(this).find('.field-enabled').is(':checked');
         const required = $(this).find('.field-required').is(':checked');
         if(id.trim() !== '') {
-          prefill.fields.push({
-            id: id,
-            value: value,
-            enabled: enabled,
-            required: required
-          });
+          prefill.fields.push({ id, value, enabled, required });
         }
       });
-
-      // 수신자 항목들
       $('.recipient-entry').each(function(){
         const step_idx = $(this).find('.rec-step-idx').val();
         const step_type = $(this).find('.rec-step-type').val();
@@ -412,24 +460,10 @@
         const password_hint = $(this).find('.rec-auth-hint').val();
         const day = parseInt($(this).find('.rec-valid-day').val(), 10) || 0;
         const hour = parseInt($(this).find('.rec-valid-hour').val(), 10) || 0;
-
         if(id.trim() !== '') {
           prefill.recipients.push({
-            step_idx: step_idx,
-            step_type: step_type,
-            name: name,
-            id: id,
-            sms: sms,
-            use_mail: use_mail,
-            use_sms: use_sms,
-            auth: {
-              password: password,
-              password_hint: password_hint,
-              valid: {
-                day: day,
-                hour: hour
-              }
-            }
+            step_idx, step_type, name, id, sms, use_mail, use_sms,
+            auth: { password, password_hint, valid: { day, hour } }
           });
         }
       });
@@ -437,18 +471,13 @@
       // document_option 구성
       const docOpt = {
         company: {
-          id: $('#companyId').val(),
+          id: companyIdVal,
           country_code: $('#countryCode').val() || 'kr',
           user_key: ''
         },
-        user: {
-          type: '01',
-          id: $('#userId').val(),
-          refresh_token: $('#refreshToken').val(),
-          access_token: $('#accessToken').val()
-        },
+        user: userObj,
         mode: {
-          type: $('#modeTypeSelect').val(),
+          type: modeType,
           template_id: $('#templateId').val(),
           document_id: $('#documentId').val() || ''
         },
@@ -464,12 +493,13 @@
         'eformsign_iframe',
         function(response){
           $('#eformsign_iframe').attr('src','');
-          alert(`문서 작성 성공\n문서 ID: ${response.document_id}\n문서 제목: ${response.title}`);
+          alert(`문서 생성/처리 성공\n문서 ID: ${response.document_id}\n문서 제목: ${response.title}`);
         },
         function(err){
-          alert(`문서 생성 실패\n코드: ${err.code}\n메시지: ${err.message}`);
+          alert(`문서 생성/처리 실패\n코드: ${err.code}\n메시지: ${err.message}`);
         },
         function(actions){
+          // 서버에서 받은 액션만 보이도록 처리
           $('#buttonList button').hide();
           const arr = Array.isArray(actions.data) ? actions.data : [actions.data];
           arr.forEach(function(a){
@@ -506,32 +536,56 @@
       <input id="customServerUrl" placeholder="https://your.server/v2.0/api_auth/access_token" />
     </div>
 
-    <!-- 인증 -->
+    <!-- 사용자 유형 -->
     <div class="form-group">
-      <label>토큰 발급 방식:</label>
-      <select id="tokenMethodSelect">
-        <option value="signature">Signature 방식</option>
-        <option value="bearer">Bearer 방식</option>
+      <label>사용자 유형:</label>
+      <select id="userTypeSelect">
+        <option value="01">멤버</option>
+        <option value="02">외부 사용자</option>
       </select>
     </div>
-    <div class="form-group">
-      <label id="secretKeyLabel">Private Key Hex:</label>
-      <input id="privateKeyHex" placeholder="비밀키 입력" />
+    <div id="externalInfoSection" style="display:none;">
+      <div class="form-group">
+        <label>외부 사용자 이름:</label>
+        <input id="externalName" placeholder="예: 홍길동" />
+      </div>
+      <div class="form-group">
+        <label>외부 토큰 (mode 02,03일 때):</label>
+        <input id="externalToken" placeholder="외부 토큰 입력" />
+      </div>
     </div>
-    <div class="form-group">
-      <label>API Key:</label>
-      <input id="apiKey" placeholder="API Key 입력" />
-    </div>
-    <div class="form-group">
-      <label>멤버 ID (로그인용):</label>
-      <input id="userId" placeholder="이메일 등 식별자 입력" />
-    </div>
-    <button id="getTokenButton" class="btn">Get Access Token</button>
 
-    <!-- 토큰 결과 -->
-    <div class="form-group"><label>Access Token:</label><input id="accessToken" readonly /></div>
-    <div class="form-group"><label>Refresh Token:</label><input id="refreshToken" readonly /></div>
-    <div class="form-group"><label>회사 ID:</label><input id="companyId" readonly /></div>
+    <!-- 회사 ID -->
+    <div class="form-group">
+      <label>회사 ID:</label>
+      <input id="companyId" placeholder="회사 ID 입력" readonly />
+    </div>
+
+    <!-- 인증 -->
+    <div id="authSection">
+      <div class="form-group">
+        <label>토큰 발급 방식:</label>
+        <select id="tokenMethodSelect">
+          <option value="signature">Signature 방식</option>
+          <option value="bearer">Bearer 방식</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label id="secretKeyLabel">Private Key Hex:</label>
+        <input id="privateKeyHex" placeholder="비밀키 입력" />
+      </div>
+      <div class="form-group">
+        <label>API Key:</label>
+        <input id="apiKey" placeholder="API Key 입력" />
+      </div>
+      <div class="form-group">
+        <label>멤버 ID (로그인용):</label>
+        <input id="userId" placeholder="이메일 등 식별자 입력" />
+      </div>
+      <button id="getTokenButton" class="btn">Get Access Token</button>
+      <div class="form-group"><label>Access Token:</label><input id="accessToken" readonly /></div>
+      <div class="form-group"><label>Refresh Token:</label><input id="refreshToken" readonly /></div>
+    </div>
 
     <!-- 문서 옵션 -->
     <div class="form-group">
