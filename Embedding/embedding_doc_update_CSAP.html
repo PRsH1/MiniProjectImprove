@@ -402,6 +402,7 @@
         lang_code: $('#layoutLang').val(),
         header: $('#layoutHeader').is(':checked'),
         footer: $('#layoutFooter').is(':checked'),
+        context_menu: $('#layoutContextMenu').is(':checked'),
         zoom: $('#layoutZoom').val(),
         viewer_toolbar: {
           'toolbar.save': $('#layoutSave').is(':checked'),
@@ -612,6 +613,13 @@
           <label>하단바 표시</label>
           <label class="switch">
             <input type="checkbox" id="layoutFooter" checked />
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="form-group">
+          <label>컨텍스트 메뉴 표시</label>
+          <label class="switch">
+            <input type="checkbox" id="layoutContextMenu" checked />
             <span class="slider"></span>
           </label>
         </div>
