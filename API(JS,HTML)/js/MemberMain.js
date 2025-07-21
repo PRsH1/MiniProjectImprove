@@ -340,60 +340,56 @@
         });
     }
 
-    // === 구성원 목록 조회 ===
-    function listMembers(viewType) {
-      const token = $('#accessToken').val().trim();
-      if (!token) return alert('먼저 Access Token 발급해주세요.');
+  // === 구성원 목록 조회 ===
+function listMembers(viewType) {
+  const token = $('#accessToken').val().trim();
+  if (!token) return alert('먼저 Access Token 발급해주세요.');
 
-      const env = $('#envSelection').val();
-      let baseUrl;
-      if (env === 'custom') {
-        const b = $('#customEnvUrl').val().trim().replace(/\/$/, '');
-        if (!b) return alert('사용자 지정 Base URL을 입력하세요.');
-        baseUrl = `${b}/v2.0/api/members`;
-      } else {
-        baseUrl = memberUrlMap[env];
-      }
-      const url = baseUrl;
+  const env = $('#envSelection').val();
+  const baseUrl = env === 'custom'
+    ? `${$('#customEnvUrl').val().trim().replace(/\/$/, '')}/v2.0/api/members`
+    : memberUrlMap[env];
+
+  const url = baseUrl;
+  fetch(url, {
+    method: 'GET',
+    headers: { 'Authorization': 'Bearer ' + token }
+  })
+    .then(res => res.json())
+    .then(data => {
+      // 한글 이름 기준으로 가-나-다 순 정렬
+      data.members.sort((a, b) =>
+        (a.name || '').localeCompare(b.name || '', 'ko')
+      );
 
       if (viewType === 'json') {
         $('#jsonContainer').show();
         $('#tableContainer').hide();
+        $('#listResultJson').text(JSON.stringify(data, null, 2));
       } else {
         $('#jsonContainer').hide();
         $('#tableContainer').show();
-      }
+        $('#listResultTable tbody').empty();
 
-      $('#listResultJson').text('조회 중...');
-      $('#listResultTable tbody').empty();
-
-      fetch(url, {
-        method: 'GET',
-        headers: { 'Authorization': 'Bearer ' + token }
-      })
-        .then(res => res.json())
-        .then(data => {
-          $('#listResultJson').text(JSON.stringify(data, null, 2));
-          if (viewType === 'table') {
-            data.members.forEach(m => {
-              const date = new Date(m.create_date).toLocaleString();
-              $('#listResultTable tbody').append(`
-              <tr>
-                <td>${m.id}</td>
-                <td>${m.name}</td>
-                <td>${m.department || '-'}</td>
-                <td>${m.position || '-'}</td>
-                <td>${date}</td>
-                <td>${m.enabled}</td>
-              </tr>
-            `);
-            });
-          }
-        })
-        .catch(err => {
-          $('#listResultJson').text('조회 실패: ' + err);
+        data.members.forEach(m => {
+          const date = new Date(m.create_date).toLocaleString();
+          $('#listResultTable tbody').append(`
+            <tr>
+              <td>${m.id}</td>
+              <td>${m.name}</td>
+              <td>${m.department || '-'}</td>
+              <td>${m.position || '-'}</td>
+              <td>${date}</td>
+              <td>${m.enabled}</td>
+            </tr>
+          `);
         });
-    }
+      }
+    })
+    .catch(err => {
+      $('#listResultJson').text('조회 실패: ' + err);
+    });
+}
     // === 그룹 추가 (수동) ===
     function addGroup() {
       const token = document.getElementById("accessToken").value.trim();
@@ -1115,63 +1111,58 @@
         $('#excelGroupDeleteResult').text(JSON.stringify(out, null, 2));
       });
     }
-    function listGroups(viewType) {
-      const token = $('#accessToken').val().trim();
-      if (!token) return alert('먼저 Access Token을 발급받아주세요.');
+   // === 그룹 목록 조회 ===
+function listGroups(viewType) {
+  const token = $('#accessToken').val().trim();
+  if (!token) return alert('먼저 Access Token 발급받아주세요.');
 
-      // Base URL 결정
-      const env = $('#envSelection').val();
-      let base = env === 'custom'
-        ? $('#customEnvUrl').val().trim().replace(/\/$/, '')
-        : env === 'op_saas'
-          ? 'https://kr-api.eformsign.com'
-          : 'https://www.gov-eformsign.com/Service';
-      let url = `${base}/v2.0/api/groups`;
-
-      // 쿼리스트링
-       const params = [];
+  const env = $('#envSelection').val();
+  const base = env === 'custom'
+    ? $('#customEnvUrl').val().trim().replace(/\/$/, '')
+    : (env === 'op_saas'
+      ? 'https://kr-api.eformsign.com'
+      : 'https://www.gov-eformsign.com/Service');
+  let url = `${base}/v2.0/api/groups`;
+  const params = [];
   if ($('#toggleIncludeMember').hasClass('on')) params.push('include_member=true');
   if ($('#toggleIncludeField').hasClass('on'))  params.push('include_field=true');
   if (params.length) url += '?' + params.join('&');
 
-      // 뷰 토글
+  fetch(url, {
+    method: 'GET',
+    headers: { 'Authorization': 'Bearer ' + token }
+  })
+    .then(res => res.json())
+    .then(data => {
+      // 한글 그룹 이름 기준으로 가-나-다 순 정렬
+      (data.groups || []).sort((a, b) =>
+        (a.name || '').localeCompare(b.name || '', 'ko')
+      );
+
       if (viewType === 'json') {
         $('#groupJsonContainer').show();
         $('#groupTableContainer').hide();
+        $('#groupListResultJson').text(JSON.stringify(data, null, 2));
       } else {
         $('#groupJsonContainer').hide();
         $('#groupTableContainer').show();
-      }
-
-      $('#groupListResultJson').text('조회 중...');
-      $('#groupListResultTable tbody').empty();
-
-      fetch(url, {
-        method: 'GET',
-        headers: { 'Authorization': 'Bearer ' + token }
-      })
-        .then(res => res.json())
-        .then(data => {
-          // JSON
-          $('#groupListResultJson').text(JSON.stringify(data, null, 2));
-
-          if (viewType === 'table') {
-            (data.groups || []).forEach(g => {
-              const date = new Date(g.create_date).toLocaleString();
-              const memberCount = Array.isArray(g.members) ? g.members.length : '-';
-              $('#groupListResultTable tbody').append(`
-          <tr>
-            <td>${g.id}</td>
-            <td>${g.name}</td>
-            <td>${g.description || '-'}</td>
-            <td>${memberCount}</td>
-            <td>${date}</td>
-          </tr>
-        `);
-            });
-          }
-        })
-        .catch(err => {
-          $('#groupListResultJson').text('조회 실패: ' + err);
+        $('#groupListResultTable tbody').empty();
+        (data.groups || []).forEach(g => {
+          const date = new Date(g.create_date).toLocaleString();
+          const memberCount = Array.isArray(g.members) ? g.members.length : '-';
+          $('#groupListResultTable tbody').append(`
+            <tr>
+              <td>${g.id}</td>
+              <td>${g.name}</td>
+              <td>${g.description || '-'}</td>
+              <td>${memberCount}</td>
+              <td>${date}</td>
+            </tr>
+          `);
         });
-    }
+      }
+    })
+    .catch(err => {
+      $('#groupListResultJson').text('조회 실패: ' + err);
+    });
+}
