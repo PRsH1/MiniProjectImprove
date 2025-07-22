@@ -211,6 +211,7 @@
     });
 
     let execution_time = '';
+    let docOpt;
 
     function updateServerUrl(){
       const type = $('#serverType').val();
@@ -468,7 +469,7 @@
       });
 
       // document_option 구성
-      const docOpt = {
+      docOpt = {
         company: {
           id: companyIdVal,
           country_code: $('#countryCode').val() || 'kr',
@@ -494,6 +495,7 @@
           console.log('Response from server:', response);
           $('#eformsign_iframe').attr('src','');
           alert(`문서 생성/처리 성공\n문서 ID: ${response.document_id}\n문서 제목: ${response.title}`);
+          setTimeout(reinitializeEmbed, 1000);
         },
         function(err){
           console.log('Error response from server:', err);
@@ -526,6 +528,37 @@
         }
       );
     }
+    //Success Callback 호출 시 출력되는 함수
+ function reinitializeEmbed() {
+    // (필요시) prefill 데이터 초기화
+    $('#prefillDocumentName').val('');
+    $('#prefillComment').val('');
+    // iframe 콘텐트를 클리어하고 다시 열기
+    $("#eformsign_iframe").attr("src", "about:blank");
+    eformsign.document(
+        docOpt,
+        'eformsign_iframe',
+        function(response){
+          console.log('Response from server:', response);
+          $('#eformsign_iframe').attr('src','');
+          alert(`문서 생성/처리 성공\n문서 ID: ${response.document_id}\n문서 제목: ${response.title}`);
+          setTimeout(reinitializeEmbed, 1000);
+        },
+        function(err){
+          console.log('Error response from server:', err);
+          alert(`문서 생성/처리 실패\n코드: ${err.code}\n메시지: ${err.message}`);
+        },
+        function(actions){
+          console.log('초기 Action 목록 (actions.data):', actions.data);
+          $('#buttonList button').hide();
+          const arr = Array.isArray(actions.data) ? actions.data : [actions.data];
+          arr.forEach(function(a){
+            $(`#btn_${a.code}`).text(a.name).show();
+          });
+        }
+      );
+    eformsign.open();
+  }
   </script>
 </head>
 
