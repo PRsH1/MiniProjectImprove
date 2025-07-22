@@ -11,7 +11,7 @@
   <script src="https://www.eformsign.com/lib/js/efs_embedded_v2.js"></script>
 
   <style>
-    /* 기본 레이아웃 */
+    /* — 기존 스타일 그대로 유지 — */
     body {
       font-family: Arial, sans-serif;
       background-color: #eef2f7;
@@ -33,7 +33,7 @@
       width: 45%; overflow-y: auto; margin-right: 5%;
     }
     .right-panel {
-      width: 50%; display: flex; flex-direction: column;
+      width: 50%; display: flex; flex-direction: column; position: relative;
     }
     h2 {
       text-align: center; color: #333; margin-bottom: 20px; font-size: 1.5em;
@@ -139,6 +139,20 @@
       transform: translateX(26px);
     }
 
+    /* 로딩 인디케이터 */
+    #loadingIndicator {
+      display: none;
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      padding: 1em 2em;
+      background: rgba(0,0,0,0.7);
+      color: #fff;
+      border-radius: 8px;
+      font-size: 1.2em;
+      z-index: 1000;
+    }
+
     /* 반응형 */
     @media (max-width: 768px) {
       .left-panel, .right-panel {
@@ -153,77 +167,68 @@
   </style>
 
   <script>
-    $(function(){
-      // EformSignDocument 인스턴스 생성
-      window.eformsign = new EformSignDocument();
-
-      // 서버 URL 업데이트 (셀렉터 변경 시 호출)
-      $('#serverType').on('change input', updateServerUrl);
-      updateServerUrl();
-
-      // 토큰 방식 라벨 변경
-      $('#tokenMethodSelect').on('change', function(){
-        if (this.value === 'signature') {
-          $('#secretKeyLabel').text('Private Key Hex:');
-          $('#privateKeyHex').attr('placeholder','비밀키 입력');
-        } else {
-          $('#secretKeyLabel').text('Bearer Token:');
-          $('#privateKeyHex').attr('placeholder','Bearer 토큰 입력');
-        }
-      });
-
-      // Mode Type 변경 시 문서ID 표시/숨김
-      $('#modeTypeSelect').on('change', function(){
-        const v = this.value;
-        $('#docIdGroup')[ (v === '02' || v === '03') ? 'show' : 'hide' ]();
-      }).trigger('change');
-
-      // User Type 변경 시: authSection, externalInfoSection 보여주기/숨기기
-      $('#userTypeSelect').on('change', function(){
-        const ut = this.value;
-        if (ut === '01') { // 멤버
-          $('#authSection').show();
-          $('#externalInfoSection').hide();
-          $('#companyId').prop('readonly', true);
-        } else { // 외부
-          $('#authSection').hide();
-          $('#externalInfoSection').show();
-          $('#companyId').prop('readonly', false).val('');
-        }
-      }).trigger('change');
-
-      // 추가 옵션 패널 토글
-      $('#toggleOptionsBtn').click(() => $('#additionalOptions').slideToggle());
-
-      // 액션 버튼 토글 스위치
-      $('#toggleActionSwitch').on('change', function(){
-        $('#buttonList').css('display', this.checked ? 'flex' : 'none');
-        $('#toggleActionLabel').text(this.checked ? 'Action 버튼 숨기기' : 'Action 버튼 보이기');
-      }).prop('checked', false).trigger('change');
-
-      // 필드/수신자 추가 버튼 바인딩
-      $('#addFieldBtn').click(addFieldEntry);
-      $('#addRecipientBtn').click(addRecipientEntry);
-
-      // 버튼 이벤트
-      $('#getTokenButton').click(getAccessToken);
-      $('#startButton').click(startDocument);
-    });
-
     let execution_time = '';
     let docOpt;
 
+    $(function(){
+      window.eformsign = new EformSignDocument();
+
+      // 이벤트 바인딩
+      $('#serverType').on('change input', updateServerUrl);
+      $('#tokenMethodSelect').on('change', updateTokenLabel);
+      $('#modeTypeSelect').on('change', toggleDocId).trigger('change');
+      $('#userTypeSelect').on('change', toggleUserSection).trigger('change');
+      $('#toggleOptionsBtn').click(() => $('#additionalOptions').slideToggle());
+      $('#toggleActionSwitch').on('change', toggleActions).trigger('change');
+      $('#addFieldBtn').click(addFieldEntry);
+      $('#addRecipientBtn').click(addRecipientEntry);
+      $('#getTokenButton').click(getAccessToken);
+      $('#startButton').click(startDocument);
+
+      updateServerUrl();
+    });
+
     function updateServerUrl(){
       const type = $('#serverType').val();
-      let urlAuth = '';
-      if (type === 'custom') {
-        urlAuth = $('#customServerUrl').val().trim();
-      } else {
-        // 기본 서버(SaaS) 고정
-        urlAuth = 'https://api.eformsign.com/v2.0/api_auth/access_token';
-      }
+      const urlAuth = (type === 'custom')
+        ? $('#customServerUrl').val().trim()
+        : 'https://api.eformsign.com/v2.0/api_auth/access_token';
       $('#selectedServerUrl').text(urlAuth || 'URL을 입력하세요');
       $('#customServerField').toggle(type === 'custom');
+    }
+
+    function updateTokenLabel(){
+      if (this.value === 'signature') {
+        $('#secretKeyLabel').text('Private Key Hex:');
+        $('#privateKeyHex').attr('placeholder','비밀키 입력');
+      } else {
+        $('#secretKeyLabel').text('Bearer Token:');
+        $('#privateKeyHex').attr('placeholder','Bearer 토큰 입력');
+      }
+    }
+
+    function toggleDocId(){
+      const v = $('#modeTypeSelect').val();
+      $('#docIdGroup')[ (v === '02' || v === '03') ? 'show' : 'hide' ]();
+    }
+
+    function toggleUserSection(){
+      const ut = $('#userTypeSelect').val();
+      if (ut === '01') {
+        $('#authSection').show();
+        $('#externalInfoSection').hide();
+        $('#companyId').prop('readonly', true);
+      } else {
+        $('#authSection').hide();
+        $('#externalInfoSection').show();
+        $('#companyId').prop('readonly', false).val('');
+      }
+    }
+
+    function toggleActions(){
+      const shown = this.checked;
+      $('#buttonList').css('display', shown ? 'flex' : 'none');
+      $('#toggleActionLabel').text(shown ? 'Action 버튼 숨기기' : 'Action 버튼 보이기');
     }
 
     function getAccessToken(){
@@ -233,8 +238,8 @@
       const memberId = $('#userId').val();
       const requestURL = $('#selectedServerUrl').text();
       const body = { execution_time, member_id: memberId };
-
       let signatureValue;
+
       if (method === 'signature') {
         const pk = KEYUTIL.getKeyFromPlainPrivatePKCS8Hex($('#privateKeyHex').val());
         const sig = new KJUR.crypto.Signature({ alg: 'SHA256withECDSA' });
@@ -250,25 +255,22 @@
         type: 'POST',
         contentType: 'application/json; charset=UTF-8',
         data: JSON.stringify(body),
-        beforeSend: function(req){
+        beforeSend: req => {
           req.setRequestHeader('eformsign_signature', signatureValue);
           req.setRequestHeader('Authorization', 'Bearer ' + btoa(apiKey));
         },
-        success: function(data){
+        success: data => {
           $('#accessToken').val(data.oauth_token.access_token);
           $('#refreshToken').val(data.oauth_token.refresh_token);
           $('#companyId').val(data.api_key.company.company_id);
-          console.log('Access Token 발급 응답:', data);
         },
-        error: function(xhr){
+        error: xhr => {
           const r = JSON.parse(xhr.responseText);
-          console.log('Access Token 발급 오류 응답:', r);
           alert(`발급 실패:\n코드: ${r.code}\n메시지: ${r.ErrorMessage}`);
         }
       });
     }
 
-    // 필드 항목 추가
     function addFieldEntry(){
       const entry = $(`
         <div class="entry-item field-entry">
@@ -301,7 +303,6 @@
       $('#fieldsList').append(entry);
     }
 
-    // 수신자 항목 추가
     function addRecipientEntry(){
       const entry = $(`
         <div class="entry-item recipient-entry">
@@ -366,22 +367,51 @@
     }
 
     function startDocument(){
-      // ============================
-      // 액션 버튼 초기화
-      // ============================
-      $('#buttonList button').each(function(){
-        $(this).hide().text('');
-      });
+      resetActionButtons();
+      if (!validateInputs()) return;
+      buildDocOpt();
+      console.log('Request JSON:', JSON.stringify(docOpt, null, 2));
+      showLoading();
+      eformsign.document(
+        docOpt,
+        'eformsign_iframe',
+        success_callback,
+        error_callback,
+        actions_callback
+      );
+      eformsign.open();
+    }
 
+    function success_callback(response){
+      hideLoading();
+      $('#eformsign_iframe').attr('src','');
+      alert(`문서 생성/처리 성공\n문서 ID: ${response.document_id}\n문서 제목: ${response.title}`);
+       setTimeout(reinitializeEmbed, 1000);
+    }
+    function error_callback(err){
+      hideLoading();
+      alert(`문서 생성/처리 실패\n코드: ${err.code}\n메시지: ${err.message}`);
+    }
+    function actions_callback(actions){
+      hideLoading();
+      resetActionButtons();
+      const arr = Array.isArray(actions.data) ? actions.data : [actions.data];
+      arr.forEach(a => $(`#btn_${a.code}`).text(a.name).show());
+    }
+
+    function showLoading(){ $('#loadingIndicator').show(); }
+    function hideLoading(){ $('#loadingIndicator').hide(); }
+    function resetActionButtons(){ $('#buttonList button').hide().text(''); }
+    function validateInputs(){
+      const cid = ($('#companyId').val()||'').trim();
+      if (!cid){ alert('회사 ID를 입력하세요.'); return false; }
+      return true;
+    }
+
+    function buildDocOpt(){
       const userType = $('#userTypeSelect').val();
       const modeType = $('#modeTypeSelect').val();
-      // 서버 유형 분기는 삭제: 오직 SaaS 또는 custom만 처리
-
-      // 회사 ID 유효성 검사
-      const companyIdVal = ($('#companyId').val() || '').trim();
-      if (companyIdVal === '') {
-        return alert('회사 ID를 입력하세요.');
-      }
+      const companyIdVal = $('#companyId').val().trim();
 
       let userObj;
       if (userType === '01') {
@@ -391,33 +421,14 @@
           refresh_token: $('#refreshToken').val(),
           access_token: $('#accessToken').val()
         };
-        if (!userObj.access_token) {
-          return alert('먼저 Access Token을 발급하세요.');
-        }
       } else {
-        const externalName = ($('#externalName').val() || '').trim();
-        const externalToken = ($('#externalToken').val() || '').trim();
-        if (externalName === '') {
-          return alert('외부 사용자 이름을 입력하세요.');
-        }
-        if (modeType !== '01' && externalToken === '') {
-          return alert('외부 토큰을 입력하세요.');
-        }
-        if (modeType === '01') {
-          userObj = {
-            type: '02',
-            external_user_info: { name: externalName }
-          };
-        } else {
-          userObj = {
-            type: '02',
-            external_token: externalToken,
-            external_user_info: { name: externalName }
-          };
-        }
+        const externalName = $('#externalName').val().trim();
+        const externalToken = $('#externalToken').val().trim();
+        userObj = modeType === '01'
+          ? { type: '02', external_user_info: { name: externalName } }
+          : { type: '02', external_token: externalToken, external_user_info: { name: externalName } };
       }
 
-      // layout 옵션 수집
       const layoutOpts = {
         lang_code: $('#layoutLang').val(),
         header: $('#layoutHeader').is(':checked'),
@@ -430,7 +441,6 @@
         }
       };
 
-      // prefill 옵션 수집
       const prefill = {
         document_name: $('#prefillDocumentName').val(),
         fields: [],
@@ -444,10 +454,9 @@
         const value = $(this).find('.field-value').val();
         const enabled = $(this).find('.field-enabled').is(':checked');
         const required = $(this).find('.field-required').is(':checked');
-        if (id.trim() !== '') {
-          prefill.fields.push({ id, value, enabled, required });
-        }
+        if (id.trim()) prefill.fields.push({ id, value, enabled, required });
       });
+
       $('.recipient-entry').each(function(){
         const step_idx = $(this).find('.rec-step-idx').val();
         const step_type = $(this).find('.rec-step-type').val();
@@ -458,107 +467,46 @@
         const use_sms = $(this).find('.rec-use-sms').is(':checked');
         const password = $(this).find('.rec-auth-password').val();
         const password_hint = $(this).find('.rec-auth-hint').val();
-        const day = parseInt($(this).find('.rec-valid-day').val(), 10) || 0;
-        const hour = parseInt($(this).find('.rec-valid-hour').val(), 10) || 0;
-        if (id.trim() !== '') {
-          prefill.recipients.push({
-            step_idx, step_type, name, id, sms, use_mail, use_sms,
-            auth: { password, password_hint, valid: { day, hour } }
-          });
-        }
+        const day = parseInt($(this).find('.rec-valid-day').val(),10)||0;
+        const hour = parseInt($(this).find('.rec-valid-hour').val(),10)||0;
+        if (id.trim()) prefill.recipients.push({
+          step_idx, step_type, name, id, sms, use_mail, use_sms,
+          auth:{ password, password_hint, valid:{ day, hour } }
+        });
       });
 
-      // document_option 구성
       docOpt = {
         company: {
           id: companyIdVal,
-          country_code: $('#countryCode').val() || 'kr',
+          country_code: $('#countryCode').val()||'kr',
           user_key: ''
         },
         user: userObj,
         mode: {
           type: modeType,
           template_id: $('#templateId').val(),
-          document_id: $('#documentId').val() || ''
+          document_id: $('#documentId').val()||''
         },
         layout: layoutOpts,
         prefill: prefill
       };
-
-      console.log('Request JSON:', JSON.stringify(docOpt, null, 2));
-
-      // eformsign 호출 (도메인 분기 없음: SaaS 기본)
-      eformsign.document(
-        docOpt,
-        'eformsign_iframe',
-        function(response){
-          console.log('Response from server:', response);
-          $('#eformsign_iframe').attr('src','');
-          alert(`문서 생성/처리 성공\n문서 ID: ${response.document_id}\n문서 제목: ${response.title}`);
-          setTimeout(reinitializeEmbed, 1000);
-        },
-        function(err){
-          console.log('Error response from server:', err);
-          alert(`문서 생성/처리 실패\n코드: ${err.code}\n메시지: ${err.message}`);
-        },
-        function(actions){
-          console.log('초기 Action 목록 (actions.data):', actions.data);
-          $('#buttonList button').hide();
-          const arr = Array.isArray(actions.data) ? actions.data : [actions.data];
-          arr.forEach(function(a){
-            $(`#btn_${a.code}`).text(a.name).show();
-          });
-        }
-      );
-
-      // 임베딩 개시
-      eformsign.open();
     }
+    
 
-    // actionTest 전역 함수 - 서버로부터 받은 action 응답도 콘솔에 출력
     function actionTest(code){
-      console.log('사용자 클릭한 action 코드:', code);
       eformsign.sendAction(
-        { type: '01', code: code },
-        function(response){
-          console.log('Action 응답 (Response):', response);
-        },
-        function(err){
-          console.log('Action 요청 오류:', err);
-        }
+        { type:'01', code },
+        resp => console.log('Action 응답:', resp),
+        err  => console.log('Action 오류:', err)
       );
     }
-    //Success Callback 호출 시 출력되는 함수
- function reinitializeEmbed() {
-    // (필요시) prefill 데이터 초기화
-    $('#prefillDocumentName').val('');
-    $('#prefillComment').val('');
-    // iframe 콘텐트를 클리어하고 다시 열기
-    $("#eformsign_iframe").attr("src", "about:blank");
-    eformsign.document(
-        docOpt,
-        'eformsign_iframe',
-        function(response){
-          console.log('Response from server:', response);
-          $('#eformsign_iframe').attr('src','');
-          alert(`문서 생성/처리 성공\n문서 ID: ${response.document_id}\n문서 제목: ${response.title}`);
-          setTimeout(reinitializeEmbed, 1000);
-        },
-        function(err){
-          console.log('Error response from server:', err);
-          alert(`문서 생성/처리 실패\n코드: ${err.code}\n메시지: ${err.message}`);
-        },
-        function(actions){
-          console.log('초기 Action 목록 (actions.data):', actions.data);
-          $('#buttonList button').hide();
-          const arr = Array.isArray(actions.data) ? actions.data : [actions.data];
-          arr.forEach(function(a){
-            $(`#btn_${a.code}`).text(a.name).show();
-          });
-        }
-      );
+    function reinitializeEmbed(){
+      //Success_callback 후 임베딩 재초기화
+      eformsign = new EformSignDocument();
+      $("#eformsign_iframe").attr("src", "about:blank");
+    eformsign.document(docOpt, "eformsign_iframe", success_callback, error_callback, actions_callback);
     eformsign.open();
-  }
+    }
   </script>
 </head>
 
@@ -748,14 +696,17 @@
 
   <div class="right-panel">
     <h2 class="iframe-title">문서 영역</h2>
+    <div id="loadingIndicator">⏳ 임베딩 중…</div>
+
     <div class="form-group" style="margin-bottom:10px;">
       <label class="switch">
         <input type="checkbox" id="toggleActionSwitch" />
         <span class="slider"></span>
       </label>
-      <label id="toggleActionLabel" style="margin-left:8px;vertical-align:middle"></label>
+      <label id="toggleActionLabel"></label>
     </div>
     <div id="buttonList">
+      <!-- action buttons -->
       <button id="btn_01" onclick="actionTest('01')"></button>
       <button id="btn_02" onclick="actionTest('02')"></button>
       <button id="btn_03" onclick="actionTest('03')"></button>
@@ -777,8 +728,9 @@
       <button id="btn_19" onclick="actionTest('19')"></button>
       <button id="btn_20" onclick="actionTest('20')"></button>
       <button id="btn_21" onclick="actionTest('21')"></button>
-      <button id="btn_28" onclick="actionTest('28')"></button>
       <button id="btn_22" style="width:150px" onclick="actionTest('22')"></button>
+      
+    
     </div>
     <div class="iframe-container">
       <iframe id="eformsign_iframe" name="eformsign_iframe"></iframe>
