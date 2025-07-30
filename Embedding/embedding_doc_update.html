@@ -360,6 +360,9 @@
             <label>전송 기한 - 시 (valid.hour):</label>
             <input type="number" class="rec-valid-hour" value="0" min="0" />
           </div>
+          <div class="form-group">
+            <label>문서 링크 (document_link):</label>
+            <input type="text" class="rec-document-link" placeholder="알림 메일과 sms의 document_link로 사용 할 url 설정" />
         </div>
       `);
       entry.find('.remove-entry').click(() => entry.remove());
@@ -469,9 +472,10 @@
         const password_hint = $(this).find('.rec-auth-hint').val();
         const day = parseInt($(this).find('.rec-valid-day').val(),10)||0;
         const hour = parseInt($(this).find('.rec-valid-hour').val(),10)||0;
+        const document_link = $(this).find('.rec-document-link').val() || '';
         if (id.trim()) prefill.recipients.push({
           step_idx, step_type, name, id, sms, use_mail, use_sms,
-          auth:{ password, password_hint, valid:{ day, hour } }
+          auth:{ password, password_hint, valid:{ day, hour } },document_link
         });
       });
 

@@ -112,12 +112,13 @@
       const env = $('#envSelection').val();
       let requestURL;
       if (env === 'custom') {
-        const base = $('#customEnvUrl').val().trim().replace(/\/$/, '');
-        if (!base) return alert('사용자 지정 Base URL을 입력하세요.');
-        requestURL = `${base}/v2.0/api_auth/access_token`;
-      } else {
-        requestURL = tokenUrlMap[env];
-      }
+    const base = $('#customEnvUrl').val().trim().replace(/\/$/, '');
+    requestURL = base.includes('/api_auth/access_token')
+      ? base
+      : `${base}/v2.0/api_auth/access_token`;
+  } else {
+    requestURL = tokenUrlMap[env];
+  }
 
       const execution_time = Date.now() + '';
       const privateKeyInput = $('#privateKeyHex').val().trim();
