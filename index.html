@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mini Project Hub</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: #f7f7f7;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            background-color: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            padding: 30px 40px;
+            width: 100%;
+            max-width: 600px;
+        }
+        h1 {
+            text-align: center;
+            color: #111;
+            margin-bottom: 10px;
+        }
+        p {
+            text-align: center;
+            color: #666;
+            margin-top: 0;
+            margin-bottom: 30px;
+        }
+        h2 {
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+            margin-top: 30px;
+            color: #333;
+        }
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        li {
+            margin: 15px 0;
+        }
+        a {
+            display: block;
+            padding: 12px 15px;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 1.1em;
+            text-decoration: none;
+            color: #0070f3;
+            transition: background-color 0.2s, border-color 0.2s;
+        }
+        a:hover {
+            background-color: #f1f1f1;
+            border-color: #0070f3;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>프로젝트 허브</h1>
+        <p>아래 링크를 통해 각 기능 페이지로 이동할 수 있습니다.</p>
+
+        <section id="api-section">
+            <h2>API</h2>
+            <ul>
+                <li><a href="/API(JS,HTML)/DocumentSendImprove.html">새 문서 작성 API</a></li>
+                <li><a href="/API(JS,HTML)/listdocuments.html">문서 목록 조회 API</a></li>
+                <li><a href="/API(JS,HTML)/Member.html">멤버 관련 API 모음</a></li>
+            </ul>
+        </section>
+
+        <section id="embedding-section">
+            <h2>Embedding</h2>
+            <ul>
+                <li><a href="/Embedding/embedding_doc_update.html">문서 임베딩</a></li>
+                <li><a href="/Embedding/embedding_doc_update_CSAP.html">CSAP 문서 임베딩</a></li>
+                <li><a href="/Embedding/template_create_update.html">템플릿 임베딩</a></li>
+                <li><a href="/Embedding/template_create_update_CSAP.html">CSAP 템플릿 임베딩</a></li>
+            </ul>
+        </section>
+    </div>
+
+</body>
+</html>
