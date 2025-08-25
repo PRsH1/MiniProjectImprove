@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>SMTP 발송 테스트 (Serverless)</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 2em; }
+        label { display: inline-block; width: 120px; margin-top: .5em; }
+        input, select { width: 200px; padding: .2em; }
+        button { margin: .5em .2em; padding: .5em 1em; }
+        #result { margin-top: 1em; font-weight: bold; }
+        #logsContainer { margin-top: 1.5em; }
+        .hidden { display: none; }
+        .back-link { margin-bottom: 2em; display: block; }
+    </style>
+</head>
+<body>
+    <a href="/" class="back-link">&larr; 허브 페이지로 돌아가기</a>
+    <h2>SMTP 발송 테스트</h2>
+    <form id="smtpForm">
+        <label>SMTP Host:</label>
+          <input name="host" placeholder="예: smtp.gmail.com"><br>
+        <label>Port:</label>
+          <input name="port" placeholder="예: 587"><br>
+        <label>Use Auth:</label>
+          <select name="authRequired" id="authRequired">
+            <option value="false" selected>No</option>
+            <option value="true">Yes</option>
+          </select><br>
+        <div id="authFields" class="hidden">
+          <label>User:</label>
+            <input name="user" placeholder="이메일 주소"><br>
+          <label>Password:</label>
+            <input type="password" name="pass" placeholder="비밀번호 또는 앱 비밀번호"><br>
+        </div>
+        <label>From:</label>
+          <input name="from" placeholder="보내는 사람 이메일"><br>
+        <label>To:</label>
+          <input name="to" placeholder="받는 사람 이메일"><br>
+        <label>Security:</label>
+          <select name="security">
+            <option value="none">None</option>
+            <option value="tls" selected>STARTTLS</option>
+            <option value="ssl">SSL/TLS</option>
+          </select><br>
+        <button type="submit">메일 발송 테스트</button>
+        <button type="reset">초기화</button>
+    </form>
+
+    <div id="logsContainer">
+      <h4>서버 로그 안내</h4>
+      <p>서버 로그(SMTP 통신 과정 포함)는 Vercel 대시보드의 'Logs' 탭에서 실시간으로 확인할 수 있습니다.</p>
+    </div>
+
+    <div id="result"></div>
+
+    <script>
+        // 인증 필드 토글
+        const authRequiredSelect = document.getElementById('authRequired');
+        const authFields = document.getElementById('authFields');
+        function toggleAuthFields() {
+          authFields.classList.toggle('hidden', authRequiredSelect.value === 'false');
+        }
+        authRequiredSelect.addEventListener('change', toggleAuthFields);
+        toggleAuthFields();
+
+        // 메일 발송
+        const form = document.getElementById('smtpForm');
+        form.addEventListener('submit', async e => {
+          e.preventDefault();
+          const btn = form.querySelector('button[type="submit"]');
+          btn.disabled = true;
+          btn.textContent = '전송 중…';
+          document.getElementById('result').textContent = '';
+          try {
+            const resp = await fetch('/api/send', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+              },
+              body: new URLSearchParams(new FormData(form))
+            });
+            document.getElementById('result').innerHTML = await resp.text();
+          } catch (err) {
+            document.getElementById('result').textContent = '⚠️ 네트워크 오류: ' + err;
+          } finally {
+            btn.disabled = false;
+            btn.textContent = '메일 발송 테스트';
+          }
+        });
+    </script>
+</body>
+</html>

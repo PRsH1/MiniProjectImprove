@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <title>CORS 차단 재현 (비허용 Origin)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body { font-family: system-ui, Arial, sans-serif; max-width: 880px; margin: 32px auto; padding: 0 12px; }
+    h1 { margin: 0 0 8px; }
+    .box { border: 1px solid #ddd; border-radius: 8px; padding: 12px; margin: 12px 0; }
+    label { display: block; margin-top: 8px; font-size: 14px; }
+    input, textarea, button { width: 100%; padding: 8px; margin-top: 6px; box-sizing: border-box; }
+    button { cursor: pointer; border-radius: 8px; border: 1px solid #ccc; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    pre { background: #f7f7f7; padding: 12px; border-radius: 8px; overflow: auto; max-height: 280px; }
+    small { color: #555; }
+    code { background: #f1f1f1; padding: 0 4px; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <h1>CORS 차단 재현 (비허용 Origin)</h1>
+  <div class="box">
+    <div><b>현재 Origin:</b> <code id="cur-origin"></code></div>
+    <small>※ 이 페이지는 eform.cbe.go.kr의 허용 목록에 없으므로, 아래 호출은 브라우저에서 CORS로 차단되어야 합니다.</small>
+  </div>
+
+  <div class="box">
+    <label>테스트 엔드포인트(URL)</label>
+    <input id="url" value="https://eform.cbe.go.kr/Service/v1.0/accounts/shinhyunsu%40cbe.go.kr/companies?lang=en" />
+
+    <div class="row" style="margin-top:12px;">
+      <button id="btn-get-simple">① Simple GET (프리플라이트 없음)</button>
+      <button id="btn-get-auth">② GET + Authorization (프리플라이트 유도)</button>
+    </div>
+    <div class="row" style="margin-top:8px;">
+      <button id="btn-post-json">③ POST + JSON(프리플라이트 유도)</button>
+      <button id="btn-xhr">④ XHR(XMLHttpRequest) + 커스텀 헤더</button>
+    </div>
+    <small>
+      ②·③·④는 브라우저가 자동으로 <b>OPTIONS 프리플라이트</b>를 먼저 날립니다.
+      Network 탭에서 <code>OPTIONS</code> → <code>GET/POST</code> 순서를 확인하고, CORS 관련 응답 헤더 부재/403 등을 캡처하세요.
+    </small>
+  </div>
+
+  <div class="box">
+    <label>출력(Log)</label>
+    <pre id="log"></pre>
+  </div>
+
+  <script>
+    const $ = (s) => document.querySelector(s);
+    const logEl = $('#log');
+    const log = (...args) => {
+      const text = args.map(a => (typeof a === 'string' ? a : JSON.stringify(a, null, 2))).join(' ');
+      console.log(text);
+      logEl.textContent += text + '\n';
+      logEl.scrollTop = logEl.scrollHeight;
+    };
+
+    $('#cur-origin').textContent = location.origin;
+
+    const getUrl = () => $('#url').value.trim();
+
+    // ① Simple GET (프리플라이트 없음)
+    $('#btn-get-simple').addEventListener('click', async () => {
+      log('--- ① Simple GET 시작 ---');
+      try {
+        const res = await fetch(getUrl(), { method: 'GET' });
+        // CORS 차단 시점에서는 여기까지 오지 못하고 TypeError로 reject 됩니다.
+        log('응답 상태:', res.status, res.statusText);
+        const text = await res.text();
+        log('응답 본문(앞부분):', text.slice(0, 200));
+      } catch (err) {
+        log('CORS/네트워크 에러:', String(err));
+      }
+    });
+
+    // ② GET + Authorization (프리플라이트 유도)
+    $('#btn-get-auth').addEventListener('click', async () => {
+      log('--- ② GET + Authorization 헤더 (프리플라이트 유도) ---');
+      try {
+        const res = await fetch(getUrl(), {
+          method: 'GET',
+          headers: {
+            'Authorization': 'Bearer dummy-token',
+            'X-Requested-With': 'XMLHttpRequest'
+          },
+          credentials: 'include' // 자격증명 포함 시 더 엄격한 CORS 요건 발생
+        });
+        log('응답 상태:', res.status, res.statusText);
+        const text = await res.text();
+        log('응답 본문(앞부분):', text.slice(0, 200));
+      } catch (err) {
+        log('CORS/네트워크 에러:', String(err));
+      }
+    });
+
+    // ③ POST + JSON (프리플라이트 유도)
+    $('#btn-post-json').addEventListener('click', async () => {
+      log('--- ③ POST + JSON (프리플라이트 유도) ---');
+      try {
+        const res = await fetch(getUrl(), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ping: 'pong' })
+        });
+        log('응답 상태:', res.status, res.statusText);
+        const text = await res.text();
+        log('응답 본문(앞부분):', text.slice(0, 200));
+      } catch (err) {
+        log('CORS/네트워크 에러:', String(err));
+      }
+    });
+
+    // ④ XHR + 커스텀 헤더 (프리플라이트 유도)
+    $('#btn-xhr').addEventListener('click', () => {
+      log('--- ④ XHR + 커스텀 헤더 (프리플라이트 유도) ---');
+      const xhr = new XMLHttpRequest();
+      xhr.open('GET', getUrl(), true);
+      xhr.setRequestHeader('Authorization', 'Bearer dummy-token');
+      xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+      xhr.withCredentials = true;
+      xhr.onload = () => log('XHR 응답 상태:', xhr.status);
+      xhr.onerror = (e) => log('XHR 에러 발생:', e);
+      try {
+        xhr.send();
+      } catch (err) {
+        log('XHR 예외:', String(err));
+      }
+    });
+  </script>
+</body>
+</html>
