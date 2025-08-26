@@ -20,7 +20,7 @@ export default async function handler(req, res) {
     if (!host || !port || !from || !to) {
       return res.status(400).send("<span style='color:red;'>❌ 필수값(Host/Port/From/To)이 비어 있습니다.</span>");
     }
-
+    
     console.log(`[REQUEST] Host=${host}, Port=${port}, AuthRequired=${authRequired}, User=${user}, From=${from}, To=${to}, Security=${security}`);
 
     const transporterOptions = {
@@ -30,12 +30,14 @@ export default async function handler(req, res) {
       requireTLS: security === 'tls',
       auth: authRequired ? { user, pass } : undefined,
       debug: true,
+     
       logger: {
-        info: (msg) => console.log('[SMTP INFO]', msg.toString()),
-        debug: (msg) => console.log('[SMTP DEBUG]', msg.toString()),
-        warn: (msg) => console.warn('[SMTP WARN]', msg.toString()),
-        error: (msg) => console.error('[SMTP ERROR]', msg.toString()),
+        info: (...args) => console.log('[SMTP INFO]', ...args),
+        debug: (...args) => console.log('[SMTP DEBUG]', ...args),
+        warn: (...args) => console.warn('[SMTP WARN]', ...args),
+        error: (...args) => console.error('[SMTP ERROR]', ...args),
       },
+      
       tls: {
         rejectUnauthorized: false
       }
@@ -52,6 +54,7 @@ export default async function handler(req, res) {
 
     const info = await transporter.sendMail(mailOptions);
     
+    // 성공 로그는 info.response가 문자열이므로 그대로 둡니다.
     console.log('[SUCCESS] Mail sent:', info.response);
     res.status(200).send(`<span style='color:green;'>✅ 메일 발송 성공! 수신자: ${to}</span>`);
 
