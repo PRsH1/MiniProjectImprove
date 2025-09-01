@@ -21,7 +21,7 @@ export default function handler(req, res) {
 
     res.setHeader('Set-Cookie', cookie);
     // 원래 접속하려던 페이지로 리디렉션
-    res.redirect(302, '/API(JS,HTML)/Member.html');
+    res.redirect(302, '/private/Member.html');
   } else {
     // 암호가 틀리면 에러 표시와 함께 로그인 페이지로 다시 보냄
     res.redirect(302, '/auth/login.html?error=1');
