@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>로그인</title>
+    <style>
+        body { display: flex; justify-content: center; align-items: center; height: 100vh; font-family: sans-serif; background-color: #f7f7f7; }
+        .login-box { padding: 40px; background: white; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); text-align: center; }
+        input { padding: 10px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 5px; }
+        button { padding: 10px 20px; background-color: #0070f3; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        .error { color: red; margin-bottom: 15px; }
+    </style>
+</head>
+<body>
+    <div class="login-box">
+        <h2>멤버 페이지 접근</h2>
+        <p>멤버 페이지는 일부 공개 API입니다.</p>
+        <p>암호 발급은 <strong>따로 문의하셔야 </strong>합니다.</p>
+        <form action="/api/login" method="POST">
+            <input type="password" name="password" placeholder="암호" required>
+            <br>
+            <button type="submit">로그인</button>
+        </form>
+        <p id="errorMessage" class="error"></p>
+    </div>
+
+    <script>
+        // URL에 error=1 쿼리가 있으면 에러 메시지를 표시합니다.
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has('error')) {
+            document.getElementById('errorMessage').textContent = '암호가 올바르지 않습니다.';
+        }
+    </script>
+</body>
+</html>
