@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>eformsign 문서 API 테스터</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 20px; }
+        .container { max-width: 900px; margin: 30px auto; background: #fff; border: 1px solid #ddd; border-radius: 4px; padding: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        h1, h2, h3 { margin-top: 0; }
+        h2 { border-bottom: 1px solid #ddd; padding-bottom: 8px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; font-weight: bold; margin-bottom: 5px; }
+        input, select, button, textarea { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        button { cursor: pointer; background-color: #007bff; color: white; border: none; transition: background-color 0.2s; }
+        button:hover { background-color: #0056b3; }
+        .radio-group, .checkbox-group { display: flex; flex-wrap: wrap; gap: 10px 20px; align-items: center; }
+        .radio-group label, .checkbox-group label { font-weight: normal; margin: 0; }
+        .section { margin-bottom: 30px; }
+        #tokenResult, .result-box { margin-top: 15px; background: #f7f7f7; padding: 10px; border: 1px solid #ddd; white-space: pre-wrap; word-break: break-all; font-size: 0.9em; max-height: 400px; overflow-y: auto; }
+        .result-box pre { white-space: pre-wrap; word-break: break-all; margin: 0; }
+        .url-display { font-size: 0.8em; color: #666; margin-bottom: 10px; word-break: break-all; }
+        .dynamic-part { color: #007bff; font-weight: bold; }
+
+        .btn-checkbox-group { display: flex; flex-wrap: wrap; gap: 10px; }
+        .btn-checkbox-group label {
+            display: inline-block; padding: 8px 12px; background-color: #e9ecef; border: 1px solid #ced4da;
+            border-radius: 4px; font-weight: normal; cursor: pointer; transition: all 0.2s ease-in-out; user-select: none;
+        }
+        .btn-checkbox-group input[type="checkbox"] { display: none; }
+        .btn-checkbox-group label.selected { background-color: #007bff; color: white; border-color: #007bff; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>eformsign 문서 API 테스터</h1>
+        
+        <div class="section" id="tokenSection">
+            <h2>Access Token 발급</h2>
+            <div class="form-group">
+                <label for="envSelection">환경 선택:</label>
+                <select id="envSelection">
+                    <option value="op_saas">운영 (SaaS)</option>
+                    <option value="csap">공공 (CSAP)</option>
+                </select>
+            </div>
+            <div class="url-display" id="tokenUrlDisplay"></div>
+            <div class="form-group">
+                <label for="apiKey">API-KEY:</label> <input type="text" id="apiKey" placeholder="API-KEY 입력">
+            </div>
+            <div class="form-group">
+                <label>비밀 키 입력 방식:</label>
+                <div class="radio-group">
+                    <label><input type="radio" name="secretKeyMethod" value="signature" checked> Signature 방식</label>
+                    <label><input type="radio" name="secretKeyMethod" value="bearer"> Bearer token 방식</label>
+                </div>
+            </div>
+            <div class="form-group">
+                <label id="secretKeyLabel" for="privateKeyHex">비밀 키 (Secret key, Hex):</label> <input type="text" id="privateKeyHex" placeholder="예: 30... (Signature 방식)">
+            </div>
+            <div class="form-group">
+                <label for="user_id_token">User ID:</label> <input type="text" id="user_id_token" placeholder="User ID 입력">
+            </div>
+            <button onclick="getAccessToken()">Access Token 발급</button>
+            <div class="form-group">
+                <label for="accessToken">Access Token:</label> <textarea id="accessToken" rows="3" readonly></textarea>
+            </div>
+            <div id="tokenResult"></div>
+        </div>
+
+        <div class="section" id="documentDownloadSection">
+            <h2>문서 파일 다운로드 (GET /documents/{DOCUMENT_ID}/download_files)</h2>
+            <div class="url-display" id="docDownloadUrlDisplay">API URL: <span class="base-url"></span><span class="dynamic-part" id="dynamicDownloadDocId">{DOCUMENT_ID}</span>/download_files</div>
+            
+            <div class="form-group">
+                <label for="downloadDocumentId">DOCUMENT_ID (필수):</label>
+                <input type="text" id="downloadDocumentId" placeholder="다운로드할 문서의 ID를 입력하세요">
+            </div>
+
+            <div class="form-group">
+                <label>file_type (필수, 다중 선택 가능):</label>
+                <div class="btn-checkbox-group">
+                    <label><input type="checkbox" name="file_type" value="document"><span>문서</span></label>
+                    <label><input type="checkbox" name="file_type" value="audit_trail"><span>감사추적증명서</span></label>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="fileName">file_name (선택):</label>
+                <input type="text" id="fileName" placeholder="다운로드 파일명 지정 (확장자 제외)">
+            </div>
+            <button onclick="downloadFiles()">파일 다운로드</button>
+            <div class="result-box" id="downloadResult"></div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsrsasign/10.5.25/jsrsasign-all-min.js"></script>
+    <script>
+        const DOMAINS = { 
+            op_saas: 'https://kr-api.eformsign.com', 
+            csap: 'https://www.gov-eformsign.com/Service' 
+        };
+
+        function updateUrlDisplay() {
+            const domain = DOMAINS[$('#envSelection').val()];
+            $('#tokenUrlDisplay').text(`Access Token URL: ${domain}/v2.0/api_auth/access_token`);
+            $('#documentDownloadSection .base-url').text(`${domain}/v2.0/api/documents/`);
+        }
+
+        function getAccessToken() {
+            const execTime = Date.now();
+            const apiKey = $('#apiKey').val().trim();
+            const privateKey = $('#privateKeyHex').val().trim();
+            const memberId = $('#user_id_token').val().trim();
+            if (!apiKey || !privateKey || !memberId) {
+                alert('Access Token 발급에 필요한 모든 값을 입력해주세요.');
+                return;
+            }
+            let signature;
+            if ($('input[name="secretKeyMethod"]:checked').val() === 'signature') {
+                try {
+                    const keyObj = KEYUTIL.getKeyFromPlainPrivatePKCS8Hex(privateKey);
+                    const sig = new KJUR.crypto.Signature({ alg: 'SHA256withECDSA' });
+                    sig.init(keyObj);
+                    sig.updateString(execTime.toString());
+                    signature = sig.sign();
+                } catch (e) {
+                    alert('서명 생성 오류: ' + e);
+                    return;
+                }
+            } else {
+                signature = 'Bearer ' + privateKey;
+            }
+            const url = `${DOMAINS[$('#envSelection').val()]}/v2.0/api_auth/access_token`;
+            $('#tokenResult').html('<pre>토큰 발급 중...</pre>');
+            $.ajax({
+                url: url,
+                method: 'POST',
+                contentType: 'application/json; charset=UTF-8',
+                headers: { 'Authorization': 'Bearer ' + btoa(apiKey), 'eformsign_signature': signature },
+                data: JSON.stringify({ execution_time: execTime, member_id: memberId }),
+                success(data) {
+                    $('#accessToken').val(data.oauth_token.access_token);
+                    $('#tokenResult').html('<pre>' + JSON.stringify(data, null, 2) + '</pre>');
+                },
+                error(xhr) {
+                    let msg;
+                    try { msg = JSON.parse(xhr.responseText); } catch { msg = { error: xhr.statusText }; }
+                    $('#tokenResult').html(`<pre>에러(${xhr.status}): ${JSON.stringify(msg, null, 2)}</pre>`);
+                }
+            });
+        }
+
+        function parseContentDisposition(dispositionHeader) {
+            if (!dispositionHeader) {
+                return null;
+            }
+            let fileName = null;
+            const utf8FilenameMatch = /filename\*=UTF-8''([^;]+)/i.exec(dispositionHeader);
+            if (utf8FilenameMatch && utf8FilenameMatch[1]) {
+                try {
+                    fileName = decodeURIComponent(utf8FilenameMatch[1]);
+                    return fileName;
+                } catch (e) {
+                    console.error("Error decoding filename*:", e);
+                }
+            }
+            const legacyFilenameMatch = /filename="?([^;"]+)"?/i.exec(dispositionHeader);
+            if (legacyFilenameMatch && legacyFilenameMatch[1]) {
+                let filename = legacyFilenameMatch[1];
+                try {
+                    const bytes = Uint8Array.from(filename, c => c.charCodeAt(0));
+                    const decodedFilename = new TextDecoder('utf-8').decode(bytes);
+                    return decodedFilename;
+                } catch (e) {
+                    console.error("Could not decode filename, returning raw value.", e);
+                    return filename;
+                }
+            }
+            return null;
+        }
+
+        async function downloadFiles() {
+            const token = $('#accessToken').val().trim();
+            const documentId = $('#downloadDocumentId').val().trim();
+            const resultBox = $('#downloadResult');
+            if (!token) { alert('Access Token을 먼저 발급받아주세요.'); return; }
+            if (!documentId) { alert('DOCUMENT_ID를 입력해주세요.'); return; }
+            const fileTypes = $('input[name="file_type"]:checked').map(function() { return $(this).val(); }).get();
+            if (fileTypes.length === 0) { alert('file_type을 하나 이상 선택해주세요.'); return; }
+            const userInputFileName = $('#fileName').val().trim();
+            const domain = DOMAINS[$('#envSelection').val()];
+            const params = new URLSearchParams();
+            params.append('file_type', fileTypes.join(','));
+            if (userInputFileName) {
+                params.append('file_name', userInputFileName);
+            }
+            const url = `${domain}/v2.0/api/documents/${documentId}/download_files?${params.toString()}`;
+            resultBox.html(`<p>요청 URL: ${url}</p><p id="downloadStatus">다운로드 요청 중...</p>`);
+            try {
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!response.ok) {
+                    const errorJson = await response.json();
+                    throw new Error(`서버 오류 ${response.status}: ${JSON.stringify(errorJson, null, 2)}`);
+                }
+                $('#downloadStatus').text('응답 수신 완료. 파일 처리 중...');
+                let finalFileName;
+                if (userInputFileName) {
+                    const contentType = response.headers.get('content-type');
+                    let extension = '';
+                    if (contentType.includes('application/pdf')) extension = '.pdf';
+                    else if (contentType.includes('application/zip')) extension = '.zip';
+                    finalFileName = userInputFileName + extension;
+                } else {
+                    const disposition = response.headers.get('content-disposition');
+                    finalFileName = parseContentDisposition(disposition) || 'downloaded_file';
+                }
+                const blob = await response.blob();
+                const downloadUrl = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = downloadUrl;
+                a.download = finalFileName;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(downloadUrl);
+                a.remove();
+                $('#downloadStatus').text(`다운로드 성공: ${finalFileName}`);
+            } catch (err) {
+                $('#downloadStatus').text('다운로드 실패');
+                resultBox.append(`<pre>Error: ${err.message}</pre>`);
+            }
+        }
+
+        $(document).ready(function() {
+            updateUrlDisplay();
+            $('#envSelection').change(updateUrlDisplay);
+
+            $('input[name="secretKeyMethod"]').change(function() {
+                const isSignature = $(this).val() === 'signature';
+                $('#secretKeyLabel').text(isSignature ? '비밀 키 (Secret key, Hex):' : '비밀 토큰:');
+                $('#privateKeyHex').attr('placeholder', isSignature ? '예: 30... (Signature 방식)' : '예: test (Bearer token 방식)');
+            });
+
+            $('#downloadDocumentId').on('keyup input', function() {
+                const docId = $(this).val().trim() || '{DOCUMENT_ID}';
+                $('#dynamicDownloadDocId').text(docId);
+            });
+
+            $('.btn-checkbox-group input[type="checkbox"]').on('change', function() {
+                $(this).closest('label').toggleClass('selected', this.checked);
+            }).each(function() {
+                 $(this).closest('label').toggleClass('selected', this.checked);
+            });
+        });
+    </script>
+</body>
+</html>
