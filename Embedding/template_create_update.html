@@ -431,7 +431,7 @@
 
         function toggleRecipients(cb){ $(cb).closest('.step-setting').find('.recipients-container').toggle(cb.checked); }
 
-        // --- ★★★★★★★★★★★★ 이 함수가 수정되었습니다 ★★★★★★★★★★★★ ---
+     
         function addRecipientField(btn){
             $(btn).siblings('.recipient-fields').append(`
                 <div class="recipient-entry" style="margin-top:10px; border-top: 1px dashed #ccc; padding-top: 10px;">
@@ -445,7 +445,7 @@
                 </div>
             `);
         }
-        // --- ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★ ---
+
 
         function removeRecipientField(b){$(b).closest('.recipient-entry').remove();}
         function removeStepSetting(b){$(b).closest('.step-setting').remove();}

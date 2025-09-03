@@ -625,12 +625,15 @@
         "csap": "https://www.gov-eformsign.com/Service/v2.0/api/members"
       };
 
-      // 섹션 토글
-      function showSection(id) {
-        ['memberAddSection', 'memberDeleteSection', 'memberUpdateSection', 'memberListSection', 'groupAddSection', 'groupListSection', 'groupDeleteSection']
-          .forEach(sec => document.getElementById(sec).style.display = 'none');
-        document.getElementById(id).style.display = 'block';
-      }
+     // 섹션 토글
+      function showSection(id) {
+        // 숨길 섹션 ID 목록에 'groupUpdateSection' 추가
+        ['memberAddSection', 'memberDeleteSection', 'memberUpdateSection', 'memberListSection', 'groupAddSection', 'groupListSection', 'groupDeleteSection', 'groupUpdateSection']
+          .forEach(sec => document.getElementById(sec).style.display = 'none');
+        
+      // 선택된 섹션만 보이도록 처리
+      document.getElementById(id).style.display = 'block';
+      }
 
       // URL 표시 및 custom 필드
       function updateUrlDisplay() {
