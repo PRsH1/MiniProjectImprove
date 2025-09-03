@@ -1,496 +1,454 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8" />
-  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-  <title>템플릿 관리 (SaaS 전용)</title>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <title>템플릿 관리 (SaaS 전용)</title>
 
-  <!-- SaaS 서버용 jQuery 로드 -->
-  <script src="https://www.eformsign.com/plugins/jquery/jquery.min.js"></script>
-  <!-- jsrsasign 라이브러리 -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jsrsasign/8.0.20/jsrsasign-all-min.js"></script>
-  <!-- SaaS 서버용 EformSign 임베디드 폼 라이브러리 -->
-  <script src="https://www.eformsign.com/lib/js/efs_embedded_form.js"></script>
+    <script src="https://www.eformsign.com/plugins/jquery/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsrsasign/8.0.20/jsrsasign-all-min.js"></script>
+    <script src="https://www.eformsign.com/lib/js/efs_embedded_form.js"></script>
 
-  <style>
-    body {
-      width: 100%;
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background-color: #e9ecef;
-      color: #333;
-      display: flex;
-      justify-content: center;
-      box-sizing: border-box;
-    }
-    .container {
-      display: flex;
-      width: 90%;
-      margin-top: 20px;
-      box-sizing: border-box;
-    }
-    #templateForm {
-      flex: 1;
-      max-width: 50%;
-      margin-right: 20px;
-      background-color: #fff;
-      border: 1px solid #ced4da;
-      border-radius: 8px;
-      padding: 20px;
-      box-shadow: 0 0 12px rgba(0,0,0,0.1);
-      box-sizing: border-box;
-    }
-    h2 {
-      text-align: center;
-      color: #2a6592;
-      font-size: 1.8rem;
-      margin-top: 0;
-    }
-    h3 {
-      color: #333;
-      border-bottom: 1px solid #ddd;
-      padding-bottom: 5px;
-      margin-top: 20px;
-      font-size: 1.2rem;
-    }
-    label {
-      display: block;
-      margin-bottom: 5px;
-      font-weight: bold;
-      color: #495057;
-      box-sizing: border-box;
-    }
-    input[type="text"],
-    textarea,
-    select {
-      width: 100%;
-      padding: 12px;
-      margin-bottom: 15px;
-      border: 1px solid #ced4da;
-      border-radius: 4px;
-      font-size: 1rem;
-      box-sizing: border-box;
-      transition: border-color 0.3s;
-    }
-    input:focus,
-    select:focus,
-    textarea:focus {
-      border-color: #86b7fe;
-      outline: none;
-    }
-    button {
-      background-color: #2a6592;
-      color: #fff;
-      padding: 10px 20px;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 1rem;
-      transition: background-color 0.3s;
-      box-sizing: border-box;
-    }
-    button:hover {
-      background-color: #21507a;
-    }
-    .form-group-horizontal {
-      display: flex;
-      align-items: center;
-      margin-bottom: 15px;
-    }
-    .form-group-horizontal label {
-      margin: 0 10px 0 0;
-      white-space: nowrap;
-    }
-    .form-group-horizontal select,
-    .form-group-horizontal input {
-      flex: 1;
-    }
-    .iframe-panel {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      box-sizing: border-box;
-    }
-    .switch {
-      position: relative;
-      display: inline-block;
-      width: 50px;
-      height: 24px;
-      vertical-align: middle;
-    }
-    .switch input {
-      opacity: 0;
-      width: 0; height: 0;
-    }
-    .slider {
-      position: absolute;
-      cursor: pointer;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background-color: #ccc;
-      transition: 0.4s;
-      border-radius: 24px;
-    }
-    .slider:before {
-      position: absolute;
-      content: "";
-      height: 18px; width: 18px;
-      left: 3px; bottom: 3px;
-      background-color: #fff;
-      transition: 0.4s;
-      border-radius: 50%;
-    }
-    input:checked + .slider {
-      background-color: #007bff;
-    }
-    input:checked + .slider:before {
-      transform: translateX(26px);
-    }
-    #buttonList {
-      display: none;
-      flex-wrap: wrap;
-      gap: 10px;
-      justify-content: center;
-      margin-bottom: 10px;
-      box-sizing: border-box;
-    }
-    #buttonList button {
-      width: 100px; height: 35px;
-      border-radius: 4px;
-      background-color: #6c757d;
-      color: #fff; border: none;
-      cursor: pointer; font-size: 14px;
-      display: none; transition: background-color 0.3s;
-      box-sizing: border-box;
-    }
-    #buttonList button:hover {
-      background-color: #5a6268;
-    }
-    #eformsign_iframe {
-      flex: 1; width: 100%;
-      border: 1px solid #ced4da;
-      border-radius: 8px;
-      box-shadow: 0 0 12px rgba(0,0,0,0.1);
-      box-sizing: border-box;
-    }
-    @media (max-width:768px) {
-      .container { flex-direction: column; }
-      #templateForm, .iframe-panel {
-        width:100%; margin:0;
-      }
-    }
-  </style>
-
-  <script>
-    var eformsign, execution_time = Date.now() + "", apiKey;
-
-    function actionTest(code) {
-      eformsign.sendAction({ type: '02', code });
-    }
-
-    $(function(){
-      eformsign = new EformSignTemplate();
-      eformsign.setDomain("https://www.eformsign.com");
-
-      // Mode → template_id 노출
-      $('#mode_type').change(function(){
-        var v = $(this).val();
-        $('#template_id_section')[ (v==='02'||v==='03'||v==='04')? 'show':'hide' ]();
-      }).trigger('change');
-
-      // Prefill 토글
-      $('#togglePrefill').click(function(){
-        $('#prefill_section').toggle();
-      });
-
-      // 토큰 방식 라벨
-      $('#tokenMethodSelect').change(function(){
-        if(this.value==='signature'){
-          $('#secretKeyLabel').text('Private Key (Hex):');
-          $('#privateKeyHex').attr('placeholder','비밀키 입력');
-        } else {
-          $('#secretKeyLabel').text('Bearer Token:');
-          $('#privateKeyHex').attr('placeholder','Bearer 토큰 입력');
+    <style>
+        body {
+            width: 100%; margin: 0; font-family: Arial, sans-serif;
+            background-color: #e9ecef; color: #333;
+            display: flex; justify-content: center;
+            box-sizing: border-box;
         }
-      });
-
-      $('#getTokenButton').click(function(){
-        getAccessToken();
-      });
-      $('#toggleActionSwitch').change(function(){
-        if(this.checked){
-          $('#buttonList').css('display','flex');
-          $('#toggleActionLabel').text('Action 버튼 숨기기');
-        } else {
-          $('#buttonList').hide();
-          $('#toggleActionLabel').text('Action 버튼 보이기');
+        .container { display: flex; width: 90%; margin-top: 20px; box-sizing: border-box; }
+        #templateForm {
+            flex: 1; max-width: 50%; margin-right: 20px;
+            background-color: #fff; border: 1px solid #ced4da;
+            border-radius: 8px; padding: 20px;
+            box-shadow: 0 0 12px rgba(0,0,0,0.1);
+            box-sizing: border-box;
         }
-      }).prop('checked',false).trigger('change');
-    });
-
-    function getAccessToken(cb){
-      var method = $('#tokenMethodSelect').val();
-      execution_time = Date.now() + "";
-      apiKey = $('#apiKey').val();
-      var user_id = $('#user_id').val();
-      var url = 'https://api.eformsign.com/v2.0/api_auth/access_token';
-      var sig;
-      if(method==='signature'){
-        var pk = KEYUTIL.getKeyFromPlainPrivatePKCS8Hex($('#privateKeyHex').val());
-        var s = new KJUR.crypto.Signature({ alg: 'SHA256withECDSA' });
-        s.init(pk); s.updateString(execution_time);
-        sig = s.sign();
-      } else {
-        sig = 'Bearer ' + $('#privateKeyHex').val();
-      }
-      $.ajax({
-        url: url,
-        type: 'POST',
-        contentType: 'application/json',
-        data: JSON.stringify({ execution_time: parseInt(execution_time), member_id: user_id }),
-        beforeSend: function(req){
-          req.setRequestHeader('eformsign_signature', sig);
-          req.setRequestHeader('Authorization', 'Bearer ' + btoa(apiKey));
-        },
-        success: function(data){
-          $('#access_token').val(data.oauth_token.access_token);
-          $('#refresh_token').val(data.oauth_token.refresh_token);
-          $('#company_id').val(data.api_key.company.company_id);
-          if(cb) cb(data.oauth_token.access_token, data.oauth_token.refresh_token, data.api_key.company.company_id);
-        },
-        error: function(xhr){
-          try {
-            var err = JSON.parse(xhr.responseText);
-            alert('발급 실패:\n코드:' + err.code + '\n메시지:' + err.ErrorMessage);
-          } catch {
-            alert('토큰 발급 중 오류가 발생했습니다.');
-          }
+        h2 { text-align: center; color: #2a6592; font-size: 1.8rem; margin-top: 0; }
+        h3 {
+            color: #333; border-bottom: 1px solid #ddd;
+            padding-bottom: 5px; margin-top: 20px;
+            font-size: 1.2rem;
         }
-      });
-    }
+        h4 {
+            color: #495057;
+            margin-top: 15px;
+            margin-bottom: 10px;
+            font-size: 1rem;
+        }
+        label { display: block; margin-bottom: 5px; font-weight: bold; color: #495057; box-sizing: border-box; }
+        input[type="text"], textarea, select {
+            width: 100%; padding: 12px; margin-bottom: 15px;
+            border: 1px solid #ced4da; border-radius: 4px;
+            font-size: 1rem; box-sizing: border-box;
+            transition: border-color 0.3s;
+        }
+        input:focus, select:focus, textarea:focus { border-color: #86b7fe; outline: none; }
+        button {
+            background-color: #2a6592; color: #fff;
+            padding: 10px 20px; border: none; border-radius: 4px;
+            cursor: pointer; font-size: 1rem;
+            transition: background-color 0.3s;
+            box-sizing: border-box;
+        }
+        button:hover { background-color: #21507a; }
+        .form-group-horizontal { display: flex; align-items: center; margin-bottom: 15px; }
+        .form-group-horizontal label { margin: 0 10px 0 0; white-space: nowrap; }
+        .form-group-horizontal select, .form-group-horizontal input { flex: 1; }
+        
+        .setting-group { margin-top: 15px; }
+        .notification-group {
+            display: flex;
+            gap: 20px; /* 체크박스 사이 간격 */
+            align-items: center;
+            margin-bottom: 15px;
+            padding-left: 5px;
+        }
+        .notification-group label { font-weight: normal; margin-bottom: 0; }
 
-    function createTemplate(){
-      getAccessToken(function(at,rt,cid){
-        const steps=[];
-        $('#stepSettingsContainer .step-setting').each(function(){
-          const st=$(this),
-                t=st.find('input[type=radio]:checked').val(),
-                rec=[];
-          if(st.find('input[name="specify_recipients[]"]').is(':checked')){
-            st.find('.recipient-fields input[name="recipient_id[]"]').each((_,el)=>{
-              rec.push({id:$(el).val()});
-            });
-          }
-          steps.push({
-            step_type:t,
-            step_name:st.find('input[name="step_name[]"]').val(),
-            use_mail:st.find('input[name="use_mail[]"]').is(':checked'),
-            use_sms:st.find('input[name="use_sms[]"]').is(':checked'),
-            use_alimtalk:st.find('input[name="use_alimtalk[]"]').is(':checked'),
-            recipients:rec
-          });
-        });
-
-        const opts={
-          company:{id:cid, country_code:$('#company_country_code').val()||'kr'},
-          user:{id:$('#user_id').val(), access_token:at, refresh_token:rt},
-          mode:{
-            type:$('#mode_type').val(),
-            template_type:$('#templateTypeSelect').val(),
-            template_id:$('#template_id').val()||''
-          },
-          layout:{lang_code:'ko',header:true,footer:true},
-          prefill:{template_name:$('#template_name').val(),step_settings:steps},
-          template_file:{
-            mime:'@file/octet-stream',
-            name:$('#template_file_name').val(),
-            data:$('#template_file_data').val()
-          }
-        };
-
-        eformsign.template(opts,'eformsign_iframe',
-          res=>alert('템플릿 생성 성공: '+res.template_id),
-          err=>alert('템플릿 생성 실패: '+err.message),
-          actions=>{
-            $('#buttonList button').hide();
-            const arr=Array.isArray(actions.data)?actions.data:[actions.data];
-            arr.forEach(a=>{
-              const btn=$('#btn_'+a.code);
-              if(btn.length) btn.text(a.name).attr('title',a.name).show();
-            });
-          }
-        );
-        eformsign.open();
-      });
-    }
-
-    function handleFileSelect(e){
-      const f=e.target.files[0];
-      if(!f) return;
-      const r=new FileReader();
-      r.onload=ev=>{
-        $('#template_file_data').val(ev.target.result.split(',')[1]);
-        $('#template_file_name').val(f.name);
-      };
-      r.readAsDataURL(f);
-    }
-
-    function addStepSetting(){
-      const block=`
-        <div class="step-setting" style="border:1px solid #ddd;padding:10px;margin-bottom:10px;border-radius:5px">
-          <label>Step Name:</label>
-          <input type="text" name="step_name[]" required />
-          <label>Step Type:</label>
-          <div>
-            <label><input type="radio" name="step_type_${Date.now()}" value="05" required /> 참여자</label>
-            <label><input type="radio" name="step_type_${Date.now()}" value="06" required /> 검토자</label>
-          </div>
-          <label>Use Mail:</label><input type="checkbox" name="use_mail[]" />
-          <label>Use SMS:</label><input type="checkbox" name="use_sms[]" />
-          <label>Use Alimtalk:</label><input type="checkbox" name="use_alimtalk[]" />
-          <label>수신자 지정(멤버):</label>
-          <input type="checkbox" name="specify_recipients[]" onclick="toggleRecipients(this)" />
-          <div class="recipients-container" style="display:none;border:1px solid #ddd;padding:10px;margin-top:10px;border-radius:5px;background:#f9f9f9">
-            <h4>수신자 정보</h4>
-            <button type="button" onclick="addRecipientField(this)" style="margin-bottom:10px">Add Recipient</button>
-            <div class="recipient-fields"></div>
-          </div>
-          <button type="button" onclick="removeStepSetting(this)" style="margin-top:10px">Remove Step</button>
-        </div>
-      `;
-      $('#stepSettingsContainer').append(block);
-    }
-    function toggleRecipients(cb){
-      const c=$(cb).closest('.step-setting').find('.recipients-container');
-      if(cb.checked) c.show(); else c.hide().find('.recipient-fields').empty();
-    }
-    function addRecipientField(btn){
-      $(btn).siblings('.recipient-fields').append(`
-        <div style="margin-top:5px">
-          <label>Recipient ID:</label>
-          <input type="text" name="recipient_id[]" placeholder="example@domain.com" />
-          <button type="button" onclick="removeRecipientField(this)">Remove</button>
-        </div>
-      `);
-    }
-    function removeRecipientField(b){$(b).parent().remove();}
-    function removeStepSetting(b){$(b).closest('.step-setting').remove();}
-  </script>
+        .iframe-panel { flex: 1; display: flex; flex-direction: column; box-sizing: border-box; }
+        .switch { position: relative; display: inline-block; width: 50px; height: 24px; vertical-align: middle; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute; cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #ccc; transition: 0.4s;
+            border-radius: 24px;
+        }
+        .slider:before {
+            position: absolute; content: "";
+            height: 18px; width: 18px; left: 3px; bottom: 3px;
+            background-color: #fff; transition: 0.4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider { background-color: #007bff; }
+        input:checked + .slider:before { transform: translateX(26px); }
+        #buttonList {
+            display: none; flex-wrap: wrap; gap: 10px;
+            justify-content: center; margin-bottom: 10px;
+            box-sizing: border-box;
+        }
+        #buttonList button {
+            width: 100px; height: 35px; border-radius: 4px;
+            background-color: #6c757d; color: #fff;
+            border: none; cursor: pointer;
+            font-size: 14px; display: none;
+            transition: background-color 0.3s;
+            box-sizing: border-box;
+        }
+        #buttonList button:hover { background-color: #5a6268; }
+        #eformsign_iframe {
+            flex: 1; width: 100%; border: 1px solid #ced4da;
+            border-radius: 8px; box-shadow: 0 0 12px rgba(0,0,0,0.1);
+            box-sizing: border-box;
+        }
+        @media (max-width:768px) {
+            .container { flex-direction: column; }
+            #templateForm, .iframe-panel { width:100%; margin:0; }
+        }
+    </style>
 </head>
 
 <body>
-  <div class="container">
-    <form id="templateForm">
-      <h2>템플릿 관리 (SaaS 전용)</h2>
+    <div class="container">
+        <form id="templateForm">
+            <h2>템플릿 관리 (SaaS 전용)</h2>
 
-      <h3>회사 정보</h3>
-      <label>Company ID (자동 채워짐):</label>
-      <input type="text" id="company_id" readonly />
-      <label>Country Code (기본 kr):</label>
-      <input type="text" id="company_country_code" placeholder="kr" />
+            <h3>회사 정보</h3>
+            <label>Company ID (자동 채워짐):</label>
+            <input type="text" id="company_id" readonly />
+            <label>Country Code (기본 kr):</label>
+            <input type="text" id="company_country_code" placeholder="kr" />
 
-      <h3>Access Token 발급</h3>
-      <div class="form-group-horizontal">
-        <label for="tokenMethodSelect">방식:</label>
-        <select id="tokenMethodSelect">
-          <option value="signature">Signature</option>
-          <option value="bearer">Bearer</option>
-        </select>
-      </div>
-      <label id="secretKeyLabel">Private Key (Hex):</label>
-      <input type="text" id="privateKeyHex" placeholder="비밀키 입력" required />
-      <label>API Key:</label>
-      <input type="text" id="apiKey" required />
-      <label>User ID:</label>
-      <input type="text" id="user_id" required />
-      <button type="button" id="getTokenButton">토큰 발급</button>
+            <h3>Access Token 발급</h3>
+            <div class="form-group-horizontal">
+                <label for="tokenMethodSelect">방식:</label>
+                <select id="tokenMethodSelect">
+                    <option value="signature">Signature</option>
+                    <option value="bearer">Bearer</option>
+                </select>
+            </div>
+            <label id="secretKeyLabel">Private Key (Hex):</label>
+            <input type="text" id="privateKeyHex" placeholder="비밀키 입력" required />
+            <label>API Key:</label>
+            <input type="text" id="apiKey" required />
+            <label>User ID:</label>
+            <input type="text" id="user_id" required />
+            <button type="button" id="getTokenButton">토큰 발급</button>
 
-      <h3>토큰 정보</h3>
-      <label>Access Token:</label>
-      <input type="text" id="access_token" readonly />
-      <label>Refresh Token:</label>
-      <input type="text" id="refresh_token" readonly />
+            <h3>토큰 정보</h3>
+            <label>Access Token:</label>
+            <input type="text" id="access_token" readonly />
+            <label>Refresh Token:</label>
+            <input type="text" id="refresh_token" readonly />
 
-     <h3>Mode</h3>
-      <label for="mode_type">Mode Type:</label>
-      <select id="mode_type">
-        <option value="01">템플릿 생성 (01)</option>
-        <option value="02">템플릿 수정 (02)</option>
-        <option value="03">템플릿 복제 (03)</option>
-        <option value="04">미리 보기 (04)</option>
-      </select>
-      <div class="form-group-horizontal">
-        <label for="templateTypeSelect">Template Type:</label>
-        <select id="templateTypeSelect">
-          <option value="form">form</option>
-          <option value="unstructured_form">unstructured_form</option>
-        </select>
-      </div>
+            <h3>Mode</h3>
+            <label for="mode_type">Mode Type:</label>
+            <select id="mode_type">
+                <option value="01">템플릿 생성 (01)</option>
+                <option value="02">템플릿 수정 (02)</option>
+                <option value="03">템플릿 복제 (03)</option>
+                <option value="04">미리 보기 (04)</option>
+            </select>
+            <div class="form-group-horizontal">
+                <label for="templateTypeSelect">Template Type:</label>
+                <select id="templateTypeSelect">
+                    <option value="form">form</option>
+                    <option value="unstructured_form">unstructured_form</option>
+                </select>
+            </div>
 
-      <div id="template_id_section">
-        <h3>Template ID</h3>
-        <label>Template ID:</label>
-        <input type="text" id="template_id" placeholder="수정할 Template ID 입력" />
-      </div>
+            <div id="template_id_section">
+                <h3>Template ID</h3>
+                <label>Template ID:</label>
+                <input type="text" id="template_id" placeholder="수정할 Template ID 입력" />
+            </div>
 
-      <h3>Template File (PDF)</h3>
-      <label>File Name:</label>
-      <input type="text" id="template_file_name" required />
-      <label>Upload File:</label>
-      <input type="file" onchange="handleFileSelect(event)" />
-      <label>File Data (Base64):</label>
-      <textarea id="template_file_data" rows="4"></textarea>
+            <h3>Template File (PDF)</h3>
+            <label>File Name:</label>
+            <input type="text" id="template_file_name" required />
+            <label>Upload File:</label>
+            <input type="file" onchange="handleFileSelect(event)" />
+            <label>File Data (Base64):</label>
+            <textarea id="template_file_data" rows="4"></textarea>
 
-      <h3>Prefill 설정</h3>
-      <button type="button" id="togglePrefill">Prefill 옵션</button>
-      <div id="prefill_section" style="display:none;margin-top:10px">
-        <label>Template Name:</label>
-        <input type="text" id="template_name" />
-        <h3>워크플로우 세팅</h3>
-        <button type="button" onclick="addStepSetting()">Add Step Setting</button>
-        <div id="stepSettingsContainer" style="margin-top:10px"></div>
-      </div>
+            <h3>Prefill 설정</h3>
+            <button type="button" id="togglePrefill">Prefill 옵션</button>
+            <div id="prefill_section" style="display:none;margin-top:10px">
+                <label>Template Name:</label>
+                <input type="text" id="template_name" />
+                <h3>워크플로우 세팅</h3>
+                <button type="button" onclick="addStepSetting()">Add Step Setting</button>
+                <div id="stepSettingsContainer" style="margin-top:10px"></div>
+            </div>
 
-      <button type="button" onclick="createTemplate()" style="margin-top:20px">Create Template</button>
-    </form>
+            <button type="button" onclick="createTemplate()" style="margin-top:20px">Create Template</button>
+        </form>
 
-    <div class="iframe-panel">
-      <h2 class="iframe-title">문서 영역</h2>
-
-      <div class="form-group" style="margin-bottom:10px">
-        <label class="switch">
-          <input type="checkbox" id="toggleActionSwitch" />
-          <span class="slider"></span>
-        </label>
-        <label id="toggleActionLabel" style="margin-left:8px;vertical-align:middle">Action 버튼 보이기</label>
-      </div>
-
-      <div id="buttonList">
-        <button id="btn_01" onclick="actionTest('01')"></button>
-        <button id="btn_02" onclick="actionTest('02')"></button>
-        <button id="btn_03" onclick="actionTest('03')"></button>
-        <button id="btn_04" onclick="actionTest('04')"></button>
-        <button id="btn_05" onclick="actionTest('05')"></button>
-        <button id="btn_06" onclick="actionTest('06')"></button>
-        <button id="btn_07" onclick="actionTest('07')"></button>
-        <button id="btn_08" onclick="actionTest('08')"></button>
-        <button id="btn_09" onclick="actionTest('09')"></button>
-        <button id="btn_10" onclick="actionTest('10')"></button>
-        <button id="btn_11" onclick="actionTest('11')"></button>
-        <button id="btn_12" onclick="actionTest('12')"></button>
-        <button id="btn_13" onclick="actionTest('13')"></button>
-        <button id="btn_14" onclick="actionTest('14')"></button>
-        <button id="btn_15" onclick="actionTest('15')"></button>
-        <button id="btn_16" onclick="actionTest('16')"></button>
-        <button id="btn_17" onclick="actionTest('17')"></button>
-        <button id="btn_18" onclick="actionTest('18')"></button>
-        <button id="btn_19" onclick="actionTest('19')"></button>
-        <button id="btn_20" onclick="actionTest('20')"></button>
-        <button id="btn_21" onclick="actionTest('21')"></button>
-        <button id="btn_22" onclick="actionTest('22')" style="width:150px"></button>
-      </div>
-
-      <iframe id="eformsign_iframe" name="eformsign_iframe"></iframe>
+        <div class="iframe-panel">
+            <h2 class="iframe-title">문서 영역</h2>
+            <div class="form-group" style="margin-bottom:10px">
+                <label class="switch">
+                    <input type="checkbox" id="toggleActionSwitch" />
+                    <span class="slider"></span>
+                </label>
+                <label id="toggleActionLabel" style="margin-left:8px;vertical-align:middle">Action 버튼 보이기</label>
+            </div>
+            <div id="buttonList">
+                <button id="btn_01" onclick="actionTest('01')"></button>
+                <button id="btn_02" onclick="actionTest('02')"></button>
+                <button id="btn_03" onclick="actionTest('03')"></button>
+                <button id="btn_04" onclick="actionTest('04')"></button>
+                <button id="btn_05" onclick="actionTest('05')"></button>
+                <button id="btn_06" onclick="actionTest('06')"></button>
+                <button id="btn_07" onclick="actionTest('07')"></button>
+                <button id="btn_08" onclick="actionTest('08')"></button>
+                <button id="btn_09" onclick="actionTest('09')"></button>
+                <button id="btn_10" onclick="actionTest('10')"></button>
+                <button id="btn_11" onclick="actionTest('11')"></button>
+                <button id="btn_12" onclick="actionTest('12')"></button>
+                <button id="btn_13" onclick="actionTest('13')"></button>
+                <button id="btn_14" onclick="actionTest('14')"></button>
+                <button id="btn_15" onclick="actionTest('15')"></button>
+                <button id="btn_16" onclick="actionTest('16')"></button>
+                <button id="btn_17" onclick="actionTest('17')"></button>
+                <button id="btn_18" onclick="actionTest('18')"></button>
+                <button id="btn_19" onclick="actionTest('19')"></button>
+                <button id="btn_20" onclick="actionTest('20')"></button>
+                <button id="btn_21" onclick="actionTest('21')"></button>
+                <button id="btn_22" onclick="actionTest('22')" style="width:150px"></button>
+            </div>
+            <iframe id="eformsign_iframe" name="eformsign_iframe"></iframe>
+        </div>
     </div>
-  </div>
+    
+    <script>
+        var eformsign, execution_time = Date.now() + "", apiKey;
+
+        function actionTest(code) { eformsign.sendAction({ type: '02', code }); }
+
+        $(function(){
+            eformsign = new EformSignTemplate();
+            eformsign.setDomain("https://www.eformsign.com");
+            $('#mode_type').change(function(){
+                var v = $(this).val();
+                $('#template_id_section')[ (v==='02'||v==='03'||v==='04')? 'show':'hide' ]();
+            }).trigger('change');
+            $('#togglePrefill').click(function(){ $('#prefill_section').toggle(); });
+            $('#tokenMethodSelect').change(function(){
+                if(this.value==='signature'){
+                    $('#secretKeyLabel').text('Private Key (Hex):');
+                    $('#privateKeyHex').attr('placeholder','비밀키 입력');
+                } else {
+                    $('#secretKeyLabel').text('Bearer Token:');
+                    $('#privateKeyHex').attr('placeholder','Bearer 토큰 입력');
+                }
+            });
+            $('#getTokenButton').click(function(){ getAccessToken(); });
+            $('#toggleActionSwitch').change(function(){
+                if(this.checked){
+                    $('#buttonList').css('display','flex');
+                    $('#toggleActionLabel').text('Action 버튼 숨기기');
+                } else {
+                    $('#buttonList').hide();
+                    $('#toggleActionLabel').text('Action 버튼 보이기');
+                }
+            }).prop('checked',false).trigger('change');
+        });
+
+        function getAccessToken(cb){
+            var method = $('#tokenMethodSelect').val();
+            execution_time = Date.now() + "";
+            apiKey = $('#apiKey').val();
+            var user_id = $('#user_id').val();
+            var url = 'https://api.eformsign.com/v2.0/api_auth/access_token';
+            var sig;
+            if(method==='signature'){
+                try {
+                    var pk = KEYUTIL.getKeyFromPlainPrivatePKCS8Hex($('#privateKeyHex').val());
+                    var s = new KJUR.crypto.Signature({ alg: 'SHA256withECDSA' });
+                    s.init(pk); s.updateString(execution_time);
+                    sig = s.sign();
+                } catch(e) { alert('Private Key (Hex) 형식이 올바르지 않습니다.'); return; }
+            } else {
+                sig = 'Bearer ' + $('#privateKeyHex').val();
+            }
+            $.ajax({
+                url: url, type: 'POST', contentType: 'application/json',
+                data: JSON.stringify({ execution_time: parseInt(execution_time), member_id: user_id }),
+                beforeSend: function(req){
+                    req.setRequestHeader('eformsign_signature', sig);
+                    req.setRequestHeader('Authorization', 'Bearer ' + btoa(apiKey));
+                },
+                success: function(data){
+                    $('#access_token').val(data.oauth_token.access_token);
+                    $('#refresh_token').val(data.oauth_token.refresh_token);
+                    $('#company_id').val(data.api_key.company.company_id);
+                    if(cb) cb(data.oauth_token.access_token, data.oauth_token.refresh_token, data.api_key.company.company_id);
+                },
+                error: function(xhr){
+                    try {
+                        var err = JSON.parse(xhr.responseText);
+                        alert('발급 실패:\n코드:' + err.code + '\n메시지:' + err.ErrorMessage);
+                    } catch {
+                        alert('토큰 발급 중 오류가 발생했습니다.');
+                    }
+                }
+            });
+        }
+        
+        function createTemplate(){
+            getAccessToken(function(at,rt,cid){
+                const modeType = $('#mode_type').val();
+                const templateType = $('#templateTypeSelect').val();
+                const steps=[];
+                $('#stepSettingsContainer .step-setting').each(function(){
+                    const st=$(this);
+                    const step_type_val = st.find('input[type=radio]:checked').val();
+                    const step_name_val = st.find('input[name="step_name[]"]').val();
+                    const use_mail_val = st.find('input[name="use_mail[]"]').is(':checked');
+                    const use_sms_val = st.find('input[name="use_sms[]"]').is(':checked');
+                    const use_alimtalk_val = st.find('input[name="use_alimtalk[]"]').is(':checked');
+                    const rec=[];
+                    if(st.find('input[name="specify_recipients[]"]').is(':checked')){
+                        st.find('.recipient-fields .recipient-entry').each(function(){
+                            const entry = $(this);
+                            const recipientId = entry.find('input[name="recipient_id[]"]').val();
+                            const recipientName = entry.find('input[name="recipient_name[]"]').val();
+                            const recipientSms = entry.find('input[name="recipient_sms[]"]').val();
+                            if (recipientId) {
+                                const recipientData = { id: recipientId, name: recipientName };
+                                if (recipientSms) {
+                                    recipientData.sms = recipientSms;
+                                }
+                                rec.push(recipientData);
+                            }
+                        });
+                    }
+                    let stepObject = {};
+                    if (templateType === 'unstructured_form') {
+                        stepObject = {
+                            step_type: step_type_val,
+                            step_name: step_name_val
+                        };
+                        if (rec.length > 0) {
+                            const firstRecipient = rec[0];
+                            stepObject.recipient = {
+                                id: firstRecipient.id,
+                                name: firstRecipient.name,
+                                sms: firstRecipient.sms, // sms 추가
+                                use_mail: use_mail_val,
+                                use_sms: use_sms_val,
+                                use_alimtalk: use_alimtalk_val
+                            };
+                        }
+                    } else {
+                        stepObject = {
+                            step_type: step_type_val,
+                            step_name: step_name_val,
+                            use_mail: use_mail_val,
+                            use_sms: use_sms_val,
+                            use_alimtalk: use_alimtalk_val,
+                            recipients: rec
+                        };
+                    }
+                    steps.push(stepObject);
+                });
+                const opts={
+                    company:{id:cid, country_code:$('#company_country_code').val()||'kr'},
+                    user:{id:$('#user_id').val(), access_token:at, refresh_token:rt},
+                    mode:{ type: modeType, template_type: templateType, template_id:$('#template_id').val()||'' },
+                    layout:{lang_code:'ko',header:true,footer:true},
+                    prefill:{template_name:$('#template_name').val(),step_settings:steps},
+                    template_file:{ mime:'@file/octet-stream', name:$('#template_file_name').val(), data:$('#template_file_data').val() }
+                };
+                console.log("eformsign.template 요청 객체 (opts):", JSON.stringify(opts, null, 2));
+                eformsign.template(opts,'eformsign_iframe',
+                    res=>alert('템플릿 생성 성공: '+res.template_id),
+                    err=>alert('템플릿 생성 실패: '+err.message),
+                    actions=>{
+                        $('#buttonList button').hide();
+                        const arr=Array.isArray(actions.data)?actions.data:[actions.data];
+                        arr.forEach(a=>{
+                            const btn=$('#btn_'+a.code);
+                            if(btn.length) btn.text(a.name).attr('title',a.name).show();
+                        });
+                    }
+                );
+                eformsign.open();
+            });
+        }
+
+        function handleFileSelect(e){
+            const f=e.target.files[0];
+            if(!f) return;
+            const r=new FileReader();
+            r.onload=ev=>{
+                $('#template_file_data').val(ev.target.result.split(',')[1]);
+                $('#template_file_name').val(f.name);
+            };
+            r.readAsDataURL(f);
+        }
+
+        function addStepSetting(){
+            const block=`
+                <div class="step-setting" style="border:1px solid #ddd; padding:15px; margin-bottom:10px; border-radius:5px; background-color: #fdfdfd;">
+                    <label>Step Name:</label>
+                    <input type="text" name="step_name[]" required />
+                    <div class="setting-group">
+                      <label>Step Type:</label>
+                      <div style="padding-left: 5px;">
+                          <label style="font-weight: normal; display: inline-block; margin-right: 15px;"><input type="radio" name="step_type_${Date.now()}" value="05" required /> 참여자</label>
+                          <label style="font-weight: normal; display: inline-block;"><input type="radio" name="step_type_${Date.now()}" value="06" required /> 검토자</label>
+                      </div>
+                    </div>
+                    <div class="setting-group">
+                        <h4>수신자 알림 설정</h4>
+                        <div class="notification-group">
+                            <label><input type="checkbox" name="use_mail[]" /> 이메일(Mail)</label>
+                            <label><input type="checkbox" name="use_sms[]" /> 문자(SMS)</label>
+                            <label><input type="checkbox" name="use_alimtalk[]" /> 알림톡(Alimtalk)</label>
+                        </div>
+                    </div>
+                    <div class="setting-group">
+                        <label>수신자 지정(멤버, 외부자[단 정형일 경우 멤버만 가능]):</label>
+                        <div style="padding-left: 5px;">
+                           <input type="checkbox" name="specify_recipients[]" onclick="toggleRecipients(this)" />
+                        </div>
+                    </div>
+                    <div class="recipients-container" style="display:none; border:1px solid #e0e0e0; padding:15px; margin-top:10px; border-radius:5px; background:#f9f9f9">
+                        <h4>수신자 정보</h4>
+                        <button type="button" onclick="addRecipientField(this)" style="margin-bottom:10px">Add Recipient</button>
+                        <div class="recipient-fields"></div>
+                    </div>
+                    <div style="text-align: right; margin-top: 15px; border-top: 1px solid #eee; padding-top: 15px;">
+                      <button type="button" onclick="removeStepSetting(this)" style="background-color: #6c757d;">Remove Step</button>
+                    </div>
+                </div>
+            `;
+            $('#stepSettingsContainer').append(block);
+        }
+
+        function toggleRecipients(cb){ $(cb).closest('.step-setting').find('.recipients-container').toggle(cb.checked); }
+
+        // --- ★★★★★★★★★★★★ 이 함수가 수정되었습니다 ★★★★★★★★★★★★ ---
+        function addRecipientField(btn){
+            $(btn).siblings('.recipient-fields').append(`
+                <div class="recipient-entry" style="margin-top:10px; border-top: 1px dashed #ccc; padding-top: 10px;">
+                    <label>Recipient ID (Email):</label>
+                    <input type="text" name="recipient_id[]" placeholder="example@domain.com" />
+                    <label>Recipient Name:</label>
+                    <input type="text" name="recipient_name[]" placeholder="홍길동" />
+                    <label>Recipient SMS (휴대전화 번호):</label>
+                    <input type="text" name="recipient_sms[]" placeholder="'-' 없이 숫자만 입력" />
+                    <button type="button" onclick="removeRecipientField(this)" style="margin-top:5px; background-color: #dc3545;">Remove</button>
+                </div>
+            `);
+        }
+        // --- ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★ ---
+
+        function removeRecipientField(b){$(b).closest('.recipient-entry').remove();}
+        function removeStepSetting(b){$(b).closest('.step-setting').remove();}
+    </script>
 </body>
 </html>
