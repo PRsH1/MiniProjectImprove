@@ -39,7 +39,9 @@ export default async function handler(req, res) {
       },
       
       tls: {
-        rejectUnauthorized: false
+        rejectUnauthorized: false,
+        // 보안 수준을 낮춰 호환성을 높입니다.
+        ciphers: 'DEFAULT:@SECLEVEL=1' 
       }
     };
 
