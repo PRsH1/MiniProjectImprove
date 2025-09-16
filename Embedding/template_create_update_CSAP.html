@@ -366,7 +366,23 @@
                 };
                 console.log("eformsign.template 요청 객체 (opts):", JSON.stringify(opts, null, 2));
                 eformsign.template(opts,'eformsign_iframe',
-                    res=>alert('템플릿 생성 성공: '+res.template_id),
+                    res => {
+    if (res.template_id) {
+        // '문서 작성 시작하기' 클릭 시: 템플릿이 생성되었을 때
+        alert('템플릿 생성 성공: ' + res.template_id);
+        console.log("✅ 템플릿 생성 성공 (Success Callback 응답):");
+        console.log(JSON.stringify(res, null, 4)); // 4칸 들여쓰기로 예쁘게 출력
+    } else if (res.document_id) {
+        // 최종 '전송' 버튼 클릭 시: 문서가 생성되었을 때
+        alert('문서 전송 성공: ' + res.document_id);
+        console.log("✅ 문서 생성/전송 성공 (Success Callback 응답):");
+        console.log(JSON.stringify(res, null, 4)); // 4칸 들여쓰기로 예쁘게 출력
+    } else {
+        // 기타 예상치 못한 성공 응답 처리
+        alert('작업이 성공적으로 완료되었습니다.');
+        console.log('처리되지 않은 성공 응답:', res);
+    }
+},
                     err=>alert('템플릿 생성 실패: '+err.message),
                     actions=>{
                         $('#buttonList button').hide();
