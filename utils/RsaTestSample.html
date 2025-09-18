@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>eformsign RSA SSO 테스트 (v3)</title>
+  <title>eformsign RSA SSO 테스트 (v4)</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jsencrypt/3.3.2/jsencrypt.min.js" defer></script>
   <style>
     :root { --bg:#0b1220; --card:#131a2a; --muted:#8fa1c3; --text:#e6edf3; --accent:#7aa2ff; }
@@ -11,73 +11,55 @@
     html,body{height:100%}
     body{margin:0;min-height:100%;overflow-y:auto;background:var(--bg);color:var(--text);font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial}
     .wrap{max-width:1200px;margin:24px auto;padding:0 16px}
+    h1,h2{font-weight:600}
     h1{font-size:20px;margin:0 0 12px}
+    h2{font-size:16px;margin:16px 0 10px}
     .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:14px}
     .card{background:var(--card);border:1px solid #1f2a44;border-radius:14px;padding:14px}
-    .col-4{grid-column:span 4} .col-8{grid-column:span 8}
-    @media (max-width:1100px){ .grid{grid-template-columns:1fr} .col-4,.col-8{grid-column:1/-1} }
+    .col-4{grid-column:span 4} .col-6{grid-column:span 6} .col-8{grid-column:span 8} .col-12{grid-column:span 12}
+    @media (max-width:1100px){ .grid{grid-template-columns:1fr} .col-4,.col-6,.col-8,.col-12{grid-column:1/-1} }
     label{display:block;font-weight:600;margin-bottom:6px;color:var(--muted)}
     input,textarea,select{width:100%;background:#0e1526;border:1px solid #25304d;color:var(--text);border-radius:10px;padding:10px}
     textarea{min-height:88px;resize:vertical}
     .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
     .btn{background:#1a2340;border:1px solid #28345a;color:var(--text);padding:10px 14px;border-radius:10px;cursor:pointer}
     .btn:hover{border-color:var(--accent)}
-    .pill{display:inline-flex;gap:6px;align-items:center;background:#0e1526;border:1px solid #25304d;padding:6px 10px;border-radius:999px}
+    .btn-primary{background:var(--accent);color:var(--bg);font-weight:600}
+    .btn-primary:hover{background:#6a95ff}
     .muted{color:var(--muted)}
     code{background:#0e1628;border:1px solid #25304d;border-radius:8px;padding:2px 6px}
     .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace}
     .small{font-size:12px}
     .k-v{display:grid;grid-template-columns:160px 1fr;gap:10px;align-items:center}
-    
-    /* --- 수정된 부분 --- */
-    .k-v > .divider,
-    .k-v > #btnGen {
-        grid-column: 1 / -1; /* 그리드의 모든 열을 차지하도록 설정 */
-    }
-    .k-v > .divider { margin: 8px 0; } /* 구분선 여백 추가 */
-    #btnGen { width: 100%; background: var(--accent); color: var(--bg); font-weight: 600; } /* 버튼 강조 */
-    #btnGen:hover { background: #6a95ff; }
-    /* --- 여기까지 --- */
-    
+    .k-v > .divider, .k-v > #btnGen { grid-column: 1 / -1; }
+    .k-v > .divider { margin: 8px 0; }
+    #btnGen { width: 100%; }
     @media (max-width:640px){ .k-v{grid-template-columns:1fr} }
     .divider{height:1px;background:#1f2a44;margin:12px 0}
   </style>
 </head>
 <body>
   <div class="wrap">
-    <h1>eformsign RSA SSO 테스트 페이지 (v3)</h1>
+    <h1>eformsign RSA SSO 테스트 페이지 (v4)</h1>
     <p class="muted small">플레인텍스트 포맷: <code class="mono">&lt;clientName&gt;|&lt;userUUID&gt;|&lt;yyyymmddHHmmss&gt;|&lt;ip&gt;</code> &nbsp;예) <code class="mono">susan|windy4788|20221006124900|192.168.130.179</code></p>
 
     <div class="grid">
       <div class="card col-4">
-        <h2 class="small muted" style="margin:0 0 8px">입력</h2>
+        <h2 class="small muted" style="margin:0 0 8px">SSO 입력</h2>
         <div class="k-v">
           <label for="clientName">Client 명</label>
           <input id="clientName" placeholder="예: eformsign" />
-
           <label for="userUUID">고객시스템 사용자 UUID</label>
           <input id="userUUID" placeholder="예: 123456" />
-
           <label for="timestamp">접속시간 (자동)</label>
-          <div class="row">
-            <input id="timestamp" class="mono" placeholder="yyyymmddHHmmss" />
-            <button class="btn" id="btnNow">지금</button>
-          </div>
-
+          <div class="row"><input id="timestamp" class="mono" placeholder="yyyymmddHHmmss" /><button class="btn" id="btnNow">지금</button></div>
           <label for="ip">접속 IP (가능 시 자동)</label>
-          <div class="row">
-            <input id="ip" class="mono" placeholder="예: 100.100.100.100" />
-            <button class="btn" id="btnGetIp">IP자동</button>
-          </div>
-
+          <div class="row"><input id="ip" class="mono" placeholder="예: 100.100.100.100" /><button class="btn" id="btnGetIp">IP자동</button></div>
           <div class="divider"></div>
-
           <label for="clientId">SSO Client ID (<code>sso_client_id</code>)</label>
           <input id="clientId" placeholder="예: eformsign" />
-
           <label for="mgmtId">management_id (선택)</label>
           <input id="mgmtId" placeholder="비워도 파라미터로 포함됨" />
-
           <label for="envSel">로그인 환경 선택</label>
           <select id="envSel">
             <option value="prod">운영: https://www.eformsign.com/login.html</option>
@@ -85,56 +67,80 @@
             <option value="dev">개발: https://dev.eformsign.com/login.html</option>
             <option value="custom">사용자 지정</option>
           </select>
-
           <label for="baseUrl">로그인 페이지 URL</label>
           <input id="baseUrl" value="https://test.eformsign.com/login.html" />
-
           <label for="pubKey">eformsign Public Key</label>
           <textarea id="pubKey" placeholder="MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8A..."></textarea>
-
           <div class="divider"></div>
-
           <label for="b64ModeSel">인코딩 모드</label>
           <select id="b64ModeSel">
             <option value="double" selected>이중 Base64 (권장)</option>
             <option value="single">단일 Base64</option>
           </select>
-          
           <div class="divider"></div>
-          <button class="btn" id="btnGen">SSO URL 생성</button>
+          <button class="btn btn-primary" id="btnGen">SSO URL 생성</button>
         </div>
       </div>
 
       <div class="card col-8">
-        <h2 class="small muted" style="margin:0 0 8px">결과</h2>
+        <h2 class="small muted" style="margin:0 0 8px">SSO 결과</h2>
         <label for="plainOut">플레인텍스트</label>
         <textarea id="plainOut" class="mono" readonly></textarea>
         <div class="row" style="margin:8px 0 0"><button class="btn" data-copy="#plainOut">복사</button></div>
-
         <div class="divider"></div>
-
         <label for="cipherOut">RSA 암호문 (PKCS#1 v1.5, Base64)</label>
         <textarea id="cipherOut" class="mono" readonly></textarea>
         <div class="row" style="margin:8px 0 0"><button class="btn" data-copy="#cipherOut">복사</button></div>
-
         <div class="divider"></div>
-
         <label for="ssoParam">sso_enc_data (전달값)</label>
         <textarea id="ssoParam" class="mono" readonly></textarea>
         <div class="row" style="margin:8px 0 0"><button class="btn" data-copy="#ssoParam">복사</button></div>
-
         <div class="divider"></div>
-
         <label for="urlOut">최종 로그인 URL</label>
         <textarea id="urlOut" class="mono" readonly></textarea>
         <div class="row" style="margin-top:8px">
           <button class="btn" data-copy="#urlOut">URL 복사</button>
           <button class="btn" id="btnOpen">새 탭으로 열기</button>
         </div>
-
         <p class="small muted" style="margin-top:10px">브라우저 암호화는 <code>JSEncrypt</code>(RSAES-PKCS1-v1_5) 사용. Java <code>Cipher.getInstance("RSA")</code> 기본 모드와 호환.</p>
       </div>
-    </div>
+
+      <div class="card col-12">
+        <h2>RSA 키 생성 및 암복호화 테스트</h2>
+        <p class="muted small">JSEncrypt를 사용하여 브라우저에서 2048비트 RSA 키 쌍을 생성하고 테스트합니다.</p>
+        <div class="row" style="margin-bottom:14px">
+          <button class="btn btn-primary" id="btnGenKeys">1. RSA 키 쌍 생성 (2048-bit)</button>
+        </div>
+        <div class="grid">
+          <div class="col-6">
+            <label for="testPubKey">Public Key</label>
+            <textarea id="testPubKey" class="mono" rows="8"></textarea>
+          </div>
+          <div class="col-6">
+            <label for="testPrivKey">Private Key</label>
+            <textarea id="testPrivKey" class="mono" rows="8"></textarea>
+          </div>
+          <div class="col-12">
+            <label for="testPlainText">2. 테스트 문구 입력</label>
+            <input id="testPlainText" value="테스트" />
+          </div>
+          <div class="col-12">
+             <button class="btn" id="btnTestEncrypt">3. 암호화</button>
+          </div>
+          <div class="col-12">
+            <label for="testEncryptedText">암호화된 문구 (Base64)</label>
+            <textarea id="testEncryptedText" class="mono" readonly rows="5"></textarea>
+          </div>
+           <div class="col-12">
+             <button class="btn" id="btnTestDecrypt">4. 복호화</button>
+          </div>
+           <div class="col-12">
+            <label for="testDecryptedText">복호화 결과</label>
+            <input id="testDecryptedText" readonly />
+          </div>
+        </div>
+      </div>
+      </div>
   </div>
 
 <script>
@@ -142,40 +148,34 @@
   const $ = s => document.querySelector(s);
   const byId = id => document.getElementById(id);
 
+  // --- 공통 유틸리티 함수 ---
   function pad2(n){ return n.toString().padStart(2,'0'); }
   function nowStamp(){
     const d = new Date();
-    const y = d.getFullYear();
-    const M = pad2(d.getMonth()+1);
-    const D = pad2(d.getDate());
-    const h = pad2(d.getHours());
-    const m = pad2(d.getMinutes());
-    const s = pad2(d.getSeconds());
-    return `${y}${M}${D}${h}${m}${s}`;
+    return `${d.getFullYear()}${pad2(d.getMonth()+1)}${pad2(d.getDate())}${pad2(d.getHours())}${pad2(d.getMinutes())}${pad2(d.getSeconds())}`;
   }
-
   async function fetchIp(){
     try{ const r = await fetch('https://api.ipify.org?format=json',{cache:'no-store'}); if(!r.ok) throw 0; const j = await r.json(); if(j.ip) return j.ip.trim(); }catch(e){}
     try{ const r2 = await fetch('https://ipv4.icanhazip.com/',{cache:'no-store'}); if(!r2.ok) throw 0; const t = (await r2.text()).trim(); if(t) return t; }catch(e){}
     throw new Error('공용 IP 자동 취득 실패');
   }
+  function copySel(sel){ const el = typeof sel==='string' ? $(sel) : sel; if(!el) return; el.select(); document.execCommand('copy'); }
 
+  // --- SSO 관련 함수 ---
   function base64ToPem(base64){
     const clean = (base64||'').replace(/\s+/g,'');
     if(!clean) throw new Error('Public Key(Base64)가 비어있습니다.');
     const lines = clean.match(/.{1,64}/g).join('\n');
     return `-----BEGIN PUBLIC KEY-----\n${lines}\n-----END PUBLIC KEY-----`;
   }
-
   function rsaEncryptPkcs1v15(plaintext, base64Pub){
     const pem = base64ToPem(base64Pub);
     const enc = new JSEncrypt();
     enc.setPublicKey(pem);
-    const out = enc.encrypt(plaintext); // Base64
+    const out = enc.encrypt(plaintext);
     if(!out) throw new Error('RSA 암호화 실패: 공개키 형식을 확인하세요.');
     return out;
   }
-
   function buildPlaintext(){
     const client = byId('clientName').value.trim();
     const uuid   = byId('userUUID').value.trim();
@@ -184,33 +184,18 @@
     if(!client||!uuid||!ts||!ip) throw new Error('모든 입력값(client, uuid, 시간, IP)을 채워주세요.');
     return `${client}|${uuid}|${ts}|${ip}`;
   }
-
   function buildUrl(baseUrl, clientId, mgmtId, ssoEnc){
-    // URL 자동 인코딩을 피하기 위해 문자열을 직접 조합합니다.
-    const params = new URLSearchParams({
-      'sso_type': 'rsaSSO',
-      'sso_client_id': clientId || '',
-      'management_id': mgmtId || ''
-    });
-
-    // 다른 파라미터는 안전하게 인코딩하되,
-    // sso_enc_data는 인코딩하지 않고 원본 그대로 마지막에 붙입니다.
-    const finalUrl = `${baseUrl}?${params.toString()}&sso_enc_data=${ssoEnc}`;
-    
-    return finalUrl;
+    const params = new URLSearchParams({'sso_type': 'rsaSSO', 'sso_client_id': clientId || '', 'management_id': mgmtId || ''});
+    return `${baseUrl}?${params.toString()}&sso_enc_data=${ssoEnc}`;
   }
 
-  function copySel(sel){ const el = typeof sel==='string' ? $(sel) : sel; if(!el) return; el.select(); document.execCommand('copy'); }
-
-  // 환경 선택
+  // --- SSO 이벤트 리스너 ---
   const envToUrl = { prod:'https://www.eformsign.com/login.html', test:'https://test.eformsign.com/login.html', dev:'https://dev.eformsign.com/login.html' };
   byId('envSel').addEventListener('change', (e)=>{
     const v = e.target.value;
     if(v==='custom'){ byId('baseUrl').disabled=false; byId('baseUrl').focus(); }
     else { byId('baseUrl').value = envToUrl[v]; byId('baseUrl').disabled=false; }
   });
-
-  // 초기 채우기
   byId('timestamp').value = nowStamp();
   byId('btnNow').addEventListener('click',()=>{ byId('timestamp').value = nowStamp(); });
   byId('btnGetIp').addEventListener('click', async ()=>{
@@ -218,36 +203,73 @@
     try{ byId('ip').value = await fetchIp(); } catch(e){ alert(e.message||e); }
     finally{ b.disabled=false; b.textContent='IP자동'; }
   });
-
   document.querySelectorAll('button[data-copy]').forEach(btn=> btn.addEventListener('click',()=> copySel(btn.getAttribute('data-copy'))));
-
   byId('btnGen').addEventListener('click', ()=>{
     try{
       const plain = buildPlaintext();
       byId('plainOut').value = plain;
-
       const cipherB64 = rsaEncryptPkcs1v15(plain, (byId('pubKey')?.value || ''));
       byId('cipherOut').value = cipherB64;
-
       const mode = byId('b64ModeSel')?.value === 'single' ? 'single' : 'double';
       const ssoParam = (mode==='double') ? btoa(cipherB64) : cipherB64;
       byId('ssoParam').value = ssoParam;
-
-      const url = buildUrl(
-        byId('baseUrl').value.trim(),
-        byId('clientId').value.trim(),
-        byId('mgmtId').value.trim(),
-        ssoParam
-      );
+      const url = buildUrl(byId('baseUrl').value.trim(), byId('clientId').value.trim(), byId('mgmtId').value.trim(), ssoParam);
       byId('urlOut').value = url;
     }catch(e){ alert(e.message||e); }
   });
-
   byId('btnOpen').addEventListener('click', ()=>{
     const url = byId('urlOut').value.trim();
     if(!url){ alert('먼저 "SSO URL 생성"을 실행하세요.'); return; }
     window.open(url,'_blank');
   });
+
+  // --- ▼▼▼ 추가된 RSA 테스트 기능 ▼▼▼ ---
+  byId('btnGenKeys').addEventListener('click', () => {
+    const crypt = new JSEncrypt({ default_key_size: 2048 });
+    crypt.getKey();
+    byId('testPubKey').value = crypt.getPublicKey();
+    byId('testPrivKey').value = crypt.getPrivateKey();
+    alert('2048비트 RSA 키 쌍이 생성되었습니다.');
+  });
+
+  byId('btnTestEncrypt').addEventListener('click', () => {
+    try {
+      const pubKey = byId('testPubKey').value;
+      const plainText = byId('testPlainText').value;
+      if (!pubKey || !plainText) {
+        throw new Error('Public Key와 테스트 문구를 모두 입력하세요.');
+      }
+      const crypt = new JSEncrypt();
+      crypt.setPublicKey(pubKey);
+      const encrypted = crypt.encrypt(plainText);
+      if (!encrypted) {
+        throw new Error('암호화에 실패했습니다. Public Key 형식을 확인하세요.');
+      }
+      byId('testEncryptedText').value = encrypted;
+    } catch (e) {
+      alert(e.message || e);
+    }
+  });
+
+  byId('btnTestDecrypt').addEventListener('click', () => {
+    try {
+      const privKey = byId('testPrivKey').value;
+      const encryptedText = byId('testEncryptedText').value;
+      if (!privKey || !encryptedText) {
+        throw new Error('Private Key와 암호화된 문구를 모두 입력하세요.');
+      }
+      const crypt = new JSEncrypt();
+      crypt.setPrivateKey(privKey);
+      const decrypted = crypt.decrypt(encryptedText);
+      if (decrypted === false || decrypted === null) {
+        throw new Error('복호화에 실패했습니다. Private Key 또는 암호화된 문구를 확인하세요.');
+      }
+      byId('testDecryptedText').value = decrypted;
+    } catch (e) {
+      alert(e.message || e);
+    }
+  });
+
 })();
 </script>
 </body>
