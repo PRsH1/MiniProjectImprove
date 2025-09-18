@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Unix 시간 변환 유틸리티 (다중 단위)</title>
+  <style>
+    :root { --bg:#1d1f21; --card:#282a2e; --muted:#969896; --text:#c5c8c6; --accent:#81a2be; --input-bg:#373b41; }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body { margin: 0; background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif; line-height: 1.6; }
+    .wrap { max-width: 800px; margin: 2rem auto; padding: 0 1rem; }
+    h1 { text-align: center; color: var(--accent); }
+    h2 { margin-top: 0; }
+    .card { background: var(--card); border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; border: 1px solid var(--input-bg); }
+    label { display: block; font-weight: 600; margin-bottom: 0.5rem; color: var(--muted); }
+    input[type="text"], input[type="datetime-local"], select {
+      padding: 0.75rem;
+      background: var(--input-bg);
+      border: 1px solid #444;
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 1rem;
+      font-family: 'Menlo', 'Consolas', monospace;
+    }
+    .input-group { display: flex; gap: 0.5rem; }
+    .input-group input { flex-grow: 1; width: 100%; }
+    .input-group select { flex-shrink: 0; }
+    .btn-group { display: flex; gap: 0.75rem; margin-top: 1rem; }
+    .btn {
+      flex-grow: 1;
+      padding: 0.75rem;
+      background: var(--accent);
+      color: var(--bg);
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn:hover { background: #9abed9; }
+    .btn.secondary { background: var(--input-bg); color: var(--text); }
+    .btn.secondary:hover { background: #4a4f58; }
+    .results { margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--input-bg); }
+    .result-item {
+      display: grid;
+      grid-template-columns: 150px 1fr;
+      align-items: center;
+      margin-bottom: 0.75rem;
+      padding: 0.5rem;
+      background: var(--input-bg);
+      border-radius: 6px;
+    }
+    .result-item strong { color: var(--muted); }
+    .result-item span { font-family: 'Menlo', 'Consolas', monospace; color: var(--text); word-break: break-all; }
+    
+    @media (max-width: 600px) {
+        .result-item { grid-template-columns: 1fr; gap: 0.25rem; }
+        .btn-group { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Epoch & Date Converter 🕰️</h1>
+
+    <div class="card">
+      <h2>Timestamp → 날짜/시간</h2>
+      <label for="unix-input">타임스탬프</label>
+      <div class="input-group">
+        <input type="text" id="unix-input" placeholder="타임스탬프 입력..." />
+        <select id="unit-select-from">
+          <option value="s">Seconds (s)</option>
+          <option value="ms" selected>Milliseconds (ms)</option>
+          <option value="us">Microseconds (μs)</option>
+          <option value="ns">Nanoseconds (ns)</option>
+        </select>
+      </div>
+      <div class="btn-group">
+        <button class="btn" id="btn-to-date">변환</button>
+        <button class="btn secondary" id="btn-now-unix">현재 시간</button>
+      </div>
+      <div class="results" id="date-results-container" style="display: none;">
+        <div class="result-item">
+          <strong>GMT (UTC)</strong>
+          <span id="result-gmt"></span>
+        </div>
+        <div class="result-item">
+          <strong>내 시간대</strong>
+          <span id="result-local"></span>
+        </div>
+        <div class="result-item">
+          <select id="tz-select" style="width: 100%; margin-bottom: 5px;"></select>
+          <span id="result-custom"></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>날짜/시간 → Timestamp</h2>
+      <label for="date-input">날짜와 시간</label>
+      <input type="datetime-local" id="date-input" />
+      <div class="btn-group">
+        <button class="btn" id="btn-to-unix">변환</button>
+        <button class="btn secondary" id="btn-now-date">현재 시간</button>
+      </div>
+      <div class="results" id="unix-results-container" style="display: none;">
+        <div class="input-group" style="margin-bottom: 0.75rem;">
+            <label style="flex-grow:1; margin:auto 0;">출력 단위</label>
+            <select id="unit-select-to">
+              <option value="s">Seconds (s)</option>
+              <option value="ms" selected>Milliseconds (ms)</option>
+              <option value="us">Microseconds (μs)</option>
+              <option value="ns">Nanoseconds (ns)</option>
+            </select>
+        </div>
+        <div class="result-item">
+          <strong id="result-unix-label">Timestamp</strong>
+          <span id="result-unix"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      // --- DOM 요소 ---
+      const unixInput = document.getElementById('unix-input');
+      const dateInput = document.getElementById('date-input');
+      const unitSelectFrom = document.getElementById('unit-select-from');
+      const unitSelectTo = document.getElementById('unit-select-to');
+      const tzSelect = document.getElementById('tz-select');
+      const dateResultsContainer = document.getElementById('date-results-container');
+      const unixResultsContainer = document.getElementById('unix-results-container');
+
+      // --- 시간대 목록 ---
+      const timezones = [
+        'UTC', 'Asia/Seoul', 'Asia/Tokyo', 'America/New_York', 'America/Los_Angeles',
+        'Europe/London', 'Europe/Paris', 'Australia/Sydney', 'Asia/Shanghai', 'Asia/Dubai'
+      ];
+      timezones.forEach(tz => {
+        const option = document.createElement('option');
+        option.value = tz;
+        option.textContent = tz;
+        if (tz === 'Asia/Seoul') option.selected = true;
+        tzSelect.appendChild(option);
+      });
+
+      // --- 변환 함수 (BigInt 사용) ---
+      function convertFromTimestamp() {
+        if (!unixInput.value.match(/^[0-9]+$/)) {
+          alert('유효한 숫자를 입력하세요.');
+          return;
+        }
+        const timestamp = BigInt(unixInput.value);
+        const unit = unitSelectFrom.value;
+        let millis;
+
+        if (unit === 's') millis = timestamp * 1000n;
+        else if (unit === 'ms') millis = timestamp;
+        else if (unit === 'us') millis = timestamp / 1000n;
+        else if (unit === 'ns') millis = timestamp / 1000000n;
+
+        const date = new Date(Number(millis)); // Date 객체는 Number를 인자로 받음
+
+        const gmtFormatter = new Intl.DateTimeFormat('en-US', { timeZone: 'UTC', year: 'numeric', month: 'long', day: '2-digit', weekday: 'long', hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true });
+        document.getElementById('result-gmt').textContent = gmtFormatter.format(date);
+
+        const localFormatter = new Intl.DateTimeFormat('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long', hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true });
+        document.getElementById('result-local').textContent = localFormatter.format(date);
+        
+        updateCustomTime(date);
+        dateResultsContainer.style.display = 'block';
+      }
+
+      function convertFromDate() {
+        if (!dateInput.value) {
+          alert('날짜와 시간을 선택하세요.');
+          return;
+        }
+        const date = new Date(dateInput.value);
+        const millis = BigInt(date.getTime());
+        const unit = unitSelectTo.value;
+        let result;
+
+        if (unit === 's') result = millis / 1000n;
+        else if (unit === 'ms') result = millis;
+        else if (unit === 'us') result = millis * 1000n;
+        else if (unit === 'ns') result = millis * 1000000n;
+
+        document.getElementById('result-unix-label').textContent = `Timestamp (${unit})`;
+        document.getElementById('result-unix').textContent = result.toString();
+        unixResultsContainer.style.display = 'block';
+      }
+      
+      function updateCustomTime(dateObj) {
+        if(!dateObj) {
+            if (!unixInput.value.match(/^[0-9]+$/)) return;
+            // 재계산 로직 추가
+            const timestamp = BigInt(unixInput.value);
+            const unit = unitSelectFrom.value;
+            let millis;
+            if (unit === 's') millis = timestamp * 1000n;
+            else if (unit === 'ms') millis = timestamp;
+            else if (unit === 'us') millis = timestamp / 1000n;
+            else if (unit === 'ns') millis = timestamp / 1000000n;
+            dateObj = new Date(Number(millis));
+        }
+        const selectedTz = tzSelect.value;
+        const customFormatter = new Intl.DateTimeFormat('ko-KR', { timeZone: selectedTz, year: 'numeric', month: 'long', day: 'numeric', weekday: 'long', hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true });
+        document.getElementById('result-custom').textContent = customFormatter.format(dateObj);
+      }
+
+      // --- 이벤트 리스너 ---
+      document.getElementById('btn-to-date').addEventListener('click', convertFromTimestamp);
+      document.getElementById('btn-to-unix').addEventListener('click', convertFromDate);
+      unitSelectTo.addEventListener('change', convertFromDate); // 출력 단위 변경 시 바로 재계산
+      tzSelect.addEventListener('change', () => updateCustomTime());
+      
+      document.getElementById('btn-now-unix').addEventListener('click', () => {
+          const unit = unitSelectFrom.value;
+          const nowMillis = BigInt(Date.now());
+          let now;
+          if (unit === 's') now = nowMillis / 1000n;
+          else if (unit === 'ms') now = nowMillis;
+          else if (unit === 'us') now = nowMillis * 1000n;
+          else if (unit === 'ns') now = nowMillis * 1000000n;
+          unixInput.value = now.toString();
+          convertFromTimestamp();
+      });
+
+      document.getElementById('btn-now-date').addEventListener('click', () => {
+          const now = new Date();
+          now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+          // 초 단위를 포함하기 위해 `slice(0, 19)`와 `T`를 사용
+          const localISOString = now.toISOString().slice(0, 19);
+          dateInput.value = localISOString;
+          convertFromDate();
+      });
+
+    })();
+  </script>
+</body>
+</html>
