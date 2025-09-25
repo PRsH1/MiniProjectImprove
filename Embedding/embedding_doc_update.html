@@ -389,17 +389,22 @@
       hideLoading();
       $('#eformsign_iframe').attr('src','');
       alert(`문서 생성/처리 성공\n문서 ID: ${response.document_id}\n문서 제목: ${response.title}`);
+      console.log("✅ 문서 생성/전송 성공 (Success Callback 응답):");
+      console.log(JSON.stringify(response, null, 4));
        setTimeout(reinitializeEmbed, 1000);
     }
     function error_callback(err){
       hideLoading();
       alert(`문서 생성/처리 실패\n코드: ${err.code}\n메시지: ${err.message}`);
+      console.log("❌ 문서 생성/전송 실패 (Error Callback 응답):");
+      console.log(JSON.stringify(err, null, 4));  
     }
     function actions_callback(actions){
       hideLoading();
       resetActionButtons();
       const arr = Array.isArray(actions.data) ? actions.data : [actions.data];
       arr.forEach(a => $(`#btn_${a.code}`).text(a.name).show());
+      console.log("🔘 Action Callback 응답:", JSON.stringify(actions, null, 4));
     }
 
     function showLoading(){ $('#loadingIndicator').show(); }
