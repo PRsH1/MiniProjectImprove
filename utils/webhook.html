@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>eformsign Webhook Catcher</title>
+    <style>
+        :root {
+            --bg-color: #1a1a1a;
+            --card-bg: #2a2a2a;
+            --border-color: #444;
+            --text-color: #e0e0e0;
+            --muted-color: #888;
+            --accent-color: #007bff;
+            --green: #28a745;
+            --blue: #17a2b8;
+            --orange: #fd7e14;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: auto;
+        }
+        .header {
+            background-color: var(--card-bg);
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            margin-bottom: 20px;
+        }
+        h1, h2 {
+            margin: 0;
+            color: #fff;
+        }
+        p {
+            margin-top: 10px;
+            color: var(--muted-color);
+        }
+        code {
+            background-color: var(--bg-color);
+            padding: 3px 6px;
+            border-radius: 4px;
+            font-family: "Courier New", Courier, monospace;
+            color: var(--accent-color);
+        }
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .status {
+            font-weight: bold;
+        }
+        .status.connected { color: var(--green); }
+        .status.disconnected { color: var(--orange); }
+        button, a.button {
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            transition: background-color 0.2s;
+        }
+        button:hover, a.button:hover {
+            background-color: #0056b3;
+        }
+        #log-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .log-entry {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            opacity: 0;
+            transform: translateY(-10px);
+            animation: fadeIn 0.5s forwards;
+        }
+        .log-header {
+            padding: 15px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .event-type {
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+        .event-type.document { color: var(--green); }
+        .event-type.ready_document_pdf { color: var(--blue); }
+        .log-body {
+            padding: 15px;
+        }
+        .log-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+        }
+        .log-table td {
+            padding: 8px;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--muted-color);
+        }
+        .log-table td:first-child {
+            font-weight: bold;
+            width: 150px;
+            color: var(--text-color);
+        }
+        .json-viewer {
+            background-color: #111;
+            padding: 15px;
+            border-radius: 5px;
+            max-height: 300px;
+            overflow: auto;
+            white-space: pre;
+            font-family: "Courier New", Courier, monospace;
+            font-size: 0.9em;
+            display: none; /* Initially hidden */
+        }
+        .log-actions {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+        }
+        .log-actions button {
+             background-color: #444;
+        }
+         .log-actions button:hover {
+             background-color: #555;
+        }
+         .back-link { margin-bottom: 20px; }
+
+        @keyframes fadeIn {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="back-link">
+            <a href="/" class="button">← 허브 페이지로 돌아가기</a>
+        </div>
+        <div class="header">
+            <h1>Webhook Event Catcher</h1>
+            <p>eformsign에서 보내는 웹훅 이벤트를 실시간으로 확인합니다.</p>
+            <p>eformsign 웹훅 설정에 다음 URL을 입력하세요: <code>/api/webhook</code></p>
+        </div>
+
+        <div class="controls">
+            <div id="connection-status" class="status disconnected">● 연결 끊김</div>
+            <button id="clear-button">로그 지우기</button>
+        </div>
+
+        <div id="log-container"></div>
+    </div>
+
+    <template id="log-template">
+        <div class="log-entry">
+            <div class="log-header">
+                <div>
+                    <span class="event-type"></span>
+                </div>
+                <div class="timestamp" style="color: var(--muted-color); font-size: 0.9em;"></div>
+            </div>
+            <div class="log-body">
+                <table class="log-table">
+                    <tbody>
+                        </tbody>
+                </table>
+                <div class="log-actions">
+                    <button class="toggle-json">원본 JSON 보기/숨기기</button>
+                    <button class="copy-json">JSON 복사</button>
+                </div>
+                <pre class="json-viewer"><code></code></pre>
+            </div>
+        </div>
+    </template>
+
+    <script>
+        const logContainer = document.getElementById('log-container');
+        const logTemplate = document.getElementById('log-template');
+        const statusDiv = document.getElementById('connection-status');
+        const clearButton = document.getElementById('clear-button');
+
+        function addLogEntry(data) {
+            const clone = logTemplate.content.cloneNode(true);
+            const entry = clone.querySelector('.log-entry');
+            const eventTypeSpan = entry.querySelector('.event-type');
+            const timestampSpan = entry.querySelector('.timestamp');
+            const tableBody = entry.querySelector('.log-table tbody');
+            const jsonViewer = entry.querySelector('.json-viewer code');
+
+            const event = data.document || data.ready_document_pdf;
+
+            eventTypeSpan.textContent = data.event_type.toUpperCase();
+            eventTypeSpan.classList.add(data.event_type);
+            timestampSpan.textContent = new Date(data.receivedAt).toLocaleString();
+
+            const createRow = (key, value) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `<td>${key}</td><td>${value || '-'}</td>`;
+                return row;
+            };
+
+            tableBody.appendChild(createRow('웹훅 ID', data.webhook_id));
+            tableBody.appendChild(createRow('문서 ID', event.document_id || event.id));
+            tableBody.appendChild(createRow('문서 제목', event.document_title));
+            tableBody.appendChild(createRow('상태', event.status || event.document_status));
+
+            if (event.recipients && event.recipients.length > 0) {
+                 const recipientsText = event.recipients.map(r => `${r.name} (${r.id})`).join(', ');
+                 tableBody.appendChild(createRow('수신자', recipientsText));
+            }
+
+            const formattedJson = JSON.stringify(data, null, 2);
+            jsonViewer.textContent = formattedJson;
+
+            entry.querySelector('.toggle-json').addEventListener('click', () => {
+                const viewer = entry.querySelector('.json-viewer');
+                viewer.style.display = viewer.style.display === 'block' ? 'none' : 'block';
+            });
+            
+            entry.querySelector('.copy-json').addEventListener('click', () => {
+                navigator.clipboard.writeText(formattedJson).then(() => {
+                    alert('JSON이 클립보드에 복사되었습니다!');
+                });
+            });
+
+            logContainer.prepend(entry);
+        }
+
+        function connectToEvents() {
+            const eventSource = new EventSource('/api/webhook');
+
+            eventSource.onopen = () => {
+                statusDiv.textContent = '● 연결됨';
+                statusDiv.className = 'status connected';
+            };
+
+            eventSource.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                addLogEntry(data);
+            };
+
+            eventSource.onerror = () => {
+                statusDiv.textContent = '● 연결 끊김 (재시도 중...)';
+                statusDiv.className = 'status disconnected';
+                eventSource.close();
+                setTimeout(connectToEvents, 3000);
+            };
+        }
+
+        clearButton.addEventListener('click', () => {
+            logContainer.innerHTML = '';
+        });
+
+        connectToEvents();
+    </script>
+</body>
+</html>
