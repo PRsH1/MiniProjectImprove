@@ -15,6 +15,7 @@
             --green: #28a745;
             --blue: #17a2b8;
             --orange: #fd7e14;
+            --red: #dc3545;
         }
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -54,16 +55,18 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
         }
         .status {
             font-weight: bold;
         }
         .status.connected { color: var(--green); }
         .status.disconnected { color: var(--orange); }
-        button, a.button {
+        button, select, a.button {
             background-color: var(--accent-color);
             color: white;
-            border: none;
+            border: 1px solid var(--accent-color);
             padding: 10px 15px;
             border-radius: 5px;
             cursor: pointer;
@@ -71,8 +74,14 @@
             display: inline-block;
             transition: background-color 0.2s;
         }
-        button:hover, a.button:hover {
+        select {
+             background-color: var(--card-bg);
+             color: var(--text-color);
+             border-color: var(--border-color);
+        }
+        button:hover, a.button:hover, select:hover {
             background-color: #0056b3;
+            border-color: #0056b3;
         }
         #log-container {
             display: flex;
@@ -112,6 +121,7 @@
             padding: 8px;
             border-bottom: 1px solid var(--border-color);
             color: var(--muted-color);
+            word-break: break-all;
         }
         .log-table td:first-child {
             font-weight: bold;
@@ -136,11 +146,13 @@
         }
         .log-actions button {
              background-color: #444;
+             border-color: #555;
         }
          .log-actions button:hover {
              background-color: #555;
         }
          .back-link { margin-bottom: 20px; }
+        .filter-group { display: flex; align-items: center; gap: 10px; }
 
         @keyframes fadeIn {
             to {
@@ -158,11 +170,15 @@
         <div class="header">
             <h1>Webhook Event Catcher</h1>
             <p>eformsign에서 보내는 웹훅 이벤트를 실시간으로 확인합니다.</p>
-            <p>eformsign 웹훅 설정에 다음 URL을 입력하세요: <code>/api/webhook</code></p>
+            <p>eformsign 웹훅 설정에 다음 URL을 입력하세요: <code>https://mini-project-improve.vercel.app/api/webhook</code></p>
         </div>
 
         <div class="controls">
             <div id="connection-status" class="status disconnected">● 연결 끊김</div>
+            <div class="filter-group">
+                <label for="status-filter">상태 필터:</label>
+                <select id="status-filter"></select>
+            </div>
             <button id="clear-button">로그 지우기</button>
         </div>
 
@@ -180,7 +196,7 @@
             <div class="log-body">
                 <table class="log-table">
                     <tbody>
-                        </tbody>
+                    </tbody>
                 </table>
                 <div class="log-actions">
                     <button class="toggle-json">원본 JSON 보기/숨기기</button>
@@ -196,6 +212,45 @@
         const logTemplate = document.getElementById('log-template');
         const statusDiv = document.getElementById('connection-status');
         const clearButton = document.getElementById('clear-button');
+        const statusFilter = document.getElementById('status-filter');
+
+        // 상태 코드와 한글 설명 매핑
+        const statusMap = {
+            "doc_tempsave": "초안 (임시 저장)", "doc_create": "문서 작성", "doc_request_participant": "참여자 요청",
+            "doc_accept_participant": "참여자 승인", "doc_reject_participant": "참여자 반려", "doc_request_reviewer": "검토자 요청",
+            "doc_accept_reviewer": "검토자 승인", "doc_reject_reviewer": "검토자 반려", "doc_reject_request": "반려 요청",
+            "doc_decline_cancel_request": "반려 요청 거절", "doc_delete_request": "삭제 요청", "doc_decline_delete_request": "삭제 요청 거절",
+            "doc_cancel_request": "요청 취소", "doc_deleted": "문서 삭제", "doc_request_approval": "결재 요청",
+            "doc_accept_approval": "결재 승인", "doc_reject_approval": "결재 반려", "doc_request_external": "외부자 요청",
+            "doc_remind_external": "외부자 재요청", "doc_open_external": "외부자 열람", "doc_accept_external": "외부자 승인",
+            "doc_reject_external": "외부자 반려", "doc_request_internal": "내부자 요청", "doc_accept_internal": "내부자 승인",
+            "doc_reject_internal": "내부자 반려", "doc_tempsave_internal": "내부자 임시 저장", "doc_complete": "문서 완료"
+        };
+        
+        // 필터 드롭다운 초기화
+        function initializeFilter() {
+            statusFilter.innerHTML = '<option value="all">전체 상태 보기</option>';
+            for (const [code, description] of Object.entries(statusMap)) {
+                const option = document.createElement('option');
+                option.value = code;
+                option.textContent = `${description} (${code})`;
+                statusFilter.appendChild(option);
+            }
+        }
+        
+        // 로그 필터링 함수
+        function filterLogs() {
+            const selectedStatus = statusFilter.value;
+            const entries = logContainer.querySelectorAll('.log-entry');
+            entries.forEach(entry => {
+                const entryStatus = entry.dataset.status;
+                if (selectedStatus === 'all' || selectedStatus === entryStatus) {
+                    entry.style.display = '';
+                } else {
+                    entry.style.display = 'none';
+                }
+            });
+        }
 
         function addLogEntry(data) {
             const clone = logTemplate.content.cloneNode(true);
@@ -206,6 +261,10 @@
             const jsonViewer = entry.querySelector('.json-viewer code');
 
             const event = data.document || data.ready_document_pdf;
+            const status = event.status || event.document_status;
+
+            // 데이터 속성에 상태 저장
+            entry.dataset.status = status;
 
             eventTypeSpan.textContent = data.event_type.toUpperCase();
             eventTypeSpan.classList.add(data.event_type);
@@ -217,10 +276,12 @@
                 return row;
             };
 
+            const statusText = statusMap[status] ? `${statusMap[status]} (${status})` : (status || '-');
+
             tableBody.appendChild(createRow('웹훅 ID', data.webhook_id));
             tableBody.appendChild(createRow('문서 ID', event.document_id || event.id));
             tableBody.appendChild(createRow('문서 제목', event.document_title));
-            tableBody.appendChild(createRow('상태', event.status || event.document_status));
+            tableBody.appendChild(createRow('상태', statusText));
 
             if (event.recipients && event.recipients.length > 0) {
                  const recipientsText = event.recipients.map(r => `${r.name} (${r.id})`).join(', ');
@@ -242,6 +303,9 @@
             });
 
             logContainer.prepend(entry);
+            
+            // 새 로그가 추가된 후 현재 필터에 맞는지 확인
+            filterLogs();
         }
 
         function connectToEvents() {
@@ -264,11 +328,15 @@
                 setTimeout(connectToEvents, 3000);
             };
         }
-
+        
+        // 이벤트 리스너 연결
         clearButton.addEventListener('click', () => {
             logContainer.innerHTML = '';
         });
-
+        statusFilter.addEventListener('change', filterLogs);
+        
+        // 페이지 로드 시 초기화
+        initializeFilter();
         connectToEvents();
     </script>
 </body>
