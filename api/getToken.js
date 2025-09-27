@@ -1,6 +1,8 @@
 // /api/getToken.js
-// 1. 라이브러리 import 방식을 수정합니다.
-import jsrsasign from 'jsrsasign-util';
+
+
+const jsrsasign = require('jsrsasign-util');
+
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
@@ -17,11 +19,8 @@ export default async function handler(req, res) {
         const privateKey = secretKey;
         const execTime = Date.now();
         
-        // 서명 생성
-        // 2. KEYUTIL 대신 jsrsasign.KEYUTIL 을 사용합니다.
+   
         const keyObj = jsrsasign.KEYUTIL.getKeyFromPlainPrivatePKCS8Hex(privateKey);
-        
-        // 3. KJUR 대신 jsrsasign.KJUR 을 사용합니다.
         const sig = new jsrsasign.KJUR.crypto.Signature({ alg: 'SHA256withECDSA' });
         sig.init(keyObj);
         sig.updateString(execTime.toString());
