@@ -4,6 +4,7 @@
   "description": "API, Embedding, and Utility Tools Hub",
   "dependencies": {
     "cookie": "^0.6.0",
+    "jsrsasign-util": "^1.0.5",
     "nodemailer": "^6.9.14"
   },
   "devDependencies": {
