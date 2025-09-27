@@ -1,7 +1,13 @@
 // /api/getToken.js
 
+// 1. Node.js의 내장 'module'에서 createRequire 함수를 가져옵니다.
+import { createRequire } from 'module';
 
-const jsrsasign = require('jsrsasign-util');
+// 2. 현재 모듈의 URL을 기준으로 require 함수를 생성합니다.
+const require = createRequire(import.meta.url);
+
+// 3. 공식 'jsrsasign' 패키지를 불러옵니다.
+const jsrsasign = require('jsrsasign');
 
 
 export default async function handler(req, res) {
@@ -19,9 +25,11 @@ export default async function handler(req, res) {
         const privateKey = secretKey;
         const execTime = Date.now();
         
-   
         const keyObj = jsrsasign.KEYUTIL.getKeyFromPlainPrivatePKCS8Hex(privateKey);
+        
+        // *** 오타를 'SHA256withECDSA'로 수정했습니다. ***
         const sig = new jsrsasign.KJUR.crypto.Signature({ alg: 'SHA256withECDSA' });
+        
         sig.init(keyObj);
         sig.updateString(execTime.toString());
         const signature = sig.sign();
