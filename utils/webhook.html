@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>eformsign Webhook Catcher</title>
+    <title>eformsign Webhook & API Tester</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <style>
         :root {
             --bg-color: #1a1a1a;
@@ -15,7 +16,6 @@
             --green: #28a745;
             --blue: #17a2b8;
             --orange: #fd7e14;
-            --red: #dc3545;
         }
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -24,25 +24,17 @@
             margin: 0;
             padding: 20px;
         }
-        .container {
-            max-width: 900px;
-            margin: auto;
-        }
-        .header {
+        .container { max-width: 900px; margin: auto; }
+        .header, .token-section-wrapper {
             background-color: var(--card-bg);
             padding: 20px;
             border-radius: 8px;
             border: 1px solid var(--border-color);
             margin-bottom: 20px;
         }
-        h1, h2 {
-            margin: 0;
-            color: #fff;
-        }
-        p {
-            margin-top: 10px;
-            color: var(--muted-color);
-        }
+        h1, h2, h3 { margin: 0; color: #fff; }
+        h2 { margin-bottom: 15px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;}
+        p { margin-top: 10px; color: var(--muted-color); }
         code {
             background-color: var(--bg-color);
             padding: 3px 6px;
@@ -50,6 +42,30 @@
             font-family: "Courier New", Courier, monospace;
             color: var(--accent-color);
         }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; font-weight: bold; margin-bottom: 5px; }
+        input, select, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            box-sizing: border-box;
+            background-color: #333;
+            color: var(--text-color);
+        }
+        button, a.button {
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            transition: background-color 0.2s;
+            font-weight: bold;
+        }
+        button:hover, a.button:hover { background-color: #0056b3; }
         .controls {
             display: flex;
             justify-content: space-between;
@@ -58,36 +74,17 @@
             flex-wrap: wrap;
             gap: 15px;
         }
-        .status {
-            font-weight: bold;
-        }
+        .status { font-weight: bold; }
         .status.connected { color: var(--green); }
         .status.disconnected { color: var(--orange); }
-        button, select, a.button {
-            background-color: var(--accent-color);
-            color: white;
-            border: 1px solid var(--accent-color);
-            padding: 10px 15px;
-            border-radius: 5px;
-            cursor: pointer;
-            text-decoration: none;
-            display: inline-block;
-            transition: background-color 0.2s;
-        }
+        .filter-group { display: flex; align-items: center; gap: 10px; }
         select {
              background-color: var(--card-bg);
-             color: var(--text-color);
              border-color: var(--border-color);
         }
-        button:hover, a.button:hover, select:hover {
-            background-color: #0056b3;
-            border-color: #0056b3;
-        }
-        #log-container {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
+        .url-display { font-size: 0.9em; color: var(--muted-color); margin-bottom: 10px; word-break: break-all; }
+        #tokenResult { margin-top: 15px; background: #111; padding: 10px; border-radius: 4px; white-space: pre-wrap; word-break: break-all; font-size: 0.9em; max-height: 250px; overflow-y: auto; }
+        #log-container { display: flex; flex-direction: column; gap: 15px; }
         .log-entry {
             background-color: var(--card-bg);
             border: 1px solid var(--border-color);
@@ -96,70 +93,32 @@
             transform: translateY(-10px);
             animation: fadeIn 0.5s forwards;
         }
-        .log-header {
-            padding: 15px;
-            border-bottom: 1px solid var(--border-color);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .event-type {
-            font-weight: bold;
-            font-size: 1.1em;
-        }
+        .log-header { padding: 15px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+        .event-type { font-weight: bold; font-size: 1.1em; }
         .event-type.document { color: var(--green); }
         .event-type.ready_document_pdf { color: var(--blue); }
-        .log-body {
-            padding: 15px;
-        }
-        .log-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 15px;
-        }
-        .log-table td {
-            padding: 8px;
-            border-bottom: 1px solid var(--border-color);
-            color: var(--muted-color);
-            word-break: break-all;
-        }
-        .log-table td:first-child {
-            font-weight: bold;
-            width: 150px;
-            color: var(--text-color);
-        }
-        .json-viewer {
+        .log-body { padding: 15px; }
+        .log-table { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
+        .log-table td { padding: 8px; border-bottom: 1px solid var(--border-color); color: var(--muted-color); word-break: break-all; }
+        .log-table td:first-child { font-weight: bold; width: 150px; color: var(--text-color); }
+        .json-viewer, .doc-info-result {
             background-color: #111;
             padding: 15px;
             border-radius: 5px;
-            max-height: 300px;
+            max-height: 400px;
             overflow: auto;
-            white-space: pre;
+            white-space: pre-wrap;
             font-family: "Courier New", Courier, monospace;
             font-size: 0.9em;
-            display: none; /* Initially hidden */
+            margin-top: 10px;
         }
-        .log-actions {
-            margin-top: 15px;
-            display: flex;
-            gap: 10px;
-        }
-        .log-actions button {
-             background-color: #444;
-             border-color: #555;
-        }
-         .log-actions button:hover {
-             background-color: #555;
-        }
-         .back-link { margin-bottom: 20px; }
-        .filter-group { display: flex; align-items: center; gap: 10px; }
-
-        @keyframes fadeIn {
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
+        .json-viewer { display: none; }
+        .doc-info-result { display: none; }
+        .log-actions { margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap; }
+        .log-actions button { background-color: #444; border: 1px solid #555; font-weight: normal; padding: 8px 12px; }
+        .log-actions button:hover { background-color: #555; }
+        .back-link { margin-bottom: 20px; }
+        @keyframes fadeIn { to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
@@ -168,53 +127,73 @@
             <a href="/" class="button">← 허브 페이지로 돌아가기</a>
         </div>
         <div class="header">
-            <h1>Webhook Event Catcher</h1>
-            <p>eformsign에서 보내는 웹훅 이벤트를 실시간으로 확인합니다.</p>
-            <p>eformsign 웹훅 설정에 다음 URL을 입력하세요: <code>https://mini-project-improve.vercel.app/api/webhook</code></p>
+            <h1>Webhook & API Tester</h1>
+            <p>eformsign 웹훅 이벤트를 실시간으로 확인하고, 문서 정보를 바로 조회합니다.</p>
+            <p>eformsign 웹훅 설정 URL: <code>/api/webhook</code> 엔드포인트를 사용하세요.</p>
         </div>
-
-        <div class="controls">
-            <div id="connection-status" class="status disconnected">● 연결 끊김</div>
-            <div class="filter-group">
-                <label for="status-filter">상태 필터:</label>
-                <select id="status-filter"></select>
+        <div class="token-section-wrapper">
+            <h2>1. Access Token 발급</h2>
+            <div class="form-group">
+                <label for="envSelection">환경 선택:</label>
+                <select id="envSelection">
+                    <option value="op_saas">운영 (SaaS)</option>
+                    <option value="csap">공공 (CSAP)</option>
+                </select>
             </div>
-            <button id="clear-button">로그 지우기</button>
+            <div class="form-group">
+                <label for="apiKey">API-KEY:</label>
+                <input type="text" id="apiKey" placeholder="API-KEY 입력">
+            </div>
+            <div class="form-group">
+                <label for="secretKey">비밀 키 (Secret Key, Hex):</label>
+                <input type="text" id="secretKey" placeholder="사용자의 Secret Key (Hex 형식) 입력">
+            </div>
+            <div class="form-group">
+                <label for="user_id_token">User ID:</label>
+                <input type="text" id="user_id_token" placeholder="User ID 입력">
+            </div>
+            <button id="getAccessTokenBtn">Access Token 발급</button>
+            <div class="form-group" style="margin-top: 15px;">
+                <label for="accessToken">발급된 Access Token:</label>
+                <textarea id="accessToken" rows="3" readonly placeholder="이곳에 토큰이 표시됩니다."></textarea>
+            </div>
+            <div id="tokenResult"></div>
         </div>
-
-        <div id="log-container"></div>
+        <div class="token-section-wrapper">
+            <h2>2. Webhook 실시간 이벤트</h2>
+            <div class="controls">
+                <div id="connection-status" class="status disconnected">● 연결 끊김</div>
+                <div class="filter-group">
+                    <label for="status-filter">상태 필터:</label>
+                    <select id="status-filter"></select>
+                </div>
+                <button id="clear-button">로그 지우기</button>
+            </div>
+            <div id="log-container"></div>
+        </div>
     </div>
 
     <template id="log-template">
         <div class="log-entry">
             <div class="log-header">
-                <div>
-                    <span class="event-type"></span>
-                </div>
+                <div><span class="event-type"></span></div>
                 <div class="timestamp" style="color: var(--muted-color); font-size: 0.9em;"></div>
             </div>
             <div class="log-body">
-                <table class="log-table">
-                    <tbody>
-                    </tbody>
-                </table>
+                <table class="log-table"><tbody></tbody></table>
                 <div class="log-actions">
+                    <button class="get-doc-info">📄 문서 정보 조회</button>
                     <button class="toggle-json">원본 JSON 보기/숨기기</button>
                     <button class="copy-json">JSON 복사</button>
                 </div>
+                <div class="doc-info-result"></div>
                 <pre class="json-viewer"><code></code></pre>
             </div>
         </div>
     </template>
-
+    
     <script>
-        const logContainer = document.getElementById('log-container');
-        const logTemplate = document.getElementById('log-template');
-        const statusDiv = document.getElementById('connection-status');
-        const clearButton = document.getElementById('clear-button');
-        const statusFilter = document.getElementById('status-filter');
-
-        // 상태 코드와 한글 설명 매핑
+        const DOMAINS = { op_saas: 'https://kr-api.eformsign.com', csap: 'https://www.gov-eformsign.com/Service' };
         const statusMap = {
             "doc_tempsave": "초안 (임시 저장)", "doc_create": "문서 작성", "doc_request_participant": "참여자 요청",
             "doc_accept_participant": "참여자 승인", "doc_reject_participant": "참여자 반려", "doc_request_reviewer": "검토자 요청",
@@ -226,118 +205,130 @@
             "doc_reject_external": "외부자 반려", "doc_request_internal": "내부자 요청", "doc_accept_internal": "내부자 승인",
             "doc_reject_internal": "내부자 반려", "doc_tempsave_internal": "내부자 임시 저장", "doc_complete": "문서 완료"
         };
-        
-        // 필터 드롭다운 초기화
-        function initializeFilter() {
-            statusFilter.innerHTML = '<option value="all">전체 상태 보기</option>';
-            for (const [code, description] of Object.entries(statusMap)) {
-                const option = document.createElement('option');
-                option.value = code;
-                option.textContent = `${description} (${code})`;
-                statusFilter.appendChild(option);
-            }
-        }
-        
-        // 로그 필터링 함수
-        function filterLogs() {
-            const selectedStatus = statusFilter.value;
-            const entries = logContainer.querySelectorAll('.log-entry');
-            entries.forEach(entry => {
-                const entryStatus = entry.dataset.status;
-                if (selectedStatus === 'all' || selectedStatus === entryStatus) {
-                    entry.style.display = '';
-                } else {
-                    entry.style.display = 'none';
-                }
-            });
-        }
+        const logContainer = $('#log-container');
+        const logTemplate = $('#log-template');
+        const statusFilter = $('#status-filter');
 
-        function addLogEntry(data) {
-            const clone = logTemplate.content.cloneNode(true);
-            const entry = clone.querySelector('.log-entry');
-            const eventTypeSpan = entry.querySelector('.event-type');
-            const timestampSpan = entry.querySelector('.timestamp');
-            const tableBody = entry.querySelector('.log-table tbody');
-            const jsonViewer = entry.querySelector('.json-viewer code');
+        async function getAccessToken() {
+            const apiKey = $('#apiKey').val().trim();
+            const memberId = $('#user_id_token').val().trim();
+            // 사용자가 입력한 비밀 키를 읽어옵니다.
+            const secretKey = $('#secretKey').val().trim();
 
-            const event = data.document || data.ready_document_pdf;
-            const status = event.status || event.document_status;
-
-            // 데이터 속성에 상태 저장
-            entry.dataset.status = status;
-
-            eventTypeSpan.textContent = data.event_type.toUpperCase();
-            eventTypeSpan.classList.add(data.event_type);
-            timestampSpan.textContent = new Date(data.receivedAt).toLocaleString();
-
-            const createRow = (key, value) => {
-                const row = document.createElement('tr');
-                row.innerHTML = `<td>${key}</td><td>${value || '-'}</td>`;
-                return row;
-            };
-
-            const statusText = statusMap[status] ? `${statusMap[status]} (${status})` : (status || '-');
-
-            tableBody.appendChild(createRow('웹훅 ID', data.webhook_id));
-            tableBody.appendChild(createRow('문서 ID', event.document_id || event.id));
-            tableBody.appendChild(createRow('문서 제목', event.document_title));
-            tableBody.appendChild(createRow('상태', statusText));
-
-            if (event.recipients && event.recipients.length > 0) {
-                 const recipientsText = event.recipients.map(r => `${r.name} (${r.id})`).join(', ');
-                 tableBody.appendChild(createRow('수신자', recipientsText));
+            if (!apiKey || !memberId || !secretKey) {
+                alert('API-KEY, Secret Key, User ID를 모두 입력해주세요.');
+                return;
             }
 
-            const formattedJson = JSON.stringify(data, null, 2);
-            jsonViewer.textContent = formattedJson;
-
-            entry.querySelector('.toggle-json').addEventListener('click', () => {
-                const viewer = entry.querySelector('.json-viewer');
-                viewer.style.display = viewer.style.display === 'block' ? 'none' : 'block';
-            });
-            
-            entry.querySelector('.copy-json').addEventListener('click', () => {
-                navigator.clipboard.writeText(formattedJson).then(() => {
-                    alert('JSON이 클립보드에 복사되었습니다!');
+            $('#tokenResult').html('<pre>토큰 발급 중...</pre>');
+            try {
+                const response = await fetch('/api/getToken', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        domain: DOMAINS[$('#envSelection').val()],
+                        apiKey: apiKey,
+                        memberId: memberId,
+                        // 비밀 키를 서버로 전송합니다.
+                        secretKey: secretKey 
+                    })
                 });
-            });
 
-            logContainer.prepend(entry);
-            
-            // 새 로그가 추가된 후 현재 필터에 맞는지 확인
+                const data = await response.json();
+                if (!response.ok) {
+                    throw data;
+                }
+
+                $('#accessToken').val(data.oauth_token.access_token);
+                $('#tokenResult').html('<pre>' + JSON.stringify(data, null, 2) + '</pre>');
+            } catch (error) {
+                $('#tokenResult').html(`<pre style="color: #ff6b6b;">에러: ${JSON.stringify(error, null, 2)}</pre>`);
+            }
+        }
+
+        async function fetchDocumentInfo(documentId, resultContainer) {
+            const token = $('#accessToken').val().trim();
+            if (!token) {
+                alert('Access Token을 먼저 발급받아주세요.');
+                return;
+            }
+
+            resultContainer.show().html('<pre>문서 정보 조회 중...</pre>');
+            const domain = DOMAINS[$('#envSelection').val()];
+            const url = `/api/getDocumentInfo?domain=${encodeURIComponent(domain)}&documentId=${documentId}&token=${encodeURIComponent(token)}`;
+
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw data;
+                }
+                resultContainer.html(`<pre>${JSON.stringify(data, null, 2)}</pre>`);
+            } catch (err) {
+                resultContainer.html(`<pre style="color: #ff6b6b;"><b>조회 실패:</b>\n${JSON.stringify(err, null, 2)}</pre>`);
+            }
+        }
+        
+        function initializeFilter() {
+             statusFilter.html('<option value="all">전체 상태 보기</option>');
+             Object.entries(statusMap).forEach(([code, desc]) => {
+                statusFilter.append(`<option value="${code}">${desc} (${code})</option>`);
+             });
+        }
+        function filterLogs() {
+            const selectedStatus = statusFilter.val();
+            logContainer.find('.log-entry').each(function() {
+                $(this).css('display', selectedStatus === 'all' || $(this).data('status') === selectedStatus ? '' : 'none');
+            });
+        }
+        function addLogEntry(data) {
+            const clone = logTemplate.contents().clone();
+            const event = data.document || data.ready_document_pdf;
+            clone.attr({
+                'data-status': event.status || event.document_status,
+                'data-document-id': event.document_id || event.id
+            });
+            clone.find('.event-type').text(data.event_type.toUpperCase()).addClass(data.event_type);
+            clone.find('.timestamp').text(new Date(data.receivedAt).toLocaleString());
+            const statusText = statusMap[event.status || event.document_status] || (event.status || event.document_status);
+            const tableBody = clone.find('.log-table tbody');
+            tableBody.append(`<tr><td>문서 ID</td><td>${event.document_id || event.id}</td></tr>`);
+            tableBody.append(`<tr><td>상태</td><td>${statusText}</td></tr>`);
+            clone.find('.json-viewer code').text(JSON.stringify(data, null, 2));
+            logContainer.prepend(clone);
             filterLogs();
         }
-
         function connectToEvents() {
             const eventSource = new EventSource('/api/webhook');
-
-            eventSource.onopen = () => {
-                statusDiv.textContent = '● 연결됨';
-                statusDiv.className = 'status connected';
-            };
-
-            eventSource.onmessage = (event) => {
-                const data = JSON.parse(event.data);
-                addLogEntry(data);
-            };
-
+            eventSource.onopen = () => $('#connection-status').text('● 연결됨').removeClass('disconnected').addClass('connected');
+            eventSource.onmessage = (event) => addLogEntry(JSON.parse(event.data));
             eventSource.onerror = () => {
-                statusDiv.textContent = '● 연결 끊김 (재시도 중...)';
-                statusDiv.className = 'status disconnected';
+                $('#connection-status').text('● 연결 끊김 (재시도 중...)').removeClass('connected').addClass('disconnected');
                 eventSource.close();
                 setTimeout(connectToEvents, 3000);
             };
         }
-        
-        // 이벤트 리스너 연결
-        clearButton.addEventListener('click', () => {
-            logContainer.innerHTML = '';
+
+        $(document).ready(function() {
+            $('#getAccessTokenBtn').click(getAccessToken);
+            initializeFilter();
+            statusFilter.change(filterLogs);
+            $('#clear-button').click(() => logContainer.html(''));
+            connectToEvents();
+
+            logContainer.on('click', '.toggle-json', function() {
+                $(this).closest('.log-body').find('.json-viewer').slideToggle();
+            });
+            logContainer.on('click', '.copy-json', function() {
+                const jsonText = $(this).closest('.log-body').find('.json-viewer code').text();
+                navigator.clipboard.writeText(jsonText).then(() => alert('JSON이 클립보드에 복사되었습니다!'));
+            });
+            logContainer.on('click', '.get-doc-info', function() {
+                const logEntry = $(this).closest('.log-entry');
+                fetchDocumentInfo(logEntry.data('documentId'), logEntry.find('.doc-info-result'));
+            });
         });
-        statusFilter.addEventListener('change', filterLogs);
-        
-        // 페이지 로드 시 초기화
-        initializeFilter();
-        connectToEvents();
     </script>
 </body>
 </html>

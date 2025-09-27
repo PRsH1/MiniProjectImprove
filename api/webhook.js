@@ -1,6 +1,7 @@
 // A simple in-memory store for the latest events
 const events = [];
 
+
 // A list of active client connections for real-time updates
 const clients = [];
 
@@ -27,6 +28,7 @@ export default async function handler(req, res) {
         res.setHeader('Cache-Control', 'no-cache');
         res.setHeader('Connection', 'keep-alive');
         res.flushHeaders();
+        
 
         const clientId = Date.now();
         const newClient = { id: clientId, res: res };
