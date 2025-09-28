@@ -1,62 +1,40 @@
 // /api/webhook.js
+const Pusher = require('pusher');
 
-const events = [];
-const clients = [];
 
-// CommonJS 방식을 유지합니다.
+const pusher = new Pusher({
+  appId: process.env.PUSHER_APP_ID,
+  key: process.env.PUSHER_KEY,
+  secret: process.env.PUSHER_SECRET,
+  cluster: process.env.PUSHER_CLUSTER,
+  useTLS: true
+});
+
+
 module.exports = async function handler(req, res) {
-    const now = new Date().toISOString();
-    console.log(`[${now}] 요청 수신: Method=${req.method}, URL=${req.url}`);
-
     if (req.method === 'POST') {
+        // 기존과 동일하게 받은 데이터에 타임스탬프를 추가합니다.
         const eventData = {
             ...req.body,
             receivedAt: new Date().toISOString()
         };
 
-        events.unshift(eventData);
-        if (events.length > 20) {
-            events.pop();
+        try {
+            // 3. 'webhook-channel'의 'new-event'라는 이름으로 데이터를 Pusher에 전송합니다.
+            await pusher.trigger("webhook-channel", "new-event", eventData);
+
+            // Pusher로 전송 성공 시 eformsign에 200 OK 응답을 보냅니다.
+            res.status(200).json({ message: 'Webhook received and forwarded to Pusher' });
+
+        } catch (error) {
+            console.error('Pusher trigger error:', error);
+            // Pusher 전송 실패 시 500 서버 에러 응답을 보냅니다.
+            res.status(500).json({ message: 'Failed to forward webhook to Pusher' });
         }
-        
-        // ★★★ POST 요청 시점의 클라이언트 수를 확인합니다. ★★★
-        console.log(`웹훅 POST 요청 수신. 현재 연결된 클라이언트 수: ${clients.length}`);
-        console.log('수신 데이터:', JSON.stringify(eventData, null, 2));
-
-        clients.forEach((client, index) => {
-            console.log(`클라이언트 ${index + 1}에게 데이터 전송 중...`);
-            client.res.write(`data: ${JSON.stringify(eventData)}\n\n`);
-        });
-
-        res.status(200).json({ message: 'Webhook received' });
-
-    } else if (req.method === 'GET') {
-        res.setHeader('Content-Type', 'text/event-stream');
-        res.setHeader('Cache-Control', 'no-cache');
-        res.setHeader('Connection', 'keep-alive');
-        res.flushHeaders();
-
-        const clientId = Date.now();
-        const newClient = { id: clientId, res: res };
-        clients.push(newClient);
-        
-
-        console.log(`새 클라이언트 연결 (ID: ${clientId}). 현재 총 클라이언트 수: ${clients.length}`);
-
-        events.forEach(event => {
-            res.write(`data: ${JSON.stringify(event)}\n\n`);
-        });
-
-        req.on('close', () => {
-            const index = clients.findIndex(c => c.id === clientId);
-            if (index !== -1) {
-                clients.splice(index, 1);
-                console.log(`클라이언트 연결 끊김 (ID: ${clientId}). 현재 총 클라이언트 수: ${clients.length}`);
-            }
-        });
 
     } else {
-        res.setHeader('Allow', ['GET', 'POST']);
+        // GET을 포함한 다른 모든 HTTP 메소드는 이제 허용하지 않습니다.
+        res.setHeader('Allow', ['POST']);
         res.status(405).end(`Method ${req.method} Not Allowed`);
     }
 }
