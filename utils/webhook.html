@@ -193,7 +193,6 @@
     </template>
     
    <script>
-    // 문서가 완전히 로드된 후 스크립트를 실행하도록 보장합니다.
     $(document).ready(function() {
 
         const logContainer = $('#log-container');
@@ -233,19 +232,24 @@
             });
         }
 
+        // ==================================================================
+        // ★★★ 이 함수의 요소 생성 방식을 안정적으로 수정했습니다. ★★★
+        // ==================================================================
         function addLogEntry(data) {
-            // jQuery 방식으로 template 복제 및 요소 채우기
-            const clone = logTemplate.contents().clone();
+            // 1. template의 HTML 구조를 문자열로 가져와서 새롭고 완전한 jQuery 객체(newEntry)로 만듭니다.
+            const newEntry = $(logTemplate.html());
+            
             const event = data.document || data.ready_document_pdf;
             const status = event.status || event.document_status;
             
-            clone.attr('data-status', status);
+            // 2. 이제 newEntry 객체는 안정적으로 조작할 수 있습니다.
+            newEntry.attr('data-status', status);
 
-            clone.find('.event-type').text(data.event_type.toUpperCase()).addClass(data.event_type);
-            clone.find('.timestamp').text(new Date(data.receivedAt).toLocaleString());
+            newEntry.find('.event-type').text(data.event_type.toUpperCase()).addClass(data.event_type);
+            newEntry.find('.timestamp').text(new Date(data.receivedAt).toLocaleString());
             
             const statusText = statusMap[status] ? `${statusMap[status]} (${status})` : (status || '-');
-            const tableBody = clone.find('.log-table tbody');
+            const tableBody = newEntry.find('.log-table tbody');
             
             const createRow = (key, value) => `<tr><td>${key}</td><td>${value || '-'}</td></tr>`;
 
@@ -254,11 +258,10 @@
             tableBody.append(createRow('문서 제목', event.document_title));
             tableBody.append(createRow('상태', statusText));
             
-            clone.find('.json-viewer code').text(JSON.stringify(data, null, 2));
+            newEntry.find('.json-viewer code').text(JSON.stringify(data, null, 2));
 
-            logContainer.prepend(clone);
+            logContainer.prepend(newEntry);
             
-            // 필터를 '전체 상태 보기'로 초기화하여 새로 들어온 로그가 항상 보이도록 UX 개선
             if (statusFilter.val() !== 'all' && statusFilter.val() !== status) {
                 statusFilter.val('all');
             }
@@ -289,7 +292,6 @@
         clearButton.on('click', () => logContainer.html(''));
         statusFilter.on('change', filterLogs);
         
-        // 동적 요소에 대한 이벤트는 이벤트 위임으로 처리
         logContainer.on('click', '.toggle-json', function() {
             $(this).closest('.log-body').find('.json-viewer').slideToggle();
         });
