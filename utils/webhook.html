@@ -192,17 +192,16 @@
         </div>
     </template>
     
-<script>
+    <script>
     $(document).ready(function() {
 
-        // --- 기존 변수 선언 (변경 없음) ---
         const logContainer = $('#log-container');
         const logTemplate = $('#log-template');
         const statusDiv = $('#connection-status');
         const clearButton = $('#clear-button');
         const statusFilter = $('#status-filter');
-        const getAccessTokenBtn = $('#getAccessTokenBtn'); // 버튼 변수 추가
-
+        const getAccessTokenBtn = $('#getAccessTokenBtn'); // 버튼 변수
+        const DOMAINS = { op_saas: 'https://kr-api.eformsign.com', csap: 'https://www.gov-eformsign.com/Service' };
         const statusMap = {
             "doc_tempsave": "초안 (임시 저장)", "doc_create": "문서 작성", "doc_request_participant": "참여자 요청",
             "doc_accept_participant": "참여자 승인", "doc_reject_participant": "참여자 반려", "doc_request_reviewer": "검토자 요청",
@@ -215,21 +214,61 @@
             "doc_reject_internal": "내부자 반려", "doc_tempsave_internal": "내부자 임시 저장", "doc_complete": "문서 완료"
         };
         
-        // --- 기존 함수들 (변경 없음) ---
-        // getAccessToken, fetchDocumentInfo, initializeFilter, filterLogs, addLogEntry, connectToEvents 등
-        // ... (이전 답변과 동일한 함수 내용) ...
         async function getAccessToken() {
-            // ... (기존 엑세스 토큰 발급 로직)
+            const apiKey = $('#apiKey').val().trim();
+            const memberId = $('#user_id_token').val().trim();
+            const secretKey = $('#secretKey').val().trim();
+            if (!apiKey || !memberId || !secretKey) {
+                alert('API-KEY, Secret Key, User ID를 모두 입력해주세요.');
+                return;
+            }
+            $('#tokenResult').html('<pre>토큰 발급 중...</pre>');
+            try {
+                const response = await fetch('/api/getToken', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        domain: DOMAINS[$('#envSelection').val()],
+                        apiKey: apiKey,
+                        memberId: memberId,
+                        secretKey: secretKey 
+                    })
+                });
+                const data = await response.json();
+                if (!response.ok) { throw data; }
+                $('#accessToken').val(data.oauth_token.access_token);
+                $('#tokenResult').html('<pre>' + JSON.stringify(data, null, 2) + '</pre>');
+            } catch (error) {
+                $('#tokenResult').html(`<pre style="color: #ff6b6b;">에러: ${JSON.stringify(error, null, 2)}</pre>`);
+            }
         }
+
         async function fetchDocumentInfo(documentId, resultContainer) {
-            // ... (기존 문서 정보 조회 로직)
+            const token = $('#accessToken').val().trim();
+            if (!token) {
+                alert('Access Token을 먼저 발급받아주세요.');
+                return;
+            }
+            resultContainer.show().html('<pre>문서 정보 조회 중...</pre>');
+            const domain = DOMAINS[$('#envSelection').val()];
+            const url = `/api/getDocumentInfo?domain=${encodeURIComponent(domain)}&documentId=${documentId}&token=${encodeURIComponent(token)}`;
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                if (!response.ok) { throw data; }
+                resultContainer.html(`<pre>${JSON.stringify(data, null, 2)}</pre>`);
+            } catch (err) {
+                resultContainer.html(`<pre style="color: #ff6b6b;"><b>조회 실패:</b>\n${JSON.stringify(err, null, 2)}</pre>`);
+            }
         }
-         function initializeFilter() {
+
+        function initializeFilter() {
             statusFilter.html('<option value="all">전체 상태 보기</option>');
             for (const [code, description] of Object.entries(statusMap)) {
                 statusFilter.append(`<option value="${code}">${description} (${code})</option>`);
             }
         }
+
         function filterLogs() {
             const selectedStatus = statusFilter.val();
             logContainer.find('.log-entry').each(function() {
@@ -241,27 +280,39 @@
                 }
             });
         }
+
         function addLogEntry(data) {
             const newEntry = $(logTemplate.html());
             const event = data.document || data.ready_document_pdf;
             const status = event.status || event.document_status;
+            
             newEntry.attr('data-status', status);
+            newEntry.attr('data-document-id', event.document_id || event.id);
+
             newEntry.find('.event-type').text(data.event_type.toUpperCase()).addClass(data.event_type);
             newEntry.find('.timestamp').text(new Date(data.receivedAt).toLocaleString());
+            
             const statusText = statusMap[status] ? `${statusMap[status]} (${status})` : (status || '-');
             const tableBody = newEntry.find('.log-table tbody');
+            
             const createRow = (key, value) => `<tr><td>${key}</td><td>${value || '-'}</td></tr>`;
+
             tableBody.append(createRow('웹훅 ID', data.webhook_id));
             tableBody.append(createRow('문서 ID', event.document_id || event.id));
             tableBody.append(createRow('문서 제목', event.document_title));
             tableBody.append(createRow('상태', statusText));
+            
             newEntry.find('.json-viewer code').text(JSON.stringify(data, null, 2));
+
             logContainer.prepend(newEntry);
+            
             if (statusFilter.val() !== 'all' && statusFilter.val() !== status) {
                 statusFilter.val('all');
             }
+            
             filterLogs();
         }
+
         function connectToEvents() {
             const eventSource = new EventSource('/api/webhook');
             eventSource.onopen = () => {
@@ -278,13 +329,11 @@
             };
         }
 
-
-       
-        getAccessTokenBtn.on('click', getAccessToken); // 엑세스 토큰 버튼 연결
+        // 이벤트 리스너 바인딩
+        getAccessTokenBtn.on('click', getAccessToken);
         clearButton.on('click', () => logContainer.html(''));
         statusFilter.on('change', filterLogs);
         
-        // 동적 요소에 대한 이벤트는 이벤트 위임으로 처리
         logContainer.on('click', '.toggle-json', function() {
             $(this).closest('.log-body').find('.json-viewer').slideToggle();
         });
@@ -296,19 +345,17 @@
             });
         });
 
-        // 문서 정보 조회 버튼 연결 
         logContainer.on('click', '.get-doc-info', function() {
             const logEntry = $(this).closest('.log-entry');
-            const docId = logEntry.data('document-id'); // data-document-id로 수정
+            const docId = logEntry.data('document-id');
             const resultContainer = logEntry.find('.doc-info-result');
             fetchDocumentInfo(docId, resultContainer);
         });
-
 
         // 초기화 함수 실행
         initializeFilter();
         connectToEvents();
     });
-</script>
+    </script>
 </body>
 </html>
