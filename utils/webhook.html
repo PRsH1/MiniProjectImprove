@@ -79,6 +79,9 @@
         .status.connected { color: var(--green); }
         .status.disconnected { color: var(--orange); }
         .filter-group { display: flex; align-items: center; gap: 10px; }
+        .filter-group label {
+            white-space: nowrap; /* 라벨 텍스트 줄바꿈 방지 */
+        }
         #log-container { display: flex; flex-direction: column; gap: 15px; }
         .log-entry {
             background-color: var(--card-bg);
