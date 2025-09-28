@@ -1,25 +1,15 @@
 // /api/downloadDocument.js
 
-
 function parseContentDisposition(dispositionHeader) {
     if (!dispositionHeader) return null;
-
     const utf8Match = /filename\*=UTF-8''([^;]+)/i.exec(dispositionHeader);
     if (utf8Match && utf8Match[1]) {
-        try {
-            return decodeURIComponent(utf8Match[1]);
-        } catch (e) {
-            // 디코딩 실패 시 다음으로 넘어감
-        }
+        try { return decodeURIComponent(utf8Match[1]); } catch (e) {}
     }
-    
     const legacyMatch = /filename="?([^;"]+)"?/i.exec(dispositionHeader);
-    if (legacyMatch && legacyMatch[1]) {
-        return legacyMatch[1];
-    }
+    if (legacyMatch && legacyMatch[1]) { return legacyMatch[1]; }
     return null;
 }
-
 
 module.exports = async function handler(req, res) {
     if (req.method !== 'GET') {
@@ -27,7 +17,7 @@ module.exports = async function handler(req, res) {
     }
 
     try {
-        const { domain, documentId, file_type } = req.query;
+        const { domain, documentId, file_type, title } = req.query;
         const token = req.headers.authorization?.split(' ')[1];
 
         if (!domain || !documentId || !file_type || !token) {
@@ -50,14 +40,20 @@ module.exports = async function handler(req, res) {
         const contentType = fileResponse.headers.get('content-type');
         const fileBuffer = await fileResponse.arrayBuffer();
 
-      
-        let finalFileName = "downloaded_file"; // 기본 파일명
-        const parsedFileName = parseContentDisposition(contentDisposition);
-        if (parsedFileName) {
-            finalFileName = parsedFileName;
-        }
+        
+        let finalFileName = parseContentDisposition(contentDisposition);
 
-        // Vercel 정책을 통과할 수 있는 안전한 형식의 헤더
+     
+        if (!finalFileName) {
+            finalFileName = title || 'download'; // title이 없으면 'download'로 지정
+            // Content-Type에 따라 확장자 추가
+            if (contentType && contentType.includes('application/pdf') && !finalFileName.toLowerCase().endsWith('.pdf')) {
+                finalFileName += '.pdf';
+            } else if (contentType && contentType.includes('application/zip') && !finalFileName.toLowerCase().endsWith('.zip')) {
+                finalFileName += '.zip';
+            }
+        }
+        
         const encodedFileName = encodeURIComponent(finalFileName);
         res.setHeader('Content-Disposition', `attachment; filename*="UTF-8''${encodedFileName}"`);
         

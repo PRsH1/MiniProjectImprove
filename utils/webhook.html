@@ -235,7 +235,7 @@
             return null;
         }
 
-        async function triggerDownload(documentId, fileType) {
+        async function triggerDownload(documentId, fileType, documentTitle) {
             const token = $('#accessToken').val().trim();
             if (!token) {
                 alert('Access Token을 먼저 발급받아주세요.');
@@ -244,7 +244,7 @@
             }
             alert('파일 다운로드를 시작합니다...');
             const domain = DOMAINS[$('#envSelection').val()];
-            const url = `/api/downloadDocument?domain=${encodeURIComponent(domain)}&documentId=${documentId}&file_type=${encodeURIComponent(fileType)}`;
+            const url = `/api/downloadDocument?domain=${encodeURIComponent(domain)}&documentId=${documentId}&file_type=${encodeURIComponent(fileType)}&title=${encodeURIComponent(documentTitle)}`;
             try {
                 const response = await fetch(url, {
                     headers: { 'Authorization': `Bearer ${token}` }
@@ -297,6 +297,8 @@
             
             newEntry.attr('data-status', status);
             newEntry.attr('data-document-id', event.document_id || event.id);
+            newEntry.attr('data-document-title', event.document_title);
+
             newEntry.find('.event-type').text(data.event_type.toUpperCase()).addClass(data.event_type);
             newEntry.find('.timestamp').text(new Date(data.receivedAt).toLocaleString());
             const statusText = statusMap[status] ? `${statusMap[status]} (${status})` : (status || '-');
@@ -360,15 +362,18 @@
         logContainer.on('click', '.download-pdf-btn', function() {
             const logEntry = $(this).closest('.log-entry');
             const docId = logEntry.data('document-id');
+            const docTitle = logEntry.data('document-title');
             downloadModal.data('documentId', docId);
+            downloadModal.data('documentTitle', docTitle);
             downloadModal.fadeIn();
         });
 
         $('.download-choice-btn').on('click', function() {
             const fileType = $(this).data('file-type');
             const docId = downloadModal.data('documentId');
-            if (docId && fileType) {
-                triggerDownload(docId, fileType);
+            const docTitle = downloadModal.data('documentTitle');
+            if (docId && fileType && docTitle) {
+                triggerDownload(docId, fileType, docTitle);
             }
             downloadModal.fadeOut();
         });
