@@ -25,12 +25,13 @@
             padding: 20px;
         }
         .container { max-width: 900px; margin: auto; }
-        .header, .token-section-wrapper {
+        .header {
             background-color: var(--card-bg);
             padding: 20px;
             border-radius: 8px;
             border: 1px solid var(--border-color);
             margin-bottom: 20px;
+            position: relative; /* 버튼 위치 지정을 위해 추가 */
         }
         h1, h2, h3 { margin: 0; color: #fff; }
         h2 { margin-bottom: 15px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;}
@@ -78,12 +79,6 @@
         .status.connected { color: var(--green); }
         .status.disconnected { color: var(--orange); }
         .filter-group { display: flex; align-items: center; gap: 10px; }
-        select {
-             background-color: var(--card-bg);
-             border-color: var(--border-color);
-        }
-        .url-display { font-size: 0.9em; color: var(--muted-color); margin-bottom: 10px; word-break: break-all; }
-        #tokenResult { margin-top: 15px; background: #111; padding: 10px; border-radius: 4px; white-space: pre-wrap; word-break: break-all; font-size: 0.9em; max-height: 250px; overflow-y: auto; }
         #log-container { display: flex; flex-direction: column; gap: 15px; }
         .log-entry {
             background-color: var(--card-bg);
@@ -111,14 +106,55 @@
             font-family: "Courier New", Courier, monospace;
             font-size: 0.9em;
             margin-top: 10px;
+            display: none; /* 토글 기능을 위해 기본 숨김 */
         }
-        .json-viewer { display: none; }
-        .doc-info-result { display: none; }
         .log-actions { margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap; }
         .log-actions button { background-color: #444; border: 1px solid #555; font-weight: normal; padding: 8px 12px; }
         .log-actions button:hover { background-color: #555; }
         .back-link { margin-bottom: 20px; }
         @keyframes fadeIn { to { opacity: 1; transform: translateY(0); } }
+
+        /* --- 팝업(모달) 관련 CSS --- */
+        #openTokenModalBtn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background-color: #444;
+            border: 1px solid #555;
+        }
+        .modal-overlay {
+            display: none; /* 기본 숨김 */
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.7);
+        }
+        .modal-content {
+            position: relative;
+            background-color: var(--card-bg);
+            margin: 10% auto;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+            width: 80%;
+            max-width: 600px;
+            border-radius: 8px;
+            animation: fadeIn 0.3s;
+        }
+        .modal-close-btn {
+            color: #aaa;
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .modal-close-btn:hover { color: #fff; }
+        #tokenResult { margin-top: 15px; background: #111; padding: 10px; border-radius: 4px; white-space: pre-wrap; word-break: break-all; font-size: 0.9em; max-height: 250px; overflow-y: auto; }
     </style>
 </head>
 <body>
@@ -126,13 +162,32 @@
         <div class="back-link">
             <a href="/" class="button">← 허브 페이지로 돌아가기</a>
         </div>
+
         <div class="header">
+            <button id="openTokenModalBtn">엑세스 토큰 발급</button>
             <h1>Webhook & API Tester</h1>
             <p>eformsign 웹훅 이벤트를 실시간으로 확인하고, 문서 정보를 바로 조회합니다.</p>
             <p>eformsign 웹훅 설정 URL: <code>/api/webhook</code> 엔드포인트를 사용하세요.</p>
         </div>
+
         <div class="token-section-wrapper">
-            <h2>1. Access Token 발급</h2>
+            <h2>Webhook 실시간 이벤트</h2>
+            <div class="controls">
+                <div id="connection-status" class="status disconnected">● 연결 끊김</div>
+                <div class="filter-group">
+                    <label for="status-filter">상태 필터:</label>
+                    <select id="status-filter"></select>
+                </div>
+                <button id="clear-button">로그 지우기</button>
+            </div>
+            <div id="log-container"></div>
+        </div>
+    </div>
+    
+    <div id="tokenModal" class="modal-overlay">
+        <div class="modal-content">
+            <span class="modal-close-btn">&times;</span>
+            <h2>Access Token 발급</h2>
             <div class="form-group">
                 <label for="envSelection">환경 선택:</label>
                 <select id="envSelection">
@@ -153,25 +208,11 @@
                 <input type="text" id="user_id_token" placeholder="User ID 입력">
             </div>
             <button id="getAccessTokenBtn">Access Token 발급</button>
-            <div class="form-group" style="margin-top: 15px;">
-                <label for="accessToken">발급된 Access Token:</label>
-                <textarea id="accessToken" rows="3" readonly placeholder="이곳에 토큰이 표시됩니다."></textarea>
-            </div>
             <div id="tokenResult"></div>
         </div>
-        <div class="token-section-wrapper">
-            <h2>2. Webhook 실시간 이벤트</h2>
-            <div class="controls">
-                <div id="connection-status" class="status disconnected">● 연결 끊김</div>
-                <div class="filter-group">
-                    <label for="status-filter">상태 필터:</label>
-                    <select id="status-filter"></select>
-                </div>
-                <button id="clear-button">로그 지우기</button>
-            </div>
-            <div id="log-container"></div>
-        </div>
     </div>
+    
+    <textarea id="accessToken" style="display: none;"></textarea>
 
     <template id="log-template">
         <div class="log-entry">
@@ -192,28 +233,28 @@
         </div>
     </template>
     
-    <script>
+<script>
     $(document).ready(function() {
-
         const logContainer = $('#log-container');
         const logTemplate = $('#log-template');
         const statusDiv = $('#connection-status');
         const clearButton = $('#clear-button');
         const statusFilter = $('#status-filter');
-        const getAccessTokenBtn = $('#getAccessTokenBtn'); // 버튼 변수
         const DOMAINS = { op_saas: 'https://kr-api.eformsign.com', csap: 'https://www.gov-eformsign.com/Service' };
-        const statusMap = {
-            "doc_tempsave": "초안 (임시 저장)", "doc_create": "문서 작성", "doc_request_participant": "참여자 요청",
-            "doc_accept_participant": "참여자 승인", "doc_reject_participant": "참여자 반려", "doc_request_reviewer": "검토자 요청",
-            "doc_accept_reviewer": "검토자 승인", "doc_reject_reviewer": "검토자 반려", "doc_reject_request": "반려 요청",
-            "doc_decline_cancel_request": "반려 요청 거절", "doc_delete_request": "삭제 요청", "doc_decline_delete_request": "삭제 요청 거절",
-            "doc_cancel_request": "요청 취소", "doc_deleted": "문서 삭제", "doc_request_approval": "결재 요청",
-            "doc_accept_approval": "결재 승인", "doc_reject_approval": "결재 반려", "doc_request_external": "외부자 요청",
-            "doc_remind_external": "외부자 재요청", "doc_open_external": "외부자 열람", "doc_accept_external": "외부자 승인",
-            "doc_reject_external": "외부자 반려", "doc_request_internal": "내부자 요청", "doc_accept_internal": "내부자 승인",
-            "doc_reject_internal": "내부자 반려", "doc_tempsave_internal": "내부자 임시 저장", "doc_complete": "문서 완료"
-        };
+        const statusMap = { "doc_tempsave": "초안 (임시 저장)", "doc_create": "문서 작성", "doc_request_participant": "참여자 요청", "doc_accept_participant": "참여자 승인", "doc_reject_participant": "참여자 반려", "doc_request_reviewer": "검토자 요청", "doc_accept_reviewer": "검토자 승인", "doc_reject_reviewer": "검토자 반려", "doc_reject_request": "반려 요청", "doc_decline_cancel_request": "반려 요청 거절", "doc_delete_request": "삭제 요청", "doc_decline_delete_request": "삭제 요청 거절", "doc_cancel_request": "요청 취소", "doc_deleted": "문서 삭제", "doc_request_approval": "결재 요청", "doc_accept_approval": "결재 승인", "doc_reject_approval": "결재 반려", "doc_request_external": "외부자 요청", "doc_remind_external": "외부자 재요청", "doc_open_external": "외부자 열람", "doc_accept_external": "외부자 승인", "doc_reject_external": "외부자 반려", "doc_request_internal": "내부자 요청", "doc_accept_internal": "내부자 승인", "doc_reject_internal": "내부자 반려", "doc_tempsave_internal": "내부자 임시 저장", "doc_complete": "문서 완료" };
         
+        const tokenModal = $('#tokenModal');
+        const openTokenModalBtn = $('#openTokenModalBtn');
+        const closeModalBtn = $('.modal-close-btn');
+
+        openTokenModalBtn.on('click', () => tokenModal.fadeIn());
+        closeModalBtn.on('click', () => tokenModal.fadeOut());
+        $(window).on('click', (event) => {
+            if ($(event.target).is(tokenModal)) {
+                tokenModal.fadeOut();
+            }
+        });
+
         async function getAccessToken() {
             const apiKey = $('#apiKey').val().trim();
             const memberId = $('#user_id_token').val().trim();
@@ -238,6 +279,7 @@
                 if (!response.ok) { throw data; }
                 $('#accessToken').val(data.oauth_token.access_token);
                 $('#tokenResult').html('<pre>' + JSON.stringify(data, null, 2) + '</pre>');
+                alert('Access Token이 발급되었습니다. 팝업을 닫아주세요.');
             } catch (error) {
                 $('#tokenResult').html(`<pre style="color: #ff6b6b;">에러: ${JSON.stringify(error, null, 2)}</pre>`);
             }
@@ -247,9 +289,10 @@
             const token = $('#accessToken').val().trim();
             if (!token) {
                 alert('Access Token을 먼저 발급받아주세요.');
+                openTokenModalBtn.click();
                 return;
             }
-            resultContainer.show().html('<pre>문서 정보 조회 중...</pre>');
+            resultContainer.slideDown().html('<pre>문서 정보 조회 중...</pre>');
             const domain = DOMAINS[$('#envSelection').val()];
             const url = `/api/getDocumentInfo?domain=${encodeURIComponent(domain)}&documentId=${documentId}&token=${encodeURIComponent(token)}`;
             try {
@@ -261,7 +304,7 @@
                 resultContainer.html(`<pre style="color: #ff6b6b;"><b>조회 실패:</b>\n${JSON.stringify(err, null, 2)}</pre>`);
             }
         }
-
+        
         function initializeFilter() {
             statusFilter.html('<option value="all">전체 상태 보기</option>');
             for (const [code, description] of Object.entries(statusMap)) {
@@ -280,7 +323,7 @@
                 }
             });
         }
-
+        
         function addLogEntry(data) {
             const newEntry = $(logTemplate.html());
             const event = data.document || data.ready_document_pdf;
@@ -288,28 +331,20 @@
             
             newEntry.attr('data-status', status);
             newEntry.attr('data-document-id', event.document_id || event.id);
-
             newEntry.find('.event-type').text(data.event_type.toUpperCase()).addClass(data.event_type);
             newEntry.find('.timestamp').text(new Date(data.receivedAt).toLocaleString());
-            
-            const statusText = statusMap[status] ? `${statusMap[status]} (${status})` : (status || '-');
+            const statusText = statusMap[status] ? `${statusMap[status]} (${s})` : (s || '-');
             const tableBody = newEntry.find('.log-table tbody');
-            
             const createRow = (key, value) => `<tr><td>${key}</td><td>${value || '-'}</td></tr>`;
-
             tableBody.append(createRow('웹훅 ID', data.webhook_id));
             tableBody.append(createRow('문서 ID', event.document_id || event.id));
             tableBody.append(createRow('문서 제목', event.document_title));
             tableBody.append(createRow('상태', statusText));
-            
             newEntry.find('.json-viewer code').text(JSON.stringify(data, null, 2));
-
             logContainer.prepend(newEntry);
-            
             if (statusFilter.val() !== 'all' && statusFilter.val() !== status) {
                 statusFilter.val('all');
             }
-            
             filterLogs();
         }
 
@@ -319,18 +354,17 @@
                 statusDiv.text('● 연결됨').removeClass('disconnected').addClass('connected');
             };
             eventSource.onmessage = (event) => {
-                const data = JSON.parse(event.data);
-                addLogEntry(data);
+                addLogEntry(JSON.parse(event.data));
             };
             eventSource.onerror = () => {
                 statusDiv.text('● 연결 끊김 (재시도 중...)').removeClass('connected').addClass('disconnected');
-                eventSource.close();
+                es.close();
                 setTimeout(connectToEvents, 3000);
             };
         }
 
         // 이벤트 리스너 바인딩
-        getAccessTokenBtn.on('click', getAccessToken);
+        $('#getAccessTokenBtn').on('click', getAccessToken);
         clearButton.on('click', () => logContainer.html(''));
         statusFilter.on('change', filterLogs);
         
@@ -340,22 +374,25 @@
 
         logContainer.on('click', '.copy-json', function() {
             const jsonText = $(this).closest('.log-body').find('.json-viewer code').text();
-            navigator.clipboard.writeText(jsonText).then(() => {
-                alert('JSON이 클립보드에 복사되었습니다!');
-            });
+            navigator.clipboard.writeText(jsonText).then(() => { alert('JSON이 클립보드에 복사되었습니다!'); });
         });
 
         logContainer.on('click', '.get-doc-info', function() {
             const logEntry = $(this).closest('.log-entry');
             const docId = logEntry.data('document-id');
             const resultContainer = logEntry.find('.doc-info-result');
-            fetchDocumentInfo(docId, resultContainer);
+
+            if (resultContainer.is(':visible')) {
+                resultContainer.slideUp();
+            } else {
+                fetchDocumentInfo(docId, resultContainer);
+            }
         });
 
         // 초기화 함수 실행
         initializeFilter();
         connectToEvents();
     });
-    </script>
+</script>
 </body>
 </html>
