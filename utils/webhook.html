@@ -31,7 +31,7 @@
             border-radius: 8px;
             border: 1px solid var(--border-color);
             margin-bottom: 20px;
-            position: relative; /* 버튼 위치 지정을 위해 추가 */
+            position: relative;
         }
         h1, h2, h3 { margin: 0; color: #fff; }
         h2 { margin-bottom: 15px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;}
@@ -106,7 +106,7 @@
             font-family: "Courier New", Courier, monospace;
             font-size: 0.9em;
             margin-top: 10px;
-            display: none; /* 토글 기능을 위해 기본 숨김 */
+            display: none;
         }
         .log-actions { margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap; }
         .log-actions button { background-color: #444; border: 1px solid #555; font-weight: normal; padding: 8px 12px; }
@@ -114,7 +114,6 @@
         .back-link { margin-bottom: 20px; }
         @keyframes fadeIn { to { opacity: 1; transform: translateY(0); } }
 
-        /* --- 팝업(모달) 관련 CSS --- */
         #openTokenModalBtn {
             position: absolute;
             top: 20px;
@@ -123,7 +122,7 @@
             border: 1px solid #555;
         }
         .modal-overlay {
-            display: none; /* 기본 숨김 */
+            display: none;
             position: fixed;
             z-index: 1000;
             left: 0;
@@ -333,7 +332,10 @@
             newEntry.attr('data-document-id', event.document_id || event.id);
             newEntry.find('.event-type').text(data.event_type.toUpperCase()).addClass(data.event_type);
             newEntry.find('.timestamp').text(new Date(data.receivedAt).toLocaleString());
-            const statusText = statusMap[status] ? `${statusMap[status]} (${s})` : (s || '-');
+            
+       
+            const statusText = statusMap[status] ? `${statusMap[status]} (${status})` : (status || '-');
+            
             const tableBody = newEntry.find('.log-table tbody');
             const createRow = (key, value) => `<tr><td>${key}</td><td>${value || '-'}</td></tr>`;
             tableBody.append(createRow('웹훅 ID', data.webhook_id));
@@ -358,7 +360,10 @@
             };
             eventSource.onerror = () => {
                 statusDiv.text('● 연결 끊김 (재시도 중...)').removeClass('connected').addClass('disconnected');
-                es.close();
+                
+       
+                eventSource.close();
+                
                 setTimeout(connectToEvents, 3000);
             };
         }
