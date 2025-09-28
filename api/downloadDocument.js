@@ -20,6 +20,10 @@ module.exports = async function handler(req, res) {
         const { domain, documentId, file_type, title } = req.query;
         const token = req.headers.authorization?.split(' ')[1];
 
+        // --- 진단 로그 시작 ---
+        console.log("--- 문서 다운로드 요청 진단 시작 ---");
+        console.log(`[1] 프론트엔드에서 수신된 제목: ${title}`);
+
         if (!domain || !documentId || !file_type || !token) {
             return res.status(400).json({ message: 'Missing required parameters.' });
         }
@@ -40,19 +44,28 @@ module.exports = async function handler(req, res) {
         const contentType = fileResponse.headers.get('content-type');
         const fileBuffer = await fileResponse.arrayBuffer();
 
+        console.log(`[2] eformsign 서버 응답 헤더 (Content-Disposition): ${contentDisposition}`);
         
-        let finalFileName = parseContentDisposition(contentDisposition);
+        let finalFileName;
+        const parsedFileName = parseContentDisposition(contentDisposition);
+        
+        console.log(`[3] 헤더에서 파싱된 파일명: ${parsedFileName}`);
 
-     
-        if (!finalFileName) {
-            finalFileName = title || 'download'; // title이 없으면 'download'로 지정
-            // Content-Type에 따라 확장자 추가
+        if (parsedFileName) {
+            finalFileName = parsedFileName;
+            console.log(`[4a] 결정 방식: 헤더 우선 원칙에 따라 파일명 결정됨 -> ${finalFileName}`);
+        } else {
+            finalFileName = title || 'download';
+            console.log(`[4b] 결정 방식: 헤더 파일명이 없어 프론트엔드 제목 사용 -> ${finalFileName}`);
             if (contentType && contentType.includes('application/pdf') && !finalFileName.toLowerCase().endsWith('.pdf')) {
                 finalFileName += '.pdf';
             } else if (contentType && contentType.includes('application/zip') && !finalFileName.toLowerCase().endsWith('.zip')) {
                 finalFileName += '.zip';
             }
         }
+        
+        console.log(`[5] 최종 결정된 파일명: ${finalFileName}`);
+        console.log("--- 문서 다운로드 요청 진단 종료 ---");
         
         const encodedFileName = encodeURIComponent(finalFileName);
         res.setHeader('Content-Disposition', `attachment; filename*="UTF-8''${encodedFileName}"`);
