@@ -80,7 +80,7 @@
             <button id="openTokenModalBtn">엑세스 토큰 발급</button>
             <h1>Webhook & API Tester</h1>
             <p>eformsign 웹훅 이벤트를 실시간으로 확인하고, 문서 정보를 바로 조회합니다.</p>
-            <p>eformsign 웹훅 설정 URL: <code>https://mini-project-improve.vercel.app/api/webhook-receiver</code> 엔드포인트를 사용하세요.</p>
+            <p>eformsign 웹훅 설정 URL: <code>/api/webhook-receiver</code> 엔드포인트를 사용하세요.</p>
         </div>
         
         <div class="user-connect-form">
@@ -170,7 +170,6 @@
     const PUSHER_KEY = '0676069a295da819e2a5'; 
     const PUSHER_CLUSTER = 'ap3'; // 예: 'ap3'
 
-
     $(document).ready(function() {
         let pusher;
         let channel;
@@ -195,6 +194,46 @@
             }
         });
         openTokenModalBtn.on('click', () => tokenModal.fadeIn());
+
+        function connectToEvents(channelName) {
+            if (!PUSHER_KEY || !PUSHER_CLUSTER || PUSHER_KEY === 'YOUR_PUSHER_KEY') {
+                statusDiv.text('● Pusher Key/Cluster를 설정하세요.').removeClass('connected').addClass('disconnected');
+                return;
+            }
+            if (pusher && channel) {
+                pusher.unsubscribe(channel.name);
+                pusher.disconnect();
+            }
+            pusher = new Pusher(PUSHER_KEY, { cluster: PUSHER_CLUSTER });
+            channel = pusher.subscribe(channelName);
+            pusher.connection.bind('state_change', function(states) {
+                if (states.current === 'connected') {
+                    statusDiv.html(`● <strong>${channelName}</strong> 채널에 연결됨`);
+                    statusDiv.removeClass('disconnected').addClass('connected');
+                } else {
+                    statusDiv.text(`● 연결 끊김 (${states.current})`).removeClass('connected').addClass('disconnected');
+                }
+            });
+            channel.bind('new-event', function(data) {
+                addLogEntry(data);
+            });
+        }
+        
+        $('#connectPusherBtn').on('click', function() {
+            const companyId = $('#pusherCompanyId').val().trim();
+            if (!companyId) {
+                alert('Company ID를 입력하세요.');
+                return;
+            }
+            const companyChannelName = `private-company-${companyId}`;
+            
+            // 디버깅용 로그 추가
+            const alertMessage = `[프론트엔드] 구독 시도 채널:\n${companyChannelName}`;
+            console.log(alertMessage);
+            alert(alertMessage);
+            
+            connectToEvents(companyChannelName);
+        });
 
         async function getAccessToken() {
             const apiKey = $('#apiKey').val().trim();
@@ -340,45 +379,6 @@
             filterLogs();
         }
 
-        function connectToEvents(channelName) {
-            if (!PUSHER_KEY || !PUSHER_CLUSTER || PUSHER_KEY === 'YOUR_PUSHER_KEY') {
-                statusDiv.text('● Pusher Key/Cluster를 설정하세요.').removeClass('connected').addClass('disconnected');
-                console.error("Pusher Key and Cluster must be set in the HTML file.");
-                return;
-            }
-            
-            if (pusher && channel) {
-                pusher.unsubscribe(channel.name);
-                pusher.disconnect();
-            }
-
-            pusher = new Pusher(PUSHER_KEY, { cluster: PUSHER_CLUSTER });
-            channel = pusher.subscribe(channelName);
-            
-            pusher.connection.bind('state_change', function(states) {
-                if (states.current === 'connected') {
-                    statusDiv.html(`● <strong>${channelName}</strong> 채널에 연결됨`);
-                    statusDiv.removeClass('disconnected').addClass('connected');
-                } else {
-                    statusDiv.text(`● 연결 끊김 (${states.current})`).removeClass('connected').addClass('disconnected');
-                }
-            });
-            
-            channel.bind('new-event', function(data) {
-                addLogEntry(data);
-            });
-        }
-
-        $('#connectPusherBtn').on('click', function() {
-            const companyId = $('#pusherCompanyId').val().trim();
-            if (!companyId) {
-                alert('Company ID를 입력하세요.');
-                return;
-            }
-            const companyChannelName = `private-company-${companyId}`;
-            connectToEvents(companyChannelName);
-        });
-
         $('#getAccessTokenBtn').on('click', getAccessToken);
         clearButton.on('click', () => logContainer.html(''));
         statusFilter.on('change', filterLogs);
@@ -421,7 +421,7 @@
             }
             downloadModal.fadeOut();
         });
-
+        
         initializeFilter();
     });
 </script>
