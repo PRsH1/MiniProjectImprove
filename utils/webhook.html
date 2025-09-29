@@ -219,21 +219,23 @@
             });
         }
         
-        $('#connectPusherBtn').on('click', function() {
-            const companyId = $('#pusherCompanyId').val().trim();
-            if (!companyId) {
-                alert('Company ID를 입력하세요.');
-                return;
-            }
-            const companyChannelName = `private-company-${companyId}`;
-            
-            // 디버깅용 로그 추가
-            const alertMessage = `[프론트엔드] 구독 시도 채널:\n${companyChannelName}`;
-            console.log(alertMessage);
-            alert(alertMessage);
-            
-            connectToEvents(companyChannelName);
-        });
+       $('#connectPusherBtn').on('click', function() {
+    const companyId = $('#pusherCompanyId').val().trim();
+    if (!companyId) {
+        alert('Company ID를 입력하세요.');
+        return;
+    }
+
+    
+    const companyChannelName = `private-company-${companyId}`;
+    
+  
+    const alertMessage = `[프론트엔드] 구독 시도 채널:\n${companyChannelName}`;
+    console.log(alertMessage);
+    alert(alertMessage);
+    
+    connectToEvents(companyChannelName);
+});
 
         async function getAccessToken() {
             const apiKey = $('#apiKey').val().trim();
