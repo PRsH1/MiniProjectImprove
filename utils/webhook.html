@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>eformsign Webhook & API Tester</title>
+    <title>eformsign Webhook catcher</title>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://js.pusher.com/8.2.0/pusher.min.js"></script>
     <style>
@@ -70,9 +70,9 @@
         </div>
         <div class="header">
             <button id="openTokenModalBtn">엑세스 토큰 발급</button>
-            <h1>Webhook & API Tester</h1>
+            <h1>Webhook catcher</h1>
             <p>eformsign 웹훅 이벤트를 실시간으로 확인하고, 문서 정보를 바로 조회합니다.</p>
-            <p>eformsign 웹훅 설정 URL: <code>/api/webhook-receiver</code> 엔드포인트를 사용하세요.</p>
+            <p>eformsign 웹훅 설정 URL: <code>https://mini-project-improve.vercel.app/api/webhook</code> 엔드포인트를 사용하세요.</p>
         </div>
         <div class="token-section-wrapper">
             <h2>Webhook 실시간 이벤트</h2>
@@ -153,8 +153,8 @@
     
 <script>
     // ※ 매우 중요: 아래 두 값을 본인의 Pusher Key 값으로 변경하세요.
-    const PUSHER_KEY = 'YOUR_PUSHER_KEY'; 
-    const PUSHER_CLUSTER = 'YOUR_PUSHER_CLUSTER'; // 예: 'ap3'
+    const PUSHER_KEY = '0676069a295da819e2a5'; 
+    const PUSHER_CLUSTER = 'ap3'; // 예: 'ap3'
 
     $(document).ready(function() {
         const logContainer = $('#log-container');
