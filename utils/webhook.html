@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>eformsign Webhook catcher</title>
+    <title>eformsign Webhook & API Tester</title>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://js.pusher.com/8.2.0/pusher.min.js"></script>
     <style>
@@ -61,6 +61,14 @@
         #tokenResult { margin-top: 15px; background: #111; padding: 10px; border-radius: 4px; white-space: pre-wrap; word-break: break-all; font-size: 0.9em; max-height: 250px; overflow-y: auto; }
         #downloadModal .modal-content { text-align: center; }
         .download-options { display: flex; flex-direction: column; gap: 15px; margin-top: 20px; }
+        .user-connect-form {
+            display: flex;
+            gap: 10px;
+            padding: 15px;
+            background-color: #222;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
     </style>
 </head>
 <body>
@@ -70,10 +78,16 @@
         </div>
         <div class="header">
             <button id="openTokenModalBtn">엑세스 토큰 발급</button>
-            <h1>Webhook catcher</h1>
+            <h1>Webhook & API Tester</h1>
             <p>eformsign 웹훅 이벤트를 실시간으로 확인하고, 문서 정보를 바로 조회합니다.</p>
             <p>eformsign 웹훅 설정 URL: <code>https://mini-project-improve.vercel.app/api/webhook-receiver</code> 엔드포인트를 사용하세요.</p>
         </div>
+        
+        <div class="user-connect-form">
+            <input type="text" id="pusherCompanyId" placeholder="이벤트를 수신할 Company ID를 입력하세요">
+            <button id="connectPusherBtn">채널 연결</button>
+        </div>
+
         <div class="token-section-wrapper">
             <h2>Webhook 실시간 이벤트</h2>
             <div class="controls">
@@ -156,7 +170,10 @@
     const PUSHER_KEY = '0676069a295da819e2a5'; 
     const PUSHER_CLUSTER = 'ap3'; // 예: 'ap3'
 
+
     $(document).ready(function() {
+        let pusher;
+        let channel;
         const logContainer = $('#log-container');
         const logTemplate = $('#log-template');
         const statusDiv = $('#connection-status');
@@ -323,29 +340,45 @@
             filterLogs();
         }
 
-        function connectToEvents() {
+        function connectToEvents(channelName) {
             if (!PUSHER_KEY || !PUSHER_CLUSTER || PUSHER_KEY === 'YOUR_PUSHER_KEY') {
                 statusDiv.text('● Pusher Key/Cluster를 설정하세요.').removeClass('connected').addClass('disconnected');
                 console.error("Pusher Key and Cluster must be set in the HTML file.");
                 return;
             }
-            const pusher = new Pusher(PUSHER_KEY, {
-                cluster: PUSHER_CLUSTER
-            });
-            const channel = pusher.subscribe('webhook-channel');
+            
+            if (pusher && channel) {
+                pusher.unsubscribe(channel.name);
+                pusher.disconnect();
+            }
+
+            pusher = new Pusher(PUSHER_KEY, { cluster: PUSHER_CLUSTER });
+            channel = pusher.subscribe(channelName);
+            
             pusher.connection.bind('state_change', function(states) {
                 if (states.current === 'connected') {
-                    statusDiv.text('● 연결됨').removeClass('disconnected').addClass('connected');
+                    statusDiv.html(`● <strong>${channelName}</strong> 채널에 연결됨`);
+                    statusDiv.removeClass('disconnected').addClass('connected');
                 } else {
                     statusDiv.text(`● 연결 끊김 (${states.current})`).removeClass('connected').addClass('disconnected');
                 }
             });
+            
             channel.bind('new-event', function(data) {
                 addLogEntry(data);
             });
         }
 
-        // --- 이벤트 리스너 바인딩 ---
+        $('#connectPusherBtn').on('click', function() {
+            const companyId = $('#pusherCompanyId').val().trim();
+            if (!companyId) {
+                alert('Company ID를 입력하세요.');
+                return;
+            }
+            const companyChannelName = `private-company-${companyId}`;
+            connectToEvents(companyChannelName);
+        });
+
         $('#getAccessTokenBtn').on('click', getAccessToken);
         clearButton.on('click', () => logContainer.html(''));
         statusFilter.on('change', filterLogs);
@@ -389,9 +422,7 @@
             downloadModal.fadeOut();
         });
 
-        // --- 초기화 함수 실행 ---
         initializeFilter();
-        connectToEvents();
     });
 </script>
 </body>
