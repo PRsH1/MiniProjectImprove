@@ -22,7 +22,7 @@ module.exports = async function handler(req, res) {
             }
 
           
-            const companyChannelName = `private-company-${companyId}`;
+             const companyChannelName = `company-${companyId}`;
 
             await pusher.trigger(companyChannelName, "new-event", eventData);
             
