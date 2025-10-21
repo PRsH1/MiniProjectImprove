@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mini Project Hub</title>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -15,6 +18,7 @@
             justify-content: center;
             align-items: center;
             min-height: 100vh;
+            box-sizing: border-box; 
         }
         .container {
             background-color: #ffffff;
@@ -22,7 +26,7 @@
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
             padding: 30px 40px;
             width: 100%;
-            max-width: 600px;
+            max-width: 700px; 
         }
         h1 {
             text-align: center;
@@ -49,20 +53,34 @@
             margin: 15px 0;
         }
         a {
-            display: block;
+            display: flex; 
+            align-items: center; 
             padding: 12px 15px;
-            background-color: #f9f9f9;
             border: 1px solid #ddd;
             border-radius: 5px;
-            font-size: 1.1em;
+            font-size: 1.05em; 
             text-decoration: none;
-            color: #0070f3;
-            transition: background-color 0.2s, border-color 0.2s;
+            color: #333; 
+            transition: all 0.2s ease-in-out; 
         }
         a:hover {
-            background-color: #f1f1f1;
+            background-color: #f8faff; 
             border-color: #0070f3;
+            color: #0070f3; 
+            transform: translateX(4px); 
         }
+        a i {
+            width: 30px; 
+            text-align: center; 
+            margin-right: 15px; 
+            font-size: 1.1em;
+            color: #555; 
+            transition: color 0.2s ease-in-out; 
+        }
+        a:hover i {
+            color: #0070f3;
+        }
+
     </style>
 </head>
 <body>
@@ -74,38 +92,39 @@
         <section id="api-section">
             <h2>API</h2>
             <ul>
-                <li><a href="/API(JS,HTML)/DocumentSendImprove.html">새 문서 작성 API</a></li>
-                <li><a href="/API(JS,HTML)/DocumentInfo.html">문서 정보 조회 API</a></li>
-                <li><a href="/API(JS,HTML)/listdocuments.html">문서 목록 조회 API</a></li>
-                <li><a href="/API(JS,HTML)/DocumentDownload.html">문서 다운로드 API</a></li>
-                <li><a href="/api/memberPage">멤버 관련 API 모음</a></li>
+                <li><a href="/API(JS,HTML)/DocumentSendImprove.html"><i class="fa-solid fa-file-signature"></i> 새 문서 작성 API</a></li>
+                <li><a href="/API(JS,HTML)/DocumentInfo.html"><i class="fa-solid fa-magnifying-glass-chart"></i> 문서 정보 조회 API</a></li>
+                <li><a href="/API(JS,HTML)/listdocuments.html"><i class="fa-solid fa-list-ul"></i> 문서 목록 조회 API</a></li>
+                <li><a href="/API(JS,HTML)/DocumentDownload.html"><i class="fa-solid fa-file-arrow-down"></i> 문서 다운로드 API</a></li>
+                <li><a href="/api/memberPage"><i class="fa-solid fa-users"></i> 멤버 관련 API 모음</a></li>
             </ul>
         </section>
 
         <section id="embedding-section">
             <h2>Embedding</h2>
             <ul>
-                <li><a href="/Embedding/embedding_doc_update.html">문서 임베딩</a></li>
-                <li><a href="/Embedding/embedding_doc_update_CSAP.html">CSAP 문서 임베딩</a></li>
-                <li><a href="/Embedding/template_create_update.html">템플릿 임베딩</a></li>
-                <li><a href="/Embedding/template_create_update_CSAP.html">CSAP 템플릿 임베딩</a></li>
+                <li><a href="/Embedding/embedding_doc_update.html"><i class="fa-solid fa-puzzle-piece"></i> 문서 임베딩</a></li>
+                <li><a href="/Embedding/embedding_doc_update_CSAP.html"><i class="fa-solid fa-file-shield"></i> CSAP 문서 임베딩</a></li>
+                <li><a href="/Embedding/template_create_update.html"><i class="fa-solid fa-file-invoice"></i> 템플릿 임베딩</a></li>
+                <li><a href="/Embedding/template_create_update_CSAP.html"><i class="fa-solid fa-shield"></i> CSAP 템플릿 임베딩</a></li>
             </ul>
         </section>
+        
         <section id="webhook-section">
-            <h2>webhook</h2>
+            <h2>Webhook</h2>
             <ul>
-                <li><a href="/utils/webhook.html">웹훅(Webhook) 수신 페이지로 이동</a></li>
+                <li><a href="/utils/webhook.html"><i class="fa-solid fa-satellite-dish"></i> 웹훅(Webhook) 수신 페이지로 이동</a></li>
             </ul>
         </section>
+
         <section id="tools-section">
             <h2>유틸리티 툴</h2>
             <ul>
-                <li><a href="/utils/smtp.html">SMTP 발송 테스트 페이지로 이동</a></li>
-                <li><a href="/utils/CorsTest.html">CORS 차단 테스트 페이지로 이동</a></li>
-                <li><a href="/utils/RsaTestSample.html">RSA 로그인 테스트 페이지로 이동</a></li>
-                <li><a href="/utils/timestamp.html">unix 시간 변환 페이지로 이동</a></li>
-                <li><a href="/utils/base64.html">Base64 인코딩/디코딩 페이지로 이동</a></li>
-                
+                <li><a href="/utils/smtp.html"><i class="fa-solid fa-paper-plane"></i> SMTP 발송 테스트 페이지로 이동</a></li>
+                <li><a href="/utils/CorsTest.html"><i class="fa-solid fa-shield-halved"></i> CORS 차단 테스트 페이지로 이동</a></li>
+                <li><a href="/utils/RsaTestSample.html"><i class="fa-solid fa-key"></i> RSA 로그인 테스트 페이지로 이동</a></li>
+                <li><a href="/utils/timestamp.html"><i class="fa-solid fa-clock"></i> unix 시간 변환 페이지로 이동</a></li>
+                <li><a href="/utils/base64.html"><i class="fa-solid fa-right-left"></i> Base64 인코딩/디코딩 페이지로 이동</a></li>
             </ul>
         </section>
     </div>
