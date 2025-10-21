@@ -387,6 +387,7 @@
                     actions=>{
                         $('#buttonList button').hide();
                         const arr=Array.isArray(actions.data)?actions.data:[actions.data];
+                        console.log("📢 현재 사용 가능한 Action 버튼들:", arr);
                         arr.forEach(a=>{
                             const btn=$('#btn_'+a.code);
                             if(btn.length) btn.text(a.name).attr('title',a.name).show();
