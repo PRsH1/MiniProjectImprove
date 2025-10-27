@@ -29,144 +29,82 @@
       box-shadow: 0 4px 12px rgba(0,0,0,0.1);
       box-sizing: border-box;
     }
-    .left-panel {
-      width: 45%; overflow-y: auto; margin-right: 5%;
-    }
-    .right-panel {
-      width: 50%; display: flex; flex-direction: column;
-    }
-    h2 {
-      text-align: center; color: #333; margin-bottom: 20px; font-size: 1.5em;
-    }
-    .form-group {
-      margin-bottom: 15px; display: flex; flex-direction: column;
-    }
-    .form-group label {
-      font-weight: bold; margin-bottom: 5px; color: #555;
-    }
+    .left-panel { width: 45%; overflow-y: auto; margin-right: 5%; }
+    .right-panel { width: 50%; display: flex; flex-direction: column; position: relative; }
+    h2 { text-align: center; color: #333; margin-bottom: 20px; font-size: 1.5em; }
+    .form-group { margin-bottom: 15px; display: flex; flex-direction: column; }
+    .form-group label { font-weight: bold; margin-bottom: 5px; color: #555; }
     .form-group input, .form-group select, .form-group textarea {
-      width: 100%; padding: 10px; font-size: 14px;
-      border: 1px solid #ccc; border-radius: 4px;
+      width: 100%; padding: 10px; font-size: 14px; border: 1px solid #ccc; border-radius: 4px;
       transition: border-color 0.3s; box-sizing: border-box;
     }
     .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
       outline: none; border-color: #007bff;
     }
     .btn {
-      width: 100%; padding: 12px; font-size: 16px;
-      font-weight: bold; color: #fff; background: #007bff;
-      border: none; border-radius: 4px; cursor: pointer;
-      transition: background 0.3s; margin-top: 10px;
+      width: 100%; padding: 12px; font-size: 16px; font-weight: bold; color: #fff; background: #007bff;
+      border: none; border-radius: 4px; cursor: pointer; transition: background 0.3s; margin-top: 10px;
     }
-    .btn:hover {
-      background: #0056b3;
-    }
+    .btn:hover { background: #0056b3; }
 
     /* 액션 버튼 리스트 */
-    #buttonList {
-      display: none; flex-wrap: wrap; gap: 10px; justify-content: center;
-    }
+    #buttonList { display: none; flex-wrap: wrap; gap: 10px; justify-content: center; }
     #buttonList button {
-      width: 100px; height: 35px; border-radius: 4px;
-      background: #6c757d; color: #fff; border: none;
-      cursor: pointer; font-size: 14px; display: none;
-      transition: background 0.3s;
+      width: 100px; height: 35px; border-radius: 4px; background: #6c757d; color: #fff; border: none;
+      cursor: pointer; font-size: 14px; display: none; transition: background 0.3s;
     }
-    #buttonList button:hover {
-      background: #5a6268;
-    }
+    #buttonList button:hover { background: #5a6268; }
 
     /* iframe */
-    .iframe-title {
-      text-align: center; font-weight: bold; color: #444;
-      margin-bottom: 10px;
-    }
+    .iframe-title { text-align: center; font-weight: bold; color: #444; margin-bottom: 10px; }
     .iframe-container {
-      flex: 1; border: 2px solid #ddd; border-radius: 8px;
-      overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      flex: 1; border: 2px solid #ddd; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.1);
     }
-    iframe {
-      width: 100%; height: 100%; border: none;
+    iframe { width: 100%; height: 100%; border: none; }
+
+    /* 로딩 인디케이터 */
+    #loadingIndicator {
+      display: none; position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%); padding: 1em 2em; background: rgba(0,0,0,0.7);
+      color: #fff; border-radius: 8px; font-size: 1.2em; z-index: 1000;
     }
 
     /* 추가 옵션 패널 */
-    #additionalOptions {
-      display: none; margin-top: 10px; padding: 15px;
-      background: #f8f9fa; border: 1px solid #ddd; border-radius: 6px;
-    }
-    .option-section {
-      margin-bottom: 20px; padding: 10px; border: 1px solid #ccc;
-      border-radius: 6px; background: #fff;
-    }
-    .option-section h3 {
-      margin-top: 0; margin-bottom: 10px; font-size: 1.1em; color: #007bff;
-    }
-    .entry-list {
-      margin-top: 10px;
-    }
-    .entry-item {
-      position: relative; padding: 10px; border: 1px solid #ccc;
-      border-radius: 4px; background: #fafafa; margin-bottom: 10px;
-    }
-    .entry-item .remove-entry {
-      position: absolute; top: 5px; right: 5px; background: #dc3545;
-      color: #fff; border: none; border-radius: 50%; width: 20px;
-      height: 20px; font-size: 12px; line-height: 20px; cursor: pointer;
-    }
+    #additionalOptions { display: none; margin-top: 10px; padding: 15px; background: #f8f9fa; border: 1px solid #ddd; border-radius: 6px; }
+    .option-section { margin-bottom: 20px; padding: 10px; border: 1px solid #ccc; border-radius: 6px; background: #fff; }
+    .option-section h3 { margin-top: 0; margin-bottom: 10px; font-size: 1.1em; color: #007bff; }
+    .entry-list { margin-top: 10px; }
+    .entry-item { position: relative; padding: 10px; border: 1px solid #ccc; border-radius: 4px; background: #fafafa; margin-bottom: 10px; }
+    .entry-item .remove-entry { position: absolute; top: 5px; right: 5px; background: #dc3545; color: #fff; border: none; border-radius: 50%; width: 20px; height: 20px; font-size: 12px; line-height: 20px; cursor: pointer; }
 
     /* 토글 스위치 */
-    .switch {
-      position: relative; display: inline-block;
-      width: 50px; height: 24px; vertical-align: middle;
-    }
-    .switch input {
-      opacity: 0; width: 0; height: 0;
-    }
-    .slider {
-      position: absolute; cursor: pointer;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background-color: #ccc; transition: 0.4s; border-radius: 24px;
-    }
-    .slider:before {
-      position: absolute; content: "";
-      height: 18px; width: 18px; left: 3px; bottom: 3px;
-      background-color: white; transition: 0.4s; border-radius: 50%;
-    }
-    .switch input:checked + .slider {
-      background-color: #007bff;
-    }
-    .switch input:checked + .slider:before {
-      transform: translateX(26px);
-    }
+    .switch { position: relative; display: inline-block; width: 50px; height: 24px; vertical-align: middle; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: 0.4s; border-radius: 24px; }
+    .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: 0.4s; border-radius: 50%; }
+    .switch input:checked + .slider { background-color: #007bff; }
+    .switch input:checked + .slider:before { transform: translateX(26px); }
 
     /* 반응형 */
-    @media (max-width: 768px) {
-      .left-panel, .right-panel {
-        width: 100%; margin: 0;
-      }
-    }
-    @media (max-width: 600px) {
-      .btn, #buttonList button {
-        font-size: 14px; padding: 10px;
-      }
-    }
+    @media (max-width: 768px) { .left-panel, .right-panel { width: 100%; margin: 0; } }
+    @media (max-width: 600px) { .btn, #buttonList button { font-size: 14px; padding: 10px; } }
   </style>
 
   <script>
-    $(function(){
-      // 공공 서버용 EformSignDocument 인스턴스 생성
-      window.eformsign = new EformSignDocument();
+    let execution_time = '';
+    let docOpt;
 
-      // eformsign.open() 호출 전 반드시 공공 도메인 설정
+    $(function(){
+      // 공공 서버용 EformSignDocument 인스턴스 생성 및 도메인 지정
+      window.eformsign = new EformSignDocument();
       eformsign.setDomain("https://www.gov-eformsign.com");
 
-      // Mode Type 선택에 따른 문서ID 표시/숨김
+      // UI 바인딩
       $('#modeTypeSelect').on('change', function(){
         const v = this.value;
         $('#docIdGroup')[ (v==='02' || v==='03') ? 'show' : 'hide' ]();
       }).trigger('change');
 
-      // 사용자 유형 선택
       $('#userTypeSelect').on('change', function(){
         const ut = this.value;
         if(ut === '01'){ // 멤버
@@ -180,31 +118,60 @@
         }
       }).trigger('change');
 
-      // 추가 옵션 토글
       $('#toggleOptionsBtn').click(()=>$('#additionalOptions').slideToggle());
 
-      // 액션 버튼 토글 스위치
       $('#toggleActionSwitch').on('change', function(){
         $('#buttonList').css('display', this.checked ? 'flex' : 'none');
         $('#toggleActionLabel').text(this.checked ? 'Action 버튼 숨기기' : 'Action 버튼 보이기');
       }).prop('checked', false).trigger('change');
 
-      // 필드/수신자 추가 버튼 바인딩
+      // 토큰 방식 라벨 동기화
+      $('#tokenMethodSelect').on('change', updateTokenLabel);
+      updateTokenLabel(); // 초기 1회 반영
+
       $('#addFieldBtn').click(addFieldEntry);
       $('#addRecipientBtn').click(addRecipientEntry);
-
-      // 토큰 발급 버튼
       $('#getTokenButton').click(getAccessToken);
-
-      // 문서 호출 버튼
       $('#startButton').click(startDocument);
     });
 
-    let execution_time = '';
+    function showLoading(){ $('#loadingIndicator').show(); }
+    function hideLoading(){ $('#loadingIndicator').hide(); }
+    function resetActionButtons(){ $('#buttonList button').hide().text(''); }
 
-    function updateServerUrl(){
-      // 공공 서버 전용 HTML이므로 auth URL은 고정
-      $('#selectedServerUrl').text('https://www.gov-eformsign.com/Service/v2.0/api_auth/access_token');
+    /** 토큰 방식 전환 시 라벨/placeholder 동기화 */
+    function updateTokenLabel(){
+      if ($('#tokenMethodSelect').val() === 'signature') {
+        $('#secretKeyLabel').text('Private Key Hex:');
+        $('#privateKeyHex').attr('placeholder','비밀키 입력');
+      } else {
+        $('#secretKeyLabel').text('Bearer Token:');
+        $('#privateKeyHex').attr('placeholder','Bearer 토큰 입력');
+      }
+    }
+
+    /** 임베딩 종료 유틸: close() 가능 시 호출, iframe 비우고 숨김, UI 초기화, 인스턴스 해제 */
+    function endEmbedding({ resetUI = true, hideFrame = true } = {}) {
+      try {
+        if (window.eformsign && typeof window.eformsign.close === 'function') {
+          window.eformsign.close();
+        }
+      } catch (e) {
+        console.log('eformsign.close() 호출 중 예외:', e);
+      }
+
+      const $frame = $('#eformsign_iframe');
+      $frame.attr('src','about:blank');
+      if (hideFrame) {
+        $frame.closest('.iframe-container').css('display','none');
+      }
+
+      if (resetUI) {
+        resetActionButtons();
+        $('#toggleActionSwitch').prop('checked', false).trigger('change');
+      }
+
+      window.eformsign = null; // GC 유도 및 재시작 시 새 인스턴스 생성
     }
 
     function getAccessToken(){
@@ -242,9 +209,13 @@
           console.log('Access Token 발급 응답:', data);
         },
         error: function(xhr){
-          const r = JSON.parse(xhr.responseText);
-          console.log('Access Token 발급 오류 응답:', r);
-          alert(`발급 실패:\n코드: ${r.code}\n메시지: ${r.ErrorMessage}`);
+          try {
+            const r = JSON.parse(xhr.responseText);
+            console.log('Access Token 발급 오류 응답:', r);
+            alert(`발급 실패:\n코드: ${r.code}\n메시지: ${r.ErrorMessage}`);
+          } catch(e) {
+            alert('발급 실패(응답 파싱 오류). 콘솔 로그를 확인하세요.');
+          }
         }
       });
     }
@@ -340,28 +311,26 @@
             <label>전송 기한 - 시 (valid.hour):</label>
             <input type="number" class="rec-valid-hour" value="0" min="0" />
           </div>
+          <div class="form-group">
+            <label>문서 링크 (document_link):</label>
+            <input type="text" class="rec-document-link" placeholder="알림 메일/SMS의 document_link로 사용할 URL" />
+          </div>
         </div>
       `);
       entry.find('.remove-entry').click(() => entry.remove());
       $('#recipientsList').append(entry);
     }
 
-    function startDocument(){
-      // ============================
-      // 액션 버튼 초기화
-      // ============================
-      $('#buttonList button').each(function(){
-        $(this).hide().text('');
-      });
+    function validateInputs(){
+      const cid = ($('#companyId').val()||'').trim();
+      if (!cid){ alert('회사 ID를 입력하세요.'); return false; }
+      return true;
+    }
 
+    function buildDocOpt(){
       const userType = $('#userTypeSelect').val();
       const modeType = $('#modeTypeSelect').val();
-
-      // 회사 ID 유효성 검사
-      const companyIdVal = ($('#companyId').val() || '').trim();
-      if(companyIdVal === ''){
-        return alert('회사 ID를 입력하세요.');
-      }
+      const companyIdVal = $('#companyId').val().trim();
 
       let userObj;
       if(userType === '01'){
@@ -371,33 +340,14 @@
           refresh_token: $('#refreshToken').val(),
           access_token: $('#accessToken').val()
         };
-        if(!userObj.access_token){
-          return alert('먼저 Access Token을 발급하세요.');
-        }
       } else {
         const externalName = ($('#externalName').val() || '').trim();
         const externalToken = ($('#externalToken').val() || '').trim();
-        if(externalName === ''){
-          return alert('외부 사용자 이름을 입력하세요.');
-        }
-        if(modeType !== '01' && externalToken === ''){
-          return alert('외부 토큰을 입력하세요.');
-        }
-        if(modeType === '01'){
-          userObj = {
-            type: '02',
-            external_user_info: { name: externalName }
-          };
-        } else {
-          userObj = {
-            type: '02',
-            external_token: externalToken,
-            external_user_info: { name: externalName }
-          };
-        }
+        userObj = (modeType === '01')
+          ? { type: '02', external_user_info: { name: externalName } }
+          : { type: '02', external_token: externalToken, external_user_info: { name: externalName } };
       }
 
-      // layout 옵션 수집
       const layoutOpts = {
         lang_code: $('#layoutLang').val(),
         header: $('#layoutHeader').is(':checked'),
@@ -410,7 +360,6 @@
         }
       };
 
-      // prefill 옵션 수집
       const prefill = {
         document_name: $('#prefillDocumentName').val(),
         fields: [],
@@ -424,10 +373,9 @@
         const value = $(this).find('.field-value').val();
         const enabled = $(this).find('.field-enabled').is(':checked');
         const required = $(this).find('.field-required').is(':checked');
-        if(id.trim() !== '') {
-          prefill.fields.push({ id, value, enabled, required });
-        }
+        if ((id||'').trim()) prefill.fields.push({ id, value, enabled, required });
       });
+
       $('.recipient-entry').each(function(){
         const step_idx = $(this).find('.rec-step-idx').val();
         const step_type = $(this).find('.rec-step-type').val();
@@ -440,21 +388,18 @@
         const password_hint = $(this).find('.rec-auth-hint').val();
         const day = parseInt($(this).find('.rec-valid-day').val(), 10) || 0;
         const hour = parseInt($(this).find('.rec-valid-hour').val(), 10) || 0;
-        if(id.trim() !== '') {
+        const document_link = $(this).find('.rec-document-link').val() || '';
+        if ((id||'').trim()) {
           prefill.recipients.push({
             step_idx, step_type, name, id, sms, use_mail, use_sms,
-            auth: { password, password_hint, valid: { day, hour } }
+            auth: { password, password_hint, valid: { day, hour } },
+            document_link
           });
         }
       });
 
-      // document_option 구성
-      const docOpt = {
-        company: {
-          id: companyIdVal,
-          country_code: $('#countryCode').val() || 'kr',
-          user_key: ''
-        },
+      docOpt = {
+        company: { id: companyIdVal, country_code: $('#countryCode').val() || 'kr', user_key: '' },
         user: userObj,
         mode: {
           type: modeType,
@@ -462,46 +407,72 @@
           document_id: $('#documentId').val() || ''
         },
         layout: layoutOpts,
-        prefill: prefill
+        prefill
       };
+    }
 
+    function success_callback(response){
+      hideLoading();
+      alert(`문서 생성/처리 성공\n문서 ID: ${response.document_id}\n문서 제목: ${response.title}`);
+      console.log("✅ 문서 생성/전송 성공 (Success Callback 응답):");
+      console.log(JSON.stringify(response, null, 4));
+
+      // 임베딩 종료
+      endEmbedding({ resetUI: true, hideFrame: true });
+      $('.iframe-title').text('문서 영역 (완료됨)');
+    }
+
+    function error_callback(err){
+      hideLoading();
+      alert(`문서 생성/처리 실패\n코드: ${err.code}\n메시지: ${err.message}`);
+      console.log("❌ 문서 생성/전송 실패 (Error Callback 응답):");
+      console.log(JSON.stringify(err, null, 4));
+      // 실패 시에는 프레임 유지(디버깅/재시도 목적)
+    }
+
+    function actions_callback(actions){
+      hideLoading();
+      resetActionButtons();
+      const arr = Array.isArray(actions.data) ? actions.data : [actions.data];
+      arr.forEach(function(a){
+        $(`#btn_${a.code}`).text(a.name).show();
+      });
+      console.log('🔘 Action Callback 응답:', JSON.stringify(actions, null, 4));
+    }
+
+    function startDocument(){
+      resetActionButtons();
+      if (!validateInputs()) return;
+      buildDocOpt();
       console.log('Request JSON:', JSON.stringify(docOpt, null, 2));
 
-      // eformsign 호출 (공공 서버이므로 이미 setDomain이 “gov-eformsign.com”으로 설정되어 있음)
+      // 제목 원복 + 숨겨놨을 수 있는 프레임 다시 표시
+      $('.iframe-title').text('문서 영역');
+      $('.iframe-container').css('display','block');
+
+      // 필요 시 새 인스턴스 생성 및 도메인 재설정
+      if (!window.eformsign) {
+        window.eformsign = new EformSignDocument();
+        eformsign.setDomain("https://www.gov-eformsign.com");
+      }
+
+      showLoading();
       eformsign.document(
         docOpt,
         'eformsign_iframe',
-        function(response){
-          console.log('Response from server:', response);
-          $('#eformsign_iframe').attr('src','');
-          alert(`문서 생성/처리 성공\n문서 ID: ${response.document_id}\n문서 제목: ${response.title}`);
-      console.log("✅ 문서 생성/전송 성공 (Success Callback 응답):");
-      console.log(JSON.stringify(response, null, 4));
-        },
-        function(err){
-          console.log('Error response from server:', err);
-          alert(`문서 생성/처리 실패\n코드: ${err.code}\n메시지: ${err.message}`);
-      console.log("❌ 문서 생성/전송 실패 (Error Callback 응답):");
-      console.log(JSON.stringify(err, null, 4));
-        },
-        function(actions){
-          console.log('초기 Action 목록 (actions.data):', actions.data);
-
-          $('#buttonList button').hide();
-          const arr = Array.isArray(actions.data) ? actions.data : [actions.data];
-          arr.forEach(function(a){
-            $(`#btn_${a.code}`).text(a.name).show();
-            
-          });
-        }
+        success_callback,
+        error_callback,
+        actions_callback
       );
-
-      // 마지막으로 eformsign.open() 호출하여 임베디드 시작
       eformsign.open();
     }
 
     // actionTest 전역 함수
     function actionTest(code){
+      if (!window.eformsign) {
+        alert('임베딩이 활성화되어 있지 않습니다. Start로 다시 시작하세요.');
+        return;
+      }
       console.log('사용자 클릭한 action 코드:', code);
       eformsign.sendAction(
         { type: '01', code: code },
@@ -608,14 +579,14 @@
           </select>
         </div>
         <div class="form-group">
-          <label>상단바 표시</label>
+          <label>헤더 표시</label>
           <label class="switch">
             <input type="checkbox" id="layoutHeader" checked />
             <span class="slider"></span>
           </label>
         </div>
         <div class="form-group">
-          <label>하단바 표시</label>
+          <label>푸터 표시</label>
           <label class="switch">
             <input type="checkbox" id="layoutFooter" checked />
             <span class="slider"></span>
@@ -688,6 +659,8 @@
 
   <div class="right-panel">
     <h2 class="iframe-title">문서 영역</h2>
+    <div id="loadingIndicator">⏳ 임베딩 중…</div>
+
     <div class="form-group" style="margin-bottom:10px;">
       <label class="switch">
         <input type="checkbox" id="toggleActionSwitch" />
@@ -695,6 +668,7 @@
       </label>
       <label id="toggleActionLabel" style="margin-left:8px;vertical-align:middle"></label>
     </div>
+
     <div id="buttonList">
       <button id="btn_01" onclick="actionTest('01')"></button>
       <button id="btn_02" onclick="actionTest('02')"></button>
@@ -719,6 +693,7 @@
       <button id="btn_21" onclick="actionTest('21')"></button>
       <button id="btn_22" style="width:150px" onclick="actionTest('22')"></button>
     </div>
+
     <div class="iframe-container">
       <iframe id="eformsign_iframe" name="eformsign_iframe"></iframe>
     </div>
