@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>eformsign 교차복제 도우미 (Bookmarklet Generator)</title>
+  <style>
+    :root {
+      --bg: #0f172a; --card: #111827; --muted: #94a3b8; --txt: #e5e7eb;
+      --accent: #22d3ee; --warn: #f59e0b; --ok: #22c55e; --err: #ef4444;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 24px; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, 'Helvetica Neue', Arial;
+      background: radial-gradient(1200px 800px at 0% 0%, #0b1229, #0f172a 60%); color: var(--txt); }
+    h1 { font-size: 24px; margin: 0 0 8px; }
+    p { color: var(--muted); margin: 0 0 16px; }
+    .card { max-width: 980px; margin: 0 auto; background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+      border: 1px solid rgba(255,255,255,.06); border-radius: 16px; padding: 20px; box-shadow: 0 8px 40px rgba(0,0,0,.35); }
+    .grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px 16px; }
+    label { font-size: 12px; color: var(--muted); display: block; margin: 6px 2px; }
+    input[type="text"], input[type="password"], select {
+      width: 100%; padding: 10px 12px; border-radius: 10px;
+      border: 1px solid rgba(255,255,255,.12); background: rgba(255,255,255,.04); color: var(--txt); outline: none;
+    }
+    input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(34,211,238,.25); }
+    .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 14px; }
+    button, a.btn { appearance: none; border: 1px solid rgba(255,255,255,.1); background: rgba(34,211,238,.08);
+      color: var(--txt); padding: 10px 14px; border-radius: 10px; text-decoration: none; font-weight: 600; cursor: pointer; }
+    button.primary, a.primary { background: linear-gradient(90deg, rgba(34,211,238,.25), rgba(59,130,246,.25)); border-color: rgba(34,211,238,.35); }
+    button.warn { background: rgba(245,158,11,.18); border-color: rgba(245,158,11,.35); }
+    .muted { color: var(--muted); font-size: 12px; }
+    .kbd { padding: 2px 6px; border-radius: 6px; border: 1px solid rgba(255,255,255,.2); background: rgba(255,255,255,.06);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; font-size: 12px; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; }
+    .section { margin-top: 18px; padding-top: 14px; border-top: 1px dashed rgba(255,255,255,.15); }
+    .out { background: rgba(2,6,23,.6); border: 1px solid rgba(255,255,255,.08); border-radius: 10px; padding: 12px;
+      font-size: 12px; overflow: auto; white-space: pre-wrap; color: #d1fae5; }
+    .tips li { margin: 6px 0; }
+    .footer { margin-top: 18px; font-size: 12px; color: var(--muted); }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>eformsign 교차복제 도우미</h1>
+    <p>아래 정보를 입력하고 <b>북마클릿</b>을 만들어 즐겨찾기에 추가하세요. 그런 다음 <b>eformsign 템플릿 설정 화면</b>에서 북마클릿을 클릭하면 <span class="mono">clone</span> API가 <b>복제 받을 회사</b> 값으로 자동 치환됩니다.</p>
+
+    <div class="grid">
+      <div>
+        <label>복제 받을 회사 Service Host</label>
+        <select id="host">
+          <option value="kr-service.eformsign.com" selected>kr-service.eformsign.com (기본)</option>
+          <option value="sg-service.eformsign.com">sg-service.eformsign.com</option>
+          <option value="us-service.eformsign.com">us-service.eformsign.com</option>
+          <option value="jp-service.eformsign.com">jp-service.eformsign.com</option>
+          <option value="custom">직접 입력…</option>
+        </select>
+        <input id="hostCustom" type="text" placeholder="custom-host.example.com" style="margin-top:6px; display:none;" />
+      </div>
+      <div>
+        <label>복제 받을 회사 companyId</label>
+        <input id="companyId" type="text" placeholder="0605ef55..." />
+      </div>
+      <div>
+        <label>복제 받을 회사 memberId (createId)</label>
+        <input id="memberId" type="text" placeholder="sgdemo_admin@forcs.com 또는 UUID" />
+      </div>
+      <div>
+        <label>복제 받을 회사 formId</label>
+        <input id="formId" type="text" placeholder="031badd7..." />
+      </div>
+      <div>
+        <label>복제 받을 회사 access_token</label>
+        <input id="accessToken" type="password" placeholder="Bearer 없이 토큰 본문만" />
+      </div>
+      <div>
+        <label>복제 받을 회사 refresh_token (선택)</label>
+        <input id="refreshToken" type="password" placeholder="필요 시" />
+      </div>
+    </div>
+
+    <div class="row">
+      <button class="primary" id="save">로컬 저장</button>
+      <button id="load">불러오기</button>
+      <button class="warn" id="clear">초기화</button>
+      <span class="muted">브라우저 <span class="kbd">localStorage</span>에 저장됩니다.</span>
+    </div>
+
+    <div class="section">
+      <h3>1. 북마클릿 생성</h3>
+      <div class="row">
+        <button class="primary" id="gen">Generate</button>
+        <a class="btn" id="bmOn" href="#" draggable="true" title="이걸 북마크바로 드래그해서 저장하세요">EFS Cross-Clone ON</a>
+        <a class="btn" id="bmOff" href="#" draggable="true" title="이걸 북마크바로 드래그해서 저장하세요">EFS Cross-Clone OFF</a>
+      </div>
+      <p class="muted">생성 후 <b>eformsign 템플릿 설정 페이지</b>에서 <em>EFS Cross-Clone ON</em> 북마클릿을 클릭하면 활성화됩니다. 비활성화하려면 OFF를 클릭.</p>
+    </div>
+
+    <div class="section">
+      <h3>2. 콘솔 직접 주입용 스니펫 (선택)</h3>
+      <div class="row">
+        <button id="copySnippet">스니펫 복사</button>
+        <span class="muted">eformsign 페이지에서 <span class="kbd">F12</span> → Console에 붙여넣기</span>
+      </div>
+      <pre class="out" id="snippetOut">// Generate를 먼저 눌러주세요.</pre>
+    </div>
+
+    <div class="section">
+      <h3>사용 요령</h3>
+      <ol class="tips">
+        <li>이 페이지에서 <b>복제 받을 회사</b> 정보 입력 → <b>Generate</b> 클릭 → <b>EFS Cross-Clone ON</b>을 북마크바로 드래그해 저장</li>
+        <li>eformsign에서 <b>원본 템플릿이 있는 회사</b>의 템플릿 <b>복제 화면</b>으로 이동</li>
+        <li>복제(저장) 전, <b>EFS Cross-Clone ON</b> 북마클릿 클릭 → 상단 배너 확인(매 복제 시 해당 버튼 클릭 필요)</li>
+        <li>저장 클릭 시 <span class="mono">clone</span> 요청이 <b>복제 받을 회사</b> 값으로 자동 치환되어 전송</li>
+        <li>작업 종료 시 <b>EFS Cross-Clone OFF</b> 클릭(또는 새로고침)으로 비활성화, 북마크바에 있는 버튼 삭제</li>
+        <li>주의: 복제받을 회사가 변경될 경우 정보를 다시 입력하여 Generate 클릭 후 <b>EFS Cross-Clone ON</b> 북마클릿을 다시 북마크바로 드레그해서 저장해야 합니다.</li>
+      </ol>
+      <p class="footer">보안 유의: 토큰은 민감 정보입니다. 공동 PC에서 저장하지 말고, 필요 시 <b>초기화</b> 버튼으로 삭제하세요.</p>
+    </div>
+  </div>
+
+  <script>
+    const $ = (s) => document.querySelector(s);
+    const stateKeys = {
+      host: 'efs_host',
+      companyId: 'efs_companyId',
+      memberId: 'efs_memberId',
+      formId: 'efs_formId',
+      accessToken: 'efs_accessToken',
+      refreshToken: 'efs_refreshToken'
+    };
+
+    function saveLocal() {
+      const hostSel = document.querySelector('#host');
+      const hostVal = (hostSel && hostSel.value === 'custom')
+        ? (document.querySelector('#hostCustom').value || '')
+        : (hostSel ? hostSel.value : 'kr-service.eformsign.com');
+      localStorage.setItem(stateKeys.host, hostVal);
+      for (const id of Object.keys(stateKeys)) {
+        if (id === 'host') continue;
+        localStorage.setItem(stateKeys[id], (document.querySelector('#' + id).value || ''));
+      }
+      toast('저장 완료');
+    }
+
+    function loadLocal() {
+      const savedHost = localStorage.getItem(stateKeys.host) || 'kr-service.eformsign.com';
+      const known = ['kr-service.eformsign.com','sg-service.eformsign.com','us-service.eformsign.com','jp-service.eformsign.com'];
+      const sel = document.querySelector('#host');
+      const custom = document.querySelector('#hostCustom');
+      if (known.includes(savedHost)) {
+        sel.value = savedHost;
+        if (custom) custom.style.display = 'none';
+      } else {
+        sel.value = 'custom';
+        if (custom) { custom.style.display = 'block'; custom.value = savedHost; }
+      }
+      for (const id of Object.keys(stateKeys)) {
+        if (id === 'host') continue;
+        const v = localStorage.getItem(stateKeys[id]) || '';
+        document.querySelector('#' + id).value = v;
+      }
+      toast('불러오기 완료');
+    }
+
+    function clearLocal() {
+      for (const id of Object.keys(stateKeys)) {
+        localStorage.removeItem(stateKeys[id]);
+        const el = document.querySelector("#" + id);
+        if (el) el.value = '';
+      }
+      toast('초기화 완료');
+    }
+
+    $('#save').onclick = saveLocal;
+    $('#load').onclick = loadLocal;
+    $('#clear').onclick = clearLocal;
+
+    function b64Placeholder(){ return '___CONFIG_B64___'; }
+
+    function buildInjectedScript(cfg) {
+      // 전통 IIFE + var enabled, a-token/r-token 주입, 요청 중 LS 토큰 임시 교체 후 원복
+      return `(function(){
+  var CFG = ${JSON.stringify({version:"0.6", host:"", companyId:"", memberId:"", formId:"", accessToken:"", refreshToken:""})};
+  try {
+    var raw = '${b64Placeholder()}';
+    var json = JSON.parse(atob(raw || ''));
+    for (var k in json) { if (Object.prototype.hasOwnProperty.call(json,k)) CFG[k] = json[k]; }
+  } catch (e) {}
+
+  var bannerId = '__efs_xclone_banner__';
+  var cloneRe = /\\/v1\\.0\\/companies\\/[^/]+\\/members\\/[^/]+\\/forms\\/[^/]+\\/clone(\\?|$)/i;
+  var enabled = true;
+
+  // --- LocalStorage 토큰 백업/적용/복구 ---
+  var __prev = { a: null, r: null, hasA: false, hasR: false };
+  function stashTokens(){
+    try {
+      __prev.a = localStorage.getItem('access_token');
+      __prev.r = localStorage.getItem('refresh_token');
+      __prev.hasA = localStorage.hasOwnProperty ? localStorage.hasOwnProperty('access_token') : (__prev.a !== null);
+      __prev.hasR = localStorage.hasOwnProperty ? localStorage.hasOwnProperty('refresh_token') : (__prev.r !== null);
+    } catch(e){}
+  }
+  function applyTokens(){
+    try {
+      if (CFG.accessToken) localStorage.setItem('access_token', CFG.accessToken);
+      if (CFG.refreshToken) localStorage.setItem('refresh_token', CFG.refreshToken);
+    } catch(e){}
+  }
+  function restoreTokens(){
+    try {
+      if (__prev.hasA) localStorage.setItem('access_token', __prev.a);
+      else localStorage.removeItem('access_token');
+      if (__prev.hasR) localStorage.setItem('refresh_token', __prev.r);
+      else localStorage.removeItem('refresh_token');
+    } catch(e){}
+  }
+
+  function showBanner(text, color) {
+    try {
+      var old = document.getElementById(bannerId);
+      if (old) old.remove();
+      var bar = document.createElement('div');
+      bar.id = bannerId; bar.textContent = text;
+      bar.setAttribute('style', 'position:fixed;z-index:2147483647;top:10px;left:50%;transform:translateX(-50%);'
+        + 'background:'+(color||'#0ea5e9')+';color:#fff;padding:10px 14px;border-radius:999px;font-weight:700;'
+        + 'box-shadow:0 8px 30px rgba(0,0,0,.35);font-family:system-ui,Segoe UI,Roboto;');
+      document.body.appendChild(bar);
+      setTimeout(function(){ try{ bar.remove(); }catch(e){} }, 2200);
+    } catch(e){}
+  }
+
+  function patchFetch() {
+    var _fetch = window.fetch;
+    if (typeof _fetch !== 'function') return;
+    window.fetch = function(input, init){
+      try {
+        var url = (typeof input === 'string') ? input : (input && input.url);
+        if (!enabled || !url || !cloneRe.test(url)) return _fetch(input, init);
+
+        var u = new URL(url, location.origin);
+        if (CFG.host) u.host = CFG.host;
+
+        var seg = u.pathname.split('/').filter(Boolean);
+        var iC = seg.indexOf('companies'), iM = seg.indexOf('members'), iF = seg.indexOf('forms');
+        if (iC>-1 && seg[iC+1]) seg[iC+1] = CFG.companyId || seg[iC+1];
+        if (iM>-1 && seg[iM+1]) seg[iM+1] = CFG.memberId  || seg[iM+1];
+        if (iF>-1 && seg[iF+1]) seg[iF+1] = CFG.formId    || seg[iF+1];
+        u.pathname = '/' + seg.join('/');
+
+        var baseHeaders =
+          (init && init.headers) ||
+          (typeof input!=='string' && input && input.headers) || {};
+        var headers = new Headers(baseHeaders);
+
+        if (CFG.accessToken) headers.set('a-token', CFG.accessToken);
+        if (CFG.refreshToken) headers.set('r-token', CFG.refreshToken);
+        ['authorization','Authorization','CONTENT-LENGTH','Content-Length','content-length'].forEach(function(h){ headers.delete(h); });
+
+        var newInit = Object.assign({}, init || {}, {
+          headers: headers,
+          mode: 'cors',
+          credentials: (init && init.credentials) ? init.credentials : 'include'
+        });
+
+        // 요청 동안만 LS 토큰 교체
+        stashTokens();
+        applyTokens();
+
+        console.log('[efs-xclone] fetch ->', { to: u.href, creds: newInit.credentials, headerKeys: Array.from(headers.keys()) });
+
+        return _fetch(u.href, newInit).finally(function(){ restoreTokens(); });
+      } catch(e) {
+        console.warn('[efs-xclone] fetch patch error', e);
+        return _fetch(input, init);
+      }
+    };
+  }
+
+  function patchXHR() {
+    if (!window.XMLHttpRequest) return;
+    var _open = XMLHttpRequest.prototype.open;
+    var _send = XMLHttpRequest.prototype.send;
+
+    XMLHttpRequest.prototype.open = function(method, url) {
+      try { this.__efs_url = url; } catch(e){}
+      return _open.apply(this, arguments);
+    };
+
+    XMLHttpRequest.prototype.send = function(body) {
+      try {
+        var url = this.__efs_url;
+        if (!enabled || !url || !cloneRe.test(url)) return _send.apply(this, arguments);
+
+        var u = new URL(url, location.origin);
+        if (CFG.host) u.host = CFG.host;
+
+        var seg = u.pathname.split('/').filter(Boolean);
+        var iC = seg.indexOf('companies'), iM = seg.indexOf('members'), iF = seg.indexOf('forms');
+        if (iC>-1 && seg[iC+1]) seg[iC+1] = CFG.companyId || seg[iC+1];
+        if (iM>-1 && seg[iM+1]) seg[iM+1] = CFG.memberId  || seg[iM+1];
+        if (iF>-1 && seg[iF+1]) seg[iF+1] = CFG.formId    || seg[iF+1];
+        u.pathname = '/' + seg.join('/');
+
+        _open.call(this, 'POST', u.href, true);
+
+        if (CFG.accessToken) this.setRequestHeader('a-token', CFG.accessToken);
+        if (CFG.refreshToken) this.setRequestHeader('r-token', CFG.refreshToken);
+        try { this.setRequestHeader('Authorization', ''); } catch(e){}
+
+        // 요청 동안만 LS 토큰 교체 + 완료 후 복구
+        stashTokens();
+        applyTokens();
+        var restored = false;
+        var restoreOnce = function(){ if (restored) return; restored = true; restoreTokens(); };
+        this.addEventListener('loadend', restoreOnce, { once: true });
+        this.addEventListener('error', restoreOnce, { once: true });
+        this.addEventListener('abort', restoreOnce, { once: true });
+
+        console.log('[efs-xclone] xhr ->', { to: u.href });
+        return _send.call(this, body);
+      } catch(e) {
+        console.warn('[efs-xclone] xhr patch error', e);
+        return _send.apply(this, arguments);
+      }
+    };
+  }
+
+  function install() { patchFetch(); patchXHR(); showBanner('EFS Cross-Clone: ON', '#16a34a'); }
+  install();
+
+  window.__efs_xclone_off__ = function () { enabled = false; showBanner('EFS Cross-Clone: OFF', '#ef4444'); };
+})();`;
+    }
+
+    function genBookmarklets() {
+      const cfg = collectCfg();
+      const cfgJson = JSON.stringify(cfg);
+      const b64 = btoa(cfgJson);
+      const code = buildInjectedScript(cfg).replace('___CONFIG_B64___', b64);
+
+      const hrefOn  = 'javascript:' + encodeURIComponent(code);
+      const hrefOff = 'javascript:' + encodeURIComponent('(function(){ if(window.__efs_xclone_off__) window.__efs_xclone_off__(); })();');
+
+      $('#bmOn').href = hrefOn;
+      $('#bmOff').href = hrefOff;
+      $('#snippetOut').textContent = code;
+      toast('북마클릿/스니펫 생성 완료');
+    }
+
+    function collectCfg() {
+      const cfg = {};
+      for (const id of Object.keys(stateKeys)) {
+        const el = document.querySelector('#'+id);
+        cfg[id] = (el && el.value ? el.value : '').trim();
+      }
+      const sel = document.querySelector('#host');
+      if (sel && sel.tagName === 'SELECT' && sel.value === 'custom') {
+        const hc = document.querySelector('#hostCustom');
+        cfg.host = (hc && hc.value ? hc.value : '').trim();
+      }
+      if (!cfg.host) cfg.host = 'kr-service.eformsign.com';
+      return cfg;
+    }
+
+    function toast(msg) {
+      const t = document.createElement('div');
+      t.textContent = msg;
+      t.style.cssText = 'position:fixed; right:14px; bottom:14px; background: rgba(34,211,238,.15); border:1px solid rgba(34,211,238,.35); color:#e5e7eb; padding:10px 12px; border-radius:10px; backdrop-filter: blur(6px); z-index:999999;';
+      document.body.appendChild(t);
+      setTimeout(()=>t.remove(), 2000);
+    }
+
+    $('#gen').onclick = genBookmarklets;
+    $('#copySnippet').onclick = async () => {
+      const txt = $('#snippetOut').textContent || '';
+      if (!txt || /Generate/.test(txt)) { toast('먼저 Generate를 눌러 스니펫을 생성하세요'); return; }
+      try { await navigator.clipboard.writeText(txt); toast('복사되었습니다'); } catch(e) { toast('복사 실패: 수동으로 선택 후 복사하세요'); }
+    };
+
+    // host select 변경 시 custom 입력창 토글
+    $('#host').onchange = () => {
+      const isCustom = $('#host').value === 'custom';
+      $('#hostCustom').style.display = isCustom ? 'block' : 'none';
+      if (!isCustom) $('#hostCustom').value = '';
+    };
+
+    // 초기 자동 불러오기
+    loadLocal();
+  </script>
+</body>
+</html>
