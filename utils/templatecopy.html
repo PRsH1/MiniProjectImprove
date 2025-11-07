@@ -73,8 +73,8 @@
         <input id="accessToken" type="password" placeholder="Bearer 없이 토큰 본문만" />
       </div>
       <div>
-        <label>복제 받을 회사 refresh_token (선택)</label>
-        <input id="refreshToken" type="password" placeholder="필요 시" />
+        <label>복제 받을 회사 refresh_token</label>
+        <input id="refreshToken" type="password" />
       </div>
     </div>
 
@@ -107,6 +107,8 @@
     <div class="section">
       <h3>사용 요령</h3>
       <ol class="tips">
+        <li>2개의 브라우저를 열어 각각 원본 템플릿을 가지고 있는 회사, 복제받을 회사 로그인. 이 때 원본 회사 템플릿을 가지고 있는 회사는 이 utils 페이지와 같은 브라우저 내에 있어야 합니다.</li>
+        <li>복제 받을 회사의 정보(companyId,formId(복제받을 회사에 있는 아무 템플릿 ID입력)),createId,access_token,refresh_token을 입력합니다.(access_token, refresh_token은 개발자도구 > 네트워크에서 확인 가능)</li>
         <li>이 페이지에서 <b>복제 받을 회사</b> 정보 입력 → <b>Generate</b> 클릭 → <b>EFS Cross-Clone ON</b>을 북마크바로 드래그해 저장</li>
         <li>eformsign에서 <b>원본 템플릿이 있는 회사</b>의 템플릿 <b>복제 화면</b>으로 이동</li>
         <li>복제(저장) 전, <b>EFS Cross-Clone ON</b> 북마클릿 클릭 → 상단 배너 확인(매 복제 시 해당 버튼 클릭 필요)</li>
