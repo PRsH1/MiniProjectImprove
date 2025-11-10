@@ -171,25 +171,24 @@
         let lastRequestBody = null;
         let lastTemplateResponse = null;
 
-        // --- ★★★★★★★★★★★★ 임시 저장 토글 이벤트 리스너 추가 ★★★★★★★★★★★★ ---
+      
         document.getElementById('saveAsDraft').addEventListener('change', function() {
             const recipientsFieldset = document.getElementById('recipientsFieldset');
             recipientsFieldset.disabled = this.checked; // 체크되면 fieldset 비활성화
         });
-        // --- ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+   
         
-        document.getElementById('secretMethod').addEventListener('change', () => { /* 이전과 동일 */ });
-        document.getElementById('btnGetToken').addEventListener('click', async () => { /* 이전과 동일 */ });
-        document.getElementById('loadTemplate').addEventListener('click', async () => { /* 이전과 동일 */ });
-        function setupRemove(item) { /* 이전과 동일 */ }
-        function setupList(cid, tid, btnId) { /* 이전과 동일 */ }
+        
+   
+    
+ 
         setupList('recipients','tpl-recipient','addRecipient');
         setupList('fields','tpl-field','addField');
         setupList('params','tpl-param','addParam');
         setupList('notifications','tpl-notify','addNotify');
-        document.getElementById('showRequestBody').addEventListener('change', function() { /* 이전과 동일 */ });
+   
 
-        // --- ★★★★★★★★★★★★ 문서 전송 로직 수정 ★★★★★★★★★★★★ ---
+
         document.getElementById('docForm').addEventListener('submit', async e => {
             e.preventDefault();
 
