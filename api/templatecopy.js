@@ -9,7 +9,7 @@ export default async function handler(req, res) {
 
   if (authCookie === process.env.AUTH_COOKIE_VALUE) {
     try {
-      const filePath = path.join(process.cwd(), 'utils', 'templatecopy.html');
+      const filePath = path.join(process.cwd(), 'private', 'templatecopy.html');
       const html = await fs.readFile(filePath, 'utf8');
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
       return res.status(200).send(html);
