@@ -63,6 +63,7 @@
           <label for="envSel">로그인 환경 선택</label>
           <select id="envSel">
             <option value="prod">운영: https://www.eformsign.com/login.html</option>
+            <option value="gov">공공: https://www.gov-eformsign.com/login.html</option>
             <option value="test" selected>테스트: https://test.eformsign.com/login.html</option>
             <option value="dev">개발: https://dev.eformsign.com/login.html</option>
             <option value="custom">사용자 지정</option>
@@ -190,7 +191,7 @@
   }
 
   // --- SSO 이벤트 리스너 ---
-  const envToUrl = { prod:'https://www.eformsign.com/login.html', test:'https://test.eformsign.com/login.html', dev:'https://dev.eformsign.com/login.html' };
+  const envToUrl = { prod:'https://www.eformsign.com/login.html', gov: 'https://www.gov-eformsign.com/login.html', test:'https://test.eformsign.com/login.html', dev:'https://dev.eformsign.com/login.html' };
   byId('envSel').addEventListener('change', (e)=>{
     const v = e.target.value;
     if(v==='custom'){ byId('baseUrl').disabled=false; byId('baseUrl').focus(); }
