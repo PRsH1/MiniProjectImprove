@@ -3,276 +3,283 @@
 <head>
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <title>템플릿 관리 (SaaS 전용)</title>
+    <title>eformsign 템플릿 관리 임베딩(Saas)</title>
 
     <script src="https://www.eformsign.com/plugins/jquery/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jsrsasign/8.0.20/jsrsasign-all-min.js"></script>
     <script src="https://www.eformsign.com/lib/js/efs_embedded_form.js"></script>
 
     <style>
-        body {
-            width: 100%; margin: 0; font-family: Arial, sans-serif;
-            background-color: #e9ecef; color: #333;
-            display: flex; justify-content: center;
-            box-sizing: border-box;
-        }
-        .container { display: flex; width: 90%; margin-top: 20px; box-sizing: border-box; }
-        #templateForm {
-            flex: 1; max-width: 50%; margin-right: 20px;
-            background-color: #fff; border: 1px solid #ced4da;
-            border-radius: 8px; padding: 20px;
-            box-shadow: 0 0 12px rgba(0,0,0,0.1);
-            box-sizing: border-box;
-        }
-        h2 { text-align: center; color: #2a6592; font-size: 1.8rem; margin-top: 0; }
-        h3 {
-            color: #333; border-bottom: 1px solid #ddd;
-            padding-bottom: 5px; margin-top: 20px;
-            font-size: 1.2rem;
-        }
-        h4 {
-            color: #495057;
-            margin-top: 15px;
-            margin-bottom: 10px;
-            font-size: 1rem;
-        }
-        label { display: block; margin-bottom: 5px; font-weight: bold; color: #495057; box-sizing: border-box; }
-        input[type="text"], textarea, select {
-            width: 100%; padding: 12px; margin-bottom: 15px;
-            border: 1px solid #ced4da; border-radius: 4px;
-            font-size: 1rem; box-sizing: border-box;
-            transition: border-color 0.3s;
-        }
-        input:focus, select:focus, textarea:focus { border-color: #86b7fe; outline: none; }
-        button {
-            background-color: #2a6592; color: #fff;
-            padding: 10px 20px; border: none; border-radius: 4px;
-            cursor: pointer; font-size: 1rem;
-            transition: background-color 0.3s;
-            box-sizing: border-box;
-        }
-        button:hover { background-color: #21507a; }
-        .form-group-horizontal { display: flex; align-items: center; margin-bottom: 15px; }
-        .form-group-horizontal label { margin: 0 10px 0 0; white-space: nowrap; }
-        .form-group-horizontal select, .form-group-horizontal input { flex: 1; }
+        /* --- 기본 레이아웃 --- */
+        body { width: 100%; margin: 0; font-family: Arial, sans-serif; background-color: #e9ecef; color: #333; display: flex; justify-content: center; box-sizing: border-box; }
+        .container { display: flex; width: 95%; margin-top: 20px; margin-bottom: 20px; box-sizing: border-box; }
         
-        .setting-group { margin-top: 15px; }
-        .notification-group {
-            display: flex;
-            gap: 20px; /* 체크박스 사이 간격 */
-            align-items: center;
-            margin-bottom: 15px;
-            padding-left: 5px;
-        }
-        .notification-group label { font-weight: normal; margin-bottom: 0; }
+        /* --- 좌측 설정 폼 --- */
+        #templateForm { flex: 0 0 450px; margin-right: 20px; background-color: #fff; border: 1px solid #ced4da; border-radius: 8px; padding: 20px; box-shadow: 0 0 12px rgba(0,0,0,0.1); height: fit-content; }
+        h2 { text-align: center; color: #2a6592; margin-top: 0; }
+        h3 { color: #333; border-bottom: 1px solid #ddd; padding-bottom: 5px; margin-top: 20px; font-size: 1.1rem; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; color: #495057; font-size: 0.9rem; }
+        input[type="text"], input[type="file"], select, textarea { width: 100%; padding: 8px; margin-bottom: 10px; border: 1px solid #ced4da; border-radius: 4px; box-sizing: border-box; }
+        button { background-color: #2a6592; color: #fff; padding: 8px; border: none; border-radius: 4px; cursor: pointer; width: 100%; transition: 0.2s; }
+        button:hover { background-color: #21507a; }
+        
+        /* --- 그룹 스타일 --- */
+        .form-group-horizontal { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; }
+        .form-group-horizontal * { margin-bottom: 0; }
+        .radio-group, .notification-group { display: flex; gap: 15px; padding: 5px 0; flex-wrap: wrap; }
+        .radio-group label, .notification-group label { font-weight: normal; display: flex; align-items: center; cursor: pointer; font-size: 0.9rem; }
+        .radio-group input, .notification-group input { width: auto; margin-right: 5px; margin-bottom: 0; }
 
-        .iframe-panel { flex: 1; display: flex; flex-direction: column; box-sizing: border-box; }
-        .switch { position: relative; display: inline-block; width: 50px; height: 24px; vertical-align: middle; }
+        /* --- 토큰 결과 박스 --- */
+        .token-result-box { margin-top: 15px; padding: 15px; background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 5px; }
+        input[readonly] { background-color: #e9ecef; color: #6c757d; cursor: default; }
+
+        /* --- 우측 Iframe 패널 --- */
+        .iframe-panel { flex: 1; display: flex; flex-direction: column; min-height: 800px; }
+        #eformsign_iframe { flex: 1; width: 100%; border: 1px solid #ced4da; border-radius: 8px; background: #fff; }
+
+        /* --- Action 버튼 & 제어 영역 스타일 (이동 가능) --- */
+        #actionControlArea {
+            background: #f8f9fa; border: 1px solid #ced4da; border-radius: 0; 
+            padding: 10px; margin-bottom: 0;
+            /* 이동 시 둥근 모서리 처리를 위해 기본값 초기화 */
+        }
+        /* Iframe 패널에 있을 때 스타일 */
+        #iframeActionContainer #actionControlArea { border-radius: 8px; margin-bottom: 10px; }
+        /* Modal 패널에 있을 때 스타일 (상단바 느낌) */
+        #modalActionContainer #actionControlArea { border-left: none; border-right: none; border-top: none; border-bottom: 1px solid #ddd; background: #f1f1f1; }
+
+        .switch-wrapper { display: flex; align-items: center; justify-content: flex-end; }
+        .switch { position: relative; display: inline-block; width: 40px; height: 20px; margin-right: 8px; }
         .switch input { opacity: 0; width: 0; height: 0; }
-        .slider {
-            position: absolute; cursor: pointer;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background-color: #ccc; transition: 0.4s;
-            border-radius: 24px;
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 20px; }
+        .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 2px; bottom: 2px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: #2a6592; }
+        input:checked + .slider:before { transform: translateX(20px); }
+
+        #buttonList { display: none; flex-wrap: wrap; gap: 5px; justify-content: center; margin-top: 10px; padding-top: 10px; border-top: 1px solid #ddd; }
+        #buttonList button { width: auto; min-width: 80px; background-color: #6c757d; font-size: 0.8rem; display: none; }
+
+        /* --- [핵심] Modal(레이어 팝업) 스타일 --- */
+        #modalWrapper {
+            display: none; /* 기본 숨김 */
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 0.5); /* 반투명 배경 */
+            z-index: 9999;
+            justify-content: center; align-items: center;
         }
-        .slider:before {
-            position: absolute; content: "";
-            height: 18px; width: 18px; left: 3px; bottom: 3px;
-            background-color: #fff; transition: 0.4s;
-            border-radius: 50%;
+        .modal-content {
+            width: 90%; height: 90%;
+            background-color: #fff; border-radius: 8px;
+            display: flex; flex-direction: column;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
         }
-        input:checked + .slider { background-color: #007bff; }
-        input:checked + .slider:before { transform: translateX(26px); }
-        #buttonList {
-            display: none; flex-wrap: wrap; gap: 10px;
-            justify-content: center; margin-bottom: 10px;
-            box-sizing: border-box;
+        .modal-header {
+            padding: 15px; border-bottom: 1px solid #eee;
+            display: flex; justify-content: space-between; align-items: center;
+            background: #fff; border-radius: 8px 8px 0 0;
         }
-        #buttonList button {
-            width: 100px; height: 35px; border-radius: 4px;
-            background-color: #6c757d; color: #fff;
-            border: none; cursor: pointer;
-            font-size: 14px; display: none;
-            transition: background-color 0.3s;
-            box-sizing: border-box;
+        .modal-header h3 { margin: 0; font-size: 1.2rem; color: #333; }
+        .close-btn {
+            background: transparent; color: #999; font-size: 2rem; line-height: 1rem;
+            width: auto; border: none; cursor: pointer; padding: 0;
         }
-        #buttonList button:hover { background-color: #5a6268; }
-        #eformsign_iframe {
-            flex: 1; width: 100%; border: 1px solid #ced4da;
-            border-radius: 8px; box-shadow: 0 0 12px rgba(0,0,0,0.1);
-            box-sizing: border-box;
+        .close-btn:hover { color: #333; background: transparent; }
+        
+        /* [수정] 모달 바디 스타일 */
+        .modal-body { flex: 1; padding: 0; position: relative; overflow: hidden; display: flex; flex-direction: column; }
+        #eformsign_modal_iframe {
+            flex: 1; width: 100%; border: none; border-radius: 0 0 8px 8px;
         }
-        @media (max-width:768px) {
-            .container { flex-direction: column; }
-            #templateForm, .iframe-panel { width:100%; margin:0; }
+        
+        /* [수정] 모달 상단 Action Container */
+        #modalActionContainer {
+            /* 헤더 바로 아래 */
         }
     </style>
 </head>
 
 <body>
+
+    <div id="modalWrapper">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>eformsign Template (Modal Mode)</h3>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            
+            <div id="modalActionContainer"></div>
+
+            <div class="modal-body">
+                <iframe id="eformsign_modal_iframe" name="eformsign_modal_iframe"></iframe>
+            </div>
+        </div>
+    </div>
+
     <div class="container">
         <form id="templateForm">
-            <h2>템플릿 관리 (SaaS 전용)</h2>
+            <h2>eformsign 설정</h2>
 
-            <h3>회사 정보</h3>
-            <label>Company ID (자동 채워짐):</label>
-            <input type="text" id="company_id" readonly />
-            <label>Country Code (기본 kr):</label>
-            <input type="text" id="company_country_code" placeholder="kr" />
-
-            <h3>Access Token 발급</h3>
-            <div class="form-group-horizontal">
-                <label for="tokenMethodSelect">방식:</label>
-                <select id="tokenMethodSelect">
-                    <option value="signature">Signature</option>
-                    <option value="bearer">Bearer</option>
-                </select>
-            </div>
-            <label id="secretKeyLabel">Private Key (Hex):</label>
-            <input type="text" id="privateKeyHex" placeholder="비밀키 입력" required />
-            <label>API Key:</label>
-            <input type="text" id="apiKey" required />
+            <h3>1. 인증 (Token)</h3>
             <label>User ID:</label>
-            <input type="text" id="user_id" required />
-            <button type="button" id="getTokenButton">토큰 발급</button>
-
-            <h3>토큰 정보</h3>
-            <label>Access Token:</label>
-            <input type="text" id="access_token" readonly />
-            <label>Refresh Token:</label>
-            <input type="text" id="refresh_token" readonly />
-
-            <h3>Mode</h3>
-            <label for="mode_type">Mode Type:</label>
-            <select id="mode_type">
-                <option value="01">템플릿 생성 (01)</option>
-                <option value="02">템플릿 수정 (02)</option>
-                <option value="03">템플릿 복제 (03)</option>
-                <option value="04">미리 보기 (04)</option>
-            </select>
+            <input type="text" id="user_id" placeholder="멤버 아이디 입력" required />
+            <label>API Key:</label>
+            <input type="text" id="apiKey" placeholder="API Key 입력" required />
+            
             <div class="form-group-horizontal">
-                <label for="templateTypeSelect">Template Type:</label>
+                <label>Token 방식:</label>
+                <select id="tokenMethodSelect">
+                    <option value="signature">Signature (비밀키)</option>
+                    <option value="bearer">Bearer (직접 입력)</option>
+                </select>
+            </div>
+            <input type="text" id="privateKeyHex" placeholder="Secret Key (Hex) 입력" required />
+            <button type="button" id="getTokenButton">토큰 발급 받기</button>
+            
+            <div class="token-result-box">
+                <label>Access Token (확인용):</label>
+                <input type="text" id="access_token" readonly placeholder="발급 대기 중..." />
+                <label>Refresh Token:</label>
+                <input type="text" id="refresh_token" readonly placeholder="발급 대기 중..." />
+                <input type="hidden" id="company_id" />
+                <input type="hidden" id="company_country_code" value="kr" />
+            </div>
+
+            <h3>2. 표시 방식 (Display Mode)</h3>
+            <div class="radio-group" style="background: #f1f8ff; padding: 15px; border-radius: 4px; border: 1px solid #cfe2ff;">
+                <label><input type="radio" name="display_mode" value="iframe" checked /> 1. Iframe (우측 화면)</label>
+                <label><input type="radio" name="display_mode" value="modal" /> 2. Modal (레이어 팝업)</label>
+            </div>
+
+            <h3>3. 템플릿 모드</h3>
+            <select id="mode_type">
+                <option value="01">01. 템플릿 생성 (New)</option>
+                <option value="02">02. 템플릿 수정 (Edit)</option>
+                <option value="03">03. 템플릿 복제 (Copy)</option>
+                <option value="04">04. 미리 보기 (Preview)</option>
+            </select>
+
+            <div class="form-group-horizontal">
+                <label>Type:</label>
                 <select id="templateTypeSelect">
-                    <option value="form">form</option>
-                    <option value="unstructured_form">unstructured_form</option>
+                    <option value="form">Form (정형)</option>
+                    <option value="unstructured_form">Unstructured (비정형)</option>
                 </select>
             </div>
 
-            <div id="template_id_section">
-                <h3>Template ID</h3>
+            <div id="template_id_section" style="display:none;">
                 <label>Template ID:</label>
-                <input type="text" id="template_id" placeholder="수정할 Template ID 입력" />
+                <input type="text" id="template_id" placeholder="Template ID 입력" />
             </div>
 
-            <h3>Template File (PDF)</h3>
-            <label>File Name:</label>
-            <input type="text" id="template_file_name" required />
-            <label>Upload File:</label>
+            <h3>4. 파일 및 워크플로우</h3>
+            <input type="text" id="template_file_name" placeholder="파일명 (sample.pdf)" />
             <input type="file" onchange="handleFileSelect(event)" />
-            <label>File Data (Base64):</label>
-            <textarea id="template_file_data" rows="4"></textarea>
+            <textarea id="template_file_data" rows="2" placeholder="Base64 데이터" style="display:none"></textarea>
 
-            <h3>Prefill 설정</h3>
-            <button type="button" id="togglePrefill">Prefill 옵션</button>
-            <div id="prefill_section" style="display:none;margin-top:10px">
-                <label>Template Name:</label>
-                <input type="text" id="template_name" />
-                <h3>워크플로우 세팅</h3>
-                <button type="button" onclick="addStepSetting()">Add Step Setting</button>
-                <div id="stepSettingsContainer" style="margin-top:10px"></div>
-            </div>
+            <label style="margin-top:10px">Template Name:</label>
+            <input type="text" id="template_name" placeholder="템플릿 이름" />
+            
+            <button type="button" onclick="addStepSetting()" style="background:#17a2b8; margin-top:5px;">+ 단계(Step) 추가</button>
+            <div id="stepSettingsContainer" style="margin-top:10px"></div>
 
-            <button type="button" onclick="createTemplate()" style="margin-top:20px">Create Template</button>
+            <hr style="margin: 20px 0;" />
+            <button type="button" onclick="createTemplate()" style="background-color: #28a745; font-size: 1.1rem; padding: 12px;">템플릿 실행 (Create)</button>
         </form>
 
         <div class="iframe-panel">
-            <h2 class="iframe-title">문서 영역</h2>
-            <div class="form-group" style="margin-bottom:10px">
-                <label class="switch">
-                    <input type="checkbox" id="toggleActionSwitch" />
-                    <span class="slider"></span>
-                </label>
-                <label id="toggleActionLabel" style="margin-left:8px;vertical-align:middle">Action 버튼 보이기</label>
+            <div id="iframeActionContainer">
+                <div id="actionControlArea">
+                    <div class="switch-wrapper">
+                        <span style="font-size:0.9rem; color:#555; margin-right: 10px; font-weight:bold;">Action 버튼 제어</span>
+                        <label class="switch">
+                            <input type="checkbox" id="toggleActionSwitch" />
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div id="buttonList"></div>
+                </div>
             </div>
-            <div id="buttonList">
-                <button id="btn_01" onclick="actionTest('01')"></button>
-                <button id="btn_02" onclick="actionTest('02')"></button>
-                <button id="btn_03" onclick="actionTest('03')"></button>
-                <button id="btn_04" onclick="actionTest('04')"></button>
-                <button id="btn_05" onclick="actionTest('05')"></button>
-                <button id="btn_06" onclick="actionTest('06')"></button>
-                <button id="btn_07" onclick="actionTest('07')"></button>
-                <button id="btn_08" onclick="actionTest('08')"></button>
-                <button id="btn_09" onclick="actionTest('09')"></button>
-                <button id="btn_10" onclick="actionTest('10')"></button>
-                <button id="btn_11" onclick="actionTest('11')"></button>
-                <button id="btn_12" onclick="actionTest('12')"></button>
-                <button id="btn_13" onclick="actionTest('13')"></button>
-                <button id="btn_14" onclick="actionTest('14')"></button>
-                <button id="btn_15" onclick="actionTest('15')"></button>
-                <button id="btn_16" onclick="actionTest('16')"></button>
-                <button id="btn_17" onclick="actionTest('17')"></button>
-                <button id="btn_18" onclick="actionTest('18')"></button>
-                <button id="btn_19" onclick="actionTest('19')"></button>
-                <button id="btn_20" onclick="actionTest('20')"></button>
-                <button id="btn_21" onclick="actionTest('21')"></button>
-                <button id="btn_22" onclick="actionTest('22')" style="width:150px"></button>
+
+            <div style="padding: 10px; background: #fff; border-bottom: 1px solid #ddd; margin-bottom: 10px; border-radius: 8px; margin-top: 10px;">
+                <strong>문서 영역 (Iframe Mode)</strong>
             </div>
             <iframe id="eformsign_iframe" name="eformsign_iframe"></iframe>
         </div>
     </div>
     
     <script>
-        var eformsign, execution_time = Date.now() + "", apiKey;
+        var eformsign;
+        var execution_time = Date.now() + "";
 
-        function actionTest(code) { eformsign.sendAction({ type: '02', code }); }
-
+        // 초기화 및 이벤트 바인딩
         $(function(){
             eformsign = new EformSignTemplate();
             eformsign.setDomain("https://www.eformsign.com");
+
+            // 1. Action 버튼 22개 동적 생성
+            var btnHtml = '';
+            for(var i=1; i<=22; i++){
+                var code = (i<10?'0':'')+i;
+                btnHtml += '<button id="btn_'+code+'" onclick="actionTest(\''+code+'\')">Btn '+code+'</button> ';
+            }
+            $('#buttonList').html(btnHtml);
+
+            // 2. 이벤트 핸들러들
             $('#mode_type').change(function(){
                 var v = $(this).val();
                 $('#template_id_section')[ (v==='02'||v==='03'||v==='04')? 'show':'hide' ]();
-            }).trigger('change');
-            $('#togglePrefill').click(function(){ $('#prefill_section').toggle(); });
-            $('#tokenMethodSelect').change(function(){
-                if(this.value==='signature'){
-                    $('#secretKeyLabel').text('Private Key (Hex):');
-                    $('#privateKeyHex').attr('placeholder','비밀키 입력');
-                } else {
-                    $('#secretKeyLabel').text('Bearer Token:');
-                    $('#privateKeyHex').attr('placeholder','Bearer 토큰 입력');
-                }
             });
+
+            $('#tokenMethodSelect').change(function(){
+                if(this.value==='signature') $('#privateKeyHex').attr('placeholder','Secret Key (Hex)');
+                else $('#privateKeyHex').attr('placeholder','Bearer Token');
+            });
+
             $('#getTokenButton').click(function(){ getAccessToken(); });
+
+            // Action 스위치 변경 시 표시/숨김
             $('#toggleActionSwitch').change(function(){
-                if(this.checked){
-                    $('#buttonList').css('display','flex');
-                    $('#toggleActionLabel').text('Action 버튼 숨기기');
-                } else {
-                    $('#buttonList').hide();
-                    $('#toggleActionLabel').text('Action 버튼 보이기');
-                }
-            }).prop('checked',false).trigger('change');
+                if(this.checked) $('#buttonList').css('display','flex');
+                else $('#buttonList').hide();
+            });
         });
 
+        // Modal 닫기
+        function closeModal() {
+            $('#modalWrapper').fadeOut(200);
+            // 모달 닫을 때, Action 버튼 영역을 다시 원래 위치로 복귀
+            $('#iframeActionContainer').append($('#actionControlArea'));
+        }
+
+        // Action 실행 함수
+        function actionTest(code) {
+            console.log("Send Action Code: " + code);
+            eformsign.sendAction({ type: '02', code: code });
+        }
+
+        // 토큰 발급
         function getAccessToken(cb){
             var method = $('#tokenMethodSelect').val();
             execution_time = Date.now() + "";
-            apiKey = $('#apiKey').val();
+            var apiKey = $('#apiKey').val();
             var user_id = $('#user_id').val();
             var url = 'https://api.eformsign.com/v2.0/api_auth/access_token';
             var sig;
+
+            if(!apiKey || !user_id){ alert('User ID와 API Key를 입력해주세요.'); return; }
+
             if(method==='signature'){
                 try {
                     var pk = KEYUTIL.getKeyFromPlainPrivatePKCS8Hex($('#privateKeyHex').val());
                     var s = new KJUR.crypto.Signature({ alg: 'SHA256withECDSA' });
                     s.init(pk); s.updateString(execution_time);
                     sig = s.sign();
-                } catch(e) { alert('Private Key (Hex) 형식이 올바르지 않습니다.'); return; }
+                } catch(e) { alert('Key 형식이 올바르지 않습니다.'); return; }
             } else {
                 sig = 'Bearer ' + $('#privateKeyHex').val();
             }
+
             $.ajax({
                 url: url, type: 'POST', contentType: 'application/json',
                 data: JSON.stringify({ execution_time: parseInt(execution_time), member_id: user_id }),
@@ -284,125 +291,127 @@
                     $('#access_token').val(data.oauth_token.access_token);
                     $('#refresh_token').val(data.oauth_token.refresh_token);
                     $('#company_id').val(data.api_key.company.company_id);
+                    if(!cb) alert('토큰 발급 완료!');
                     if(cb) cb(data.oauth_token.access_token, data.oauth_token.refresh_token, data.api_key.company.company_id);
                 },
-                error: function(xhr){
-                    try {
-                        var err = JSON.parse(xhr.responseText);
-                        alert('발급 실패:\n코드:' + err.code + '\n메시지:' + err.ErrorMessage);
-                    } catch {
-                        alert('토큰 발급 중 오류가 발생했습니다.');
-                    }
-                }
+                error: function(xhr){ alert('토큰 발급 실패: ' + xhr.responseText); }
             });
         }
-        
+
+        // 템플릿 생성 (핵심 로직)
         function createTemplate(){
-            getAccessToken(function(at,rt,cid){
+            // 1. 표시 방식 확인
+            const displayMode = $('input[name="display_mode"]:checked').val();
+            
+            // 2. Action 제어 영역 이동 (상단 배치)
+            if(displayMode === 'modal'){
+                // 모달 모드 -> 모달 상단 컨테이너(#modalActionContainer)로 이동
+                $('#modalActionContainer').append($('#actionControlArea'));
+                $('#modalWrapper').css('display', 'flex');
+                targetIframeId = 'eformsign_modal_iframe';
+            } else {
+                // Iframe 모드 -> 우측 패널 상단으로 이동
+                $('#iframeActionContainer').append($('#actionControlArea'));
+                targetIframeId = 'eformsign_iframe';
+            }
+
+            getAccessToken(function(at, rt, cid){
                 const modeType = $('#mode_type').val();
                 const templateType = $('#templateTypeSelect').val();
-                const steps=[];
+                const steps = [];
+                
+                // Step Data 수집
                 $('#stepSettingsContainer .step-setting').each(function(){
                     const st=$(this);
-                    const step_type_val = st.find('input[type=radio]:checked').val();
-                    const step_name_val = st.find('input[name="step_name[]"]').val();
-                    const use_mail_val = st.find('input[name="use_mail[]"]').is(':checked');
-                    const use_sms_val = st.find('input[name="use_sms[]"]').is(':checked');
-                    const use_alimtalk_val = st.find('input[name="use_alimtalk[]"]').is(':checked');
                     const rec=[];
                     if(st.find('input[name="specify_recipients[]"]').is(':checked')){
-                        st.find('.recipient-fields .recipient-entry').each(function(){
-                            const entry = $(this);
-                            const recipientId = entry.find('input[name="recipient_id[]"]').val();
-                            const recipientName = entry.find('input[name="recipient_name[]"]').val();
-                            const recipientSms = entry.find('input[name="recipient_sms[]"]').val();
-                            if (recipientId) {
-                                const recipientData = { id: recipientId, name: recipientName };
-                                if (recipientSms) {
-                                    recipientData.sms = recipientSms;
-                                }
-                                rec.push(recipientData);
+                        st.find('.recipient-entry').each(function(){
+                            const rId = $(this).find('input[name="recipient_id[]"]').val();
+                            const rNm = $(this).find('input[name="recipient_name[]"]').val();
+                            const rSms = $(this).find('input[name="recipient_sms[]"]').val();
+                            if(rId) {
+                                let ro = { id: rId, name: rNm };
+                                if(rSms) ro.sms = rSms;
+                                rec.push(ro);
                             }
                         });
                     }
-                    let stepObject = {};
-                    if (templateType === 'unstructured_form') {
-                        stepObject = {
-                            step_type: step_type_val,
-                            step_name: step_name_val
-                        };
-                        if (rec.length > 0) {
-                            const firstRecipient = rec[0];
-                            stepObject.recipient = {
-                                id: firstRecipient.id,
-                                name: firstRecipient.name,
-                                sms: firstRecipient.sms, // sms 추가
-                                use_mail: use_mail_val,
-                                use_sms: use_sms_val,
-                                use_alimtalk: use_alimtalk_val
+                    let stepObj = {
+                        step_type: st.find('input[type=radio]:checked').val(),
+                        step_name: st.find('input[name="step_name[]"]').val()
+                    };
+                    if(templateType === 'unstructured_form'){
+                        if(rec.length > 0){
+                            stepObj.recipient = {
+                                id: rec[0].id, name: rec[0].name, sms: rec[0].sms,
+                                use_mail: st.find('input[name="use_mail[]"]').is(':checked'),
+                                use_sms: st.find('input[name="use_sms[]"]').is(':checked'),
+                                use_alimtalk: st.find('input[name="use_alimtalk[]"]').is(':checked')
                             };
                         }
                     } else {
-                        stepObject = {
-                            step_type: step_type_val,
-                            step_name: step_name_val,
-                            use_mail: use_mail_val,
-                            use_sms: use_sms_val,
-                            use_alimtalk: use_alimtalk_val,
-                            recipients: rec
-                        };
+                        stepObj.use_mail = st.find('input[name="use_mail[]"]').is(':checked');
+                        stepObj.use_sms = st.find('input[name="use_sms[]"]').is(':checked');
+                        stepObj.use_alimtalk = st.find('input[name="use_alimtalk[]"]').is(':checked');
+                        stepObj.recipients = rec;
                     }
-                    steps.push(stepObject);
+                    steps.push(stepObj);
                 });
-                const opts={
-                    company:{id:cid, country_code:$('#company_country_code').val()||'kr'},
-                    user:{id:$('#user_id').val(), access_token:at, refresh_token:rt},
-                    mode:{ type: modeType, template_type: templateType, template_id:$('#template_id').val()||'' },
-                    layout:{lang_code:'ko',header:true,footer:true},
-                    prefill:{template_name:$('#template_name').val(),step_settings:steps},
-                    template_file:{ mime:'@file/octet-stream', name:$('#template_file_name').val(), data:$('#template_file_data').val() }
-                };
-                console.log("eformsign.template 요청 객체 (opts):", JSON.stringify(opts, null, 2));
 
-             
-                eformsign.template(opts,'eformsign_iframe',
-                   res => {
-    if (res.template_id) {
-        // '문서 작성 시작하기' 클릭 시: 템플릿이 생성되었을 때
-        alert('템플릿 생성 성공: ' + res.template_id);
-        console.log("✅ 템플릿 생성 성공 (Success Callback 응답):");
-        console.log(JSON.stringify(res, null, 4)); 
-    } else if (res.document_id) {
-        // 최종 '전송' 버튼 클릭 시: 문서가 생성되었을 때
-        alert('문서 전송 성공: ' + res.document_id);
-        console.log("✅ 문서 생성/전송 성공 (Success Callback 응답):");
-        console.log(JSON.stringify(res, null, 4)); 
-    } else {
-        // 기타 예상치 못한 성공 응답 처리
-        alert('작업이 성공적으로 완료되었습니다.');
-        console.log('처리되지 않은 성공 응답:', res);
-    }
-},
-                    err=>alert('템플릿 생성 실패: '+err.message),
-                    actions=>{
+                const opts = {
+                    company: { id: cid, country_code: $('#company_country_code').val() },
+                    user: { id: $('#user_id').val(), access_token: at, refresh_token: rt },
+                    mode: { type: modeType, template_type: templateType, template_id: $('#template_id').val()||'' },
+                    layout: { lang_code: 'ko', header: true, footer: true },
+                    prefill: { template_name: $('#template_name').val(), step_settings: steps },
+                    template_file: { 
+                        mime: 'application/octet-stream', 
+                        name: $('#template_file_name').val(), 
+                        data: $('#template_file_data').val() 
+                    }
+                };
+                
+                // [수정] 서버로 전송되는 Options 객체 로그 출력
+                console.log("🚀 [eformsign.template Request Options]", JSON.stringify(opts, null, 4));
+
+                // 3. eformsign.template 호출
+                eformsign.template(opts, targetIframeId, 
+                    res => {
+                        if(res.template_id) alert("성공 (Template ID): " + res.template_id);
+                        else if(res.document_id) alert("성공 (Document ID): " + res.document_id);
+                    },
+                    err => {
+                        alert("오류: " + err.message);
+                        if(displayMode === 'modal') closeModal();
+                    },
+                    actions => {
+                        // Action 버튼 업데이트 로직
+                        console.log("Actions Received:", actions);
                         $('#buttonList button').hide();
-                        const arr=Array.isArray(actions.data)?actions.data:[actions.data];
-                        console.log("📢 현재 사용 가능한 Action 버튼들:", arr);
-                        arr.forEach(a=>{
-                            const btn=$('#btn_'+a.code);
-                            if(btn.length) btn.text(a.name).attr('title',a.name).show();
+                        const arr = Array.isArray(actions.data) ? actions.data : [actions.data];
+                        arr.forEach(a => {
+                            $('#btn_'+a.code).text(a.name).attr('title',a.name).show();
                         });
+                        
+                        // 스위치 상태에 따라 표시 여부 결정
+                        if($('#toggleActionSwitch').is(':checked')) {
+                            $('#buttonList').css('display','flex');
+                        } else {
+                            $('#buttonList').hide();
+                        }
                     }
                 );
+
+                // 4. 문서 열기
                 eformsign.open();
             });
         }
 
         function handleFileSelect(e){
-            const f=e.target.files[0];
+            const f = e.target.files[0];
             if(!f) return;
-            const r=new FileReader();
-            r.onload=ev=>{
+            const r = new FileReader();
+            r.onload = ev => {
                 $('#template_file_data').val(ev.target.result.split(',')[1]);
                 $('#template_file_name').val(f.name);
             };
@@ -410,64 +419,43 @@
         }
 
         function addStepSetting(){
-            const block=`
-                <div class="step-setting" style="border:1px solid #ddd; padding:15px; margin-bottom:10px; border-radius:5px; background-color: #fdfdfd;">
-                    <label>Step Name:</label>
-                    <input type="text" name="step_name[]" required />
-                    <div class="setting-group">
-                        <label>Step Type:</label>
-                        <div style="padding-left: 5px;">
-                            <label style="font-weight: normal; display: inline-block; margin-right: 15px;"><input type="radio" name="step_type_${Date.now()}" value="05" required /> 참여자</label>
-                            <label style="font-weight: normal; display: inline-block;"><input type="radio" name="step_type_${Date.now()}" value="06" required /> 검토자</label>
-                        </div>
+            const id = Date.now();
+            const html = `
+                <div class="step-setting" style="border:1px solid #ddd; padding:10px; margin-bottom:5px; background:#f9f9f9; border-radius:4px;">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+                        <label>Step Name:</label>
+                        <button type="button" onclick="$(this).closest('.step-setting').remove()" style="width:auto; padding:2px 8px; background:#dc3545;">삭제</button>
                     </div>
-                    <div class="setting-group">
-                        <h4>수신자 알림 설정</h4>
-                        <div class="notification-group">
-                            <label><input type="checkbox" name="use_mail[]" /> 이메일(Mail)</label>
-                            <label><input type="checkbox" name="use_sms[]" /> 문자(SMS)</label>
-                            <label><input type="checkbox" name="use_alimtalk[]" /> 알림톡(Alimtalk)</label>
-                        </div>
+                    <input type="text" name="step_name[]" value="Step ${id}" />
+                    <div class="radio-group">
+                        <label><input type="radio" name="step_type_${id}" value="05" checked>참여자</label>
+                        <label><input type="radio" name="step_type_${id}" value="06">검토자</label>
                     </div>
-                    <div class="setting-group">
-                        <label>수신자 지정(멤버, 외부자[단 정형일 경우 멤버만 가능]):</label>
-                        <div style="padding-left: 5px;">
-                           <input type="checkbox" name="specify_recipients[]" onclick="toggleRecipients(this)" />
-                        </div>
+                    <div class="notification-group">
+                        <label><input type="checkbox" name="use_mail[]">Mail</label>
+                        <label><input type="checkbox" name="use_sms[]">SMS</label>
+                        <label><input type="checkbox" name="use_alimtalk[]">알림톡</label>
                     </div>
-                    <div class="recipients-container" style="display:none; border:1px solid #e0e0e0; padding:15px; margin-top:10px; border-radius:5px; background:#f9f9f9">
-                        <h4>수신자 정보</h4>
-                        <button type="button" onclick="addRecipientField(this)" style="margin-bottom:10px">Add Recipient</button>
-                        <div class="recipient-fields"></div>
-                    </div>
-                    <div style="text-align: right; margin-top: 15px; border-top: 1px solid #eee; padding-top: 15px;">
-                        <button type="button" onclick="removeStepSetting(this)" style="background-color: #6c757d;">Remove Step</button>
+                    <label><input type="checkbox" name="specify_recipients[]" onclick="$(this).parent().next().toggle()"> 수신자 지정</label>
+                    <div class="recipient-fields" style="display:none; margin-top:5px; padding-left:10px; border-left:2px solid #ccc;">
+                        <button type="button" onclick="addRecipient(this)" style="width:auto; font-size:0.8rem; background:#6c757d; margin-bottom:5px;">+ 추가</button>
                     </div>
                 </div>
             `;
-            $('#stepSettingsContainer').append(block);
+            $('#stepSettingsContainer').append(html);
         }
 
-        function toggleRecipients(cb){ $(cb).closest('.step-setting').find('.recipients-container').toggle(cb.checked); }
-
-    
-        function addRecipientField(btn){
-            $(btn).siblings('.recipient-fields').append(`
-                <div class="recipient-entry" style="margin-top:10px; border-top: 1px dashed #ccc; padding-top: 10px;">
-                    <label>Recipient ID (Email):</label>
-                    <input type="text" name="recipient_id[]" placeholder="example@domain.com" />
-                    <label>Recipient Name:</label>
-                    <input type="text" name="recipient_name[]" placeholder="홍길동" />
-                    <label>Recipient SMS (휴대전화 번호):</label>
-                    <input type="text" name="recipient_sms[]" placeholder="'-' 없이 숫자만 입력" />
-                    <button type="button" onclick="removeRecipientField(this)" style="margin-top:5px; background-color: #dc3545;">Remove</button>
+        function addRecipient(btn){
+            const html = `
+                <div class="recipient-entry" style="border-bottom:1px dashed #ddd; padding-bottom:5px; margin-bottom:5px;">
+                    <input type="text" name="recipient_id[]" placeholder="Email" style="margin-bottom:2px;" />
+                    <input type="text" name="recipient_name[]" placeholder="이름" style="margin-bottom:2px;" />
+                    <input type="text" name="recipient_sms[]" placeholder="전화번호" style="margin-bottom:2px;" />
+                    <button type="button" onclick="$(this).parent().remove()" style="width:auto; background:#dc3545; font-size:0.7rem;">삭제</button>
                 </div>
-            `);
+            `;
+            $(btn).parent().append(html);
         }
-
-
-        function removeRecipientField(b){$(b).closest('.recipient-entry').remove();}
-        function removeStepSetting(b){$(b).closest('.step-setting').remove();}
     </script>
 </body>
 </html>
