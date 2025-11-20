@@ -389,6 +389,7 @@
                     },
                     err => {
                         alert("오류: " + err.message);
+                        console.log("❌ Error Callback:", JSON.stringify(err, null, 4));
                         if(displayMode === 'modal') closeModal();
                     },
                     actions => {

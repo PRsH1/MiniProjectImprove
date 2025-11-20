@@ -377,11 +377,13 @@
                 // 3. eformsign.template 호출
                 eformsign.template(opts, targetIframeId, 
                     res => {
+                        console.log("✅ Success Callback:", JSON.stringify(res, null, 4));
                         if(res.template_id) alert("성공 (Template ID): " + res.template_id);
                         else if(res.document_id) alert("성공 (Document ID): " + res.document_id);
                     },
                     err => {
                         alert("오류: " + err.message);
+                        console.log("❌ Error Callback:", JSON.stringify(err, null, 4));
                         if(displayMode === 'modal') closeModal();
                     },
                     actions => {
