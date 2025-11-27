@@ -100,13 +100,18 @@
       document.getElementById('errorMessage').textContent = '암호가 올바르지 않습니다.';
     }
 
-    // next 경로에 따라 타이틀 살짝 맞춤
+  // 페이지 제목 동적 설정
+
     const prettyName = (path) => {
-      if (path.startsWith('/templatecopy')) return '템플릿 복제 페이지 접근';
-      if (path.startsWith('/ApiAutoTest')) return 'API 자동 테스트 페이지 접근';
-      if (path.startsWith('/private/Member.html') || path.startsWith('/member')) return '멤버 페이지 접근';
-      return '보호 페이지 접근';
-    };
+  if (path.startsWith('/templatecopy')) return '템플릿 복제 페이지 접근';
+  if (path.startsWith('/ApiAutoTest') || path.startsWith('/api/ApiAutoTest')) return 'API 자동 테스트 페이지 접근';
+  if (
+    path.startsWith('/private/Member.html') ||
+    path.startsWith('/member') ||
+    path.startsWith('/api/memberPage')
+  ) return '멤버 페이지 접근';
+  return '보호 페이지 접근';
+};
     document.getElementById('title').textContent = prettyName(next);
 
     // 비밀번호 보기 토글

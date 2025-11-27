@@ -1,11 +1,11 @@
-// /api/templatecopy.js
 import { promises as fs } from 'fs';
 import path from 'path';
 import { parse } from 'cookie';
 
 export default async function handler(req, res) {
   const cookies = parse(req.headers.cookie || '');
-  const authCookie = cookies['vercel-auth-cookie'];
+  // 템플릿 복제 페이지용 쿠키 이름 사용
+  const authCookie = cookies['vercel-auth-templatecopy'];
 
   if (authCookie === process.env.AUTH_COOKIE_VALUE) {
     try {
@@ -19,7 +19,6 @@ export default async function handler(req, res) {
     }
   }
 
-  // 인증 실패 시: 기존 로그인 페이지로, next 전달
   const next = encodeURIComponent('/templatecopy');
   res.redirect(302, `/auth/login.html?next=${next}`);
 }
