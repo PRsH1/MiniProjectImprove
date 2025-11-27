@@ -103,6 +103,7 @@
     // next 경로에 따라 타이틀 살짝 맞춤
     const prettyName = (path) => {
       if (path.startsWith('/templatecopy')) return '템플릿 복제 페이지 접근';
+      if (path.startsWith('/ApiAutoTest')) return 'API 자동 테스트 페이지 접근';
       if (path.startsWith('/private/Member.html') || path.startsWith('/member')) return '멤버 페이지 접근';
       return '보호 페이지 접근';
     };

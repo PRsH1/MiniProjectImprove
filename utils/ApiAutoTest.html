@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>Integrated API Test Dashboard V10 (Final)</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { padding: 20px; background-color: #f8f9fa; }
+        .container { max-width: 1200px; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .status-pass { color: green; font-weight: bold; }
+        .status-fail { color: red; font-weight: bold; }
+        .log-box { font-size: 0.85em; max-height: 200px; overflow-y: auto; background: #eee; padding: 10px; display: none; margin-top: 5px; border-radius: 5px; white-space: pre-wrap; }
+        .special-config { background-color: #e3f2fd; border: 1px solid #90caf9; padding: 20px; border-radius: 5px; margin-bottom: 20px; }
+        .field-row { background: #fff; padding: 8px; border-radius: 4px; border: 1px solid #dee2e6; margin-bottom: 5px; }
+        .separator { border-top: 1px dashed #90caf9; margin: 20px 0; }
+        .section-title { font-weight: bold; color: #495057; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2 class="mb-4">🚀 API 시나리오 테스트 (v1)</h2>
+
+    <div class="card mb-3">
+        <div class="card-header bg-dark text-white">1. 공통 설정 (기본 인증)</div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Base URL</label>
+                    <input type="text" id="baseUrl" class="form-control" value="https://api.eformsign.com" placeholder="https://...">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Access Token (Bearer)</label>
+                    <input type="text" id="accessToken" class="form-control" placeholder="일반 API용 토큰">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="special-config">
+        <h5 class="fw-bold text-primary mb-3">⚡ 시나리오별 필수 데이터 설정</h5>
+        
+        <div class="p-3 bg-white rounded mb-3 border">
+            <div class="section-title text-success">공통 입력 데이터 (OPA 005 & 007 공용)</div>
+            <div class="row g-2 mb-2">
+                <div class="col-md-4">
+                    <input type="text" id="targetEmail" class="form-control form-control-sm" placeholder="수신자 Email (비우면 [])">
+                </div>
+                <div class="col-md-4">
+                    <input type="text" id="targetName" class="form-control form-control-sm" placeholder="수신자 이름">
+                </div>
+                <div class="col-md-4">
+                    <input type="text" id="targetPhone" class="form-control form-control-sm" placeholder="수신자 연락처">
+                </div>
+            </div>
+            <div class="d-flex justify-content-between align-items-center mb-1">
+                <span class="small text-muted">입력 필드 (Fields)</span>
+                <button class="btn btn-sm btn-outline-success py-0" onclick="addFieldRow()">+ 필드 추가</button>
+            </div>
+            <div id="fieldsContainer"></div>
+        </div>
+
+        <div class="section-title">A. 새 문서 작성 (OPA 005 - 내부자)</div>
+        <div class="row g-3 mb-2">
+            <div class="col-md-4">
+                <label class="form-label small fw-bold">Template ID</label>
+                <input type="text" id="targetTemplateId" class="form-control form-control-sm" placeholder="내부용 템플릿 ID">
+            </div>
+        </div>
+
+        <div class="separator"></div>
+
+        <div class="section-title text-primary">B. 새 문서 작성 (OPA 007 - 외부자)</div>
+        <div class="row g-3 mb-2">
+            <div class="col-md-4">
+                <label class="form-label small fw-bold">Company ID</label>
+                <input type="text" id="companyId" class="form-control form-control-sm" placeholder="회사 ID">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label small fw-bold">External Template ID</label>
+                <input type="text" id="extTemplateId" class="form-control form-control-sm" placeholder="외부용 템플릿 ID">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label small fw-bold text-danger">Company API Key</label>
+                <input type="text" id="companyApiKey" class="form-control form-control-sm border-danger" placeholder="API Key (Base64 자동 변환됨)">
+            </div>
+        </div>
+
+        <div class="separator"></div>
+
+        <div class="section-title">C. 다운로드 테스트용 ID</div>
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label class="form-label small">완료된 문서 ID (OPA 004용)</label>
+                <input type="text" id="downloadDocId" class="form-control form-control-sm" placeholder="완료 문서 ID">
+            </div>
+            <div class="col-md-6">
+                <label class="form-label small">첨부파일 포함 문서 ID (OPA 006용)</label>
+                <input type="text" id="attachDocId" class="form-control form-control-sm" placeholder="첨부파일 문서 ID">
+            </div>
+        </div>
+
+        <div class="separator"></div>
+
+        <div class="section-title text-warning">D. 멤버 관리 (Member APIs)</div>
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label class="form-label small fw-bold text-warning">테스트할 멤버 ID (Email)</label>
+                <input type="text" id="memberId" class="form-control form-control-sm border-warning" value="test123456@test1234.com" placeholder="예: test@test.com">
+                <div class="form-text small">이 ID로 생성, 수정, 삭제 테스트가 진행됩니다.</div>
+            </div>
+        </div>
+    </div>
+
+    <button class="btn btn-primary w-100 mb-4 py-2 fw-bold" onclick="runAllTests()">전체 테스트 시나리오 시작 ▶</button>
+
+    <h5 id="progressText">대기 중...</h5>
+    <div class="progress mb-3">
+        <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"></div>
+    </div>
+
+    <table class="table table-hover table-bordered align-middle">
+        <thead class="table-light text-center">
+            <tr>
+                <th width="5%">No.</th>
+                <th width="40%">API 이름 / Endpoint</th>
+                <th width="10%">Method</th>
+                <th width="10%">상태</th>
+                <th width="10%">시간</th>
+                <th>상세 정보</th>
+            </tr>
+        </thead>
+        <tbody id="resultTableBody"></tbody>
+    </table>
+</div>
+
+<script>
+    // [UI Helper] 필드 추가
+    function addFieldRow() {
+        const container = document.getElementById('fieldsContainer');
+        const div = document.createElement('div');
+        div.className = 'field-row row g-2 align-items-center';
+        div.innerHTML = `
+            <div class="col-5"><input type="text" class="form-control form-control-sm field-id" placeholder="ID"></div>
+            <div class="col-6"><input type="text" class="form-control form-control-sm field-value" placeholder="Value"></div>
+            <div class="col-1 text-center"><button class="btn btn-sm btn-close" onclick="this.closest('.field-row').remove()"></button></div>
+        `;
+        container.appendChild(div);
+    }
+
+    function getFieldsArray() {
+        const rows = document.querySelectorAll('.field-row');
+        const fields = [];
+        rows.forEach(row => {
+            const id = row.querySelector('.field-id').value;
+            const value = row.querySelector('.field-value').value;
+            if(id) fields.push({ "id": id, "value": value });
+        });
+        return fields;
+    }
+
+    // [Logic] 데이터 수집
+    const getDynamicData = () => {
+        return {
+            email: document.getElementById('targetEmail').value,
+            name: document.getElementById('targetName').value,
+            phone: document.getElementById('targetPhone').value,
+            templateId: document.getElementById('targetTemplateId').value,
+            companyId: document.getElementById('companyId').value,
+            extTemplateId: document.getElementById('extTemplateId').value,
+            companyApiKey: document.getElementById('companyApiKey').value,
+            downloadDocId: document.getElementById('downloadDocId').value,
+            attachDocId: document.getElementById('attachDocId').value,
+            memberId: document.getElementById('memberId').value
+        };
+    };
+
+    // [Logic] Body Generators
+    const generateDocumentBody = () => {
+        const data = getDynamicData();
+        const fieldsArr = getFieldsArray();
+        let recipientsList = [];
+        const hasRecipientInfo = (data.email.trim() !== "") || (data.name.trim() !== "") || (data.phone.trim() !== "");
+        if (hasRecipientInfo) {
+            recipientsList.push({
+                "step_type": "05", "use_mail": true, "use_sms": true,
+                "member": {
+                    "id": data.email, "name": data.name,
+                    "sms": { "country_code": "82", "phone_number": data.phone }
+                },
+                "auth": { "password": "", "valid": { "day": 0, "hour": 0 } }
+            });
+        }
+        return { "document": { "fields": fieldsArr, "recipients": recipientsList, "parameters": [], "notification": [] } };
+    };
+
+    const generateListBody = () => {
+        return { "type": "04", "title_and_content": "", "title": "", "content": "", "limit": "100", "skip": "0" };
+    };
+
+    // [Store]
+    let sharedData = {
+        lastCreatedId: null,
+        createdIdList: []
+    };
+
+    // [TEST LIST] - '내 정보 조회' 제거됨
+    const testList = [
+        // 1. OPA 005 (Internal)
+        {
+            name: "새 문서 작성 (OPA 005 - 내부)",
+            method: "POST",
+            path: () => {
+                const data = getDynamicData();
+                if(!data.templateId) throw new Error("내부용 Template ID 누락");
+                return `/v2.0/api/documents?template_id=${data.templateId}`;
+            },
+            body: generateDocumentBody,
+            expectedStatus: 200,
+            afterRequest: (json) => {
+                if(json && json.document && json.document.id) {
+                    sharedData.lastCreatedId = json.document.id;
+                    sharedData.createdIdList.push(json.document.id);
+                }
+            }
+        },
+        // 2. OPA 003
+        {
+            name: "문서 정보 조회 - 기본 (OPA 003)",
+            method: "GET",
+            path: () => {
+                if(!sharedData.lastCreatedId) throw new Error("작성된 문서 없음");
+                return `/v2.0/api/documents/${sharedData.lastCreatedId}`;
+            },
+            body: null,
+            expectedStatus: 200
+        },
+        // 3. OPA 003 Detailed
+        {
+            name: "문서 정보 조회 - 상세 (OPA 003)",
+            method: "GET",
+            path: () => {
+                if(!sharedData.lastCreatedId) throw new Error("작성된 문서 없음");
+                return `/v2.0/api/documents/${sharedData.lastCreatedId}?include_fields=true&include_histories=true&include_previous_status=true&include_next_status=true&include_external_token=true&include_detail_template_info=true`;
+            },
+            body: null,
+            expectedStatus: 200
+        },
+        // 4. OPA 004
+        {
+            name: "문서 파일 다운로드 (OPA 004)",
+            method: "GET",
+            path: () => {
+                const data = getDynamicData();
+                if(!data.downloadDocId) throw new Error("다운로드용 ID 누락");
+                return `/v2.0/api/documents/${data.downloadDocId}/download_files?file_type=document,audit_trail`;
+            },
+            body: null,
+            expectedStatus: 200
+        },
+        // 5. OPA 006
+        {
+            name: "문서 첨부 파일 다운로드 (OPA 006)",
+            method: "GET",
+            path: () => {
+                const data = getDynamicData();
+                if(!data.attachDocId) throw new Error("첨부파일용 ID 누락");
+                return `/v2.0/api/documents/${data.attachDocId}/download_attach_files`;
+            },
+            body: null,
+            expectedStatus: 200
+        },
+        // 6. OPA 007
+        {
+            name: "새 문서 작성 (OPA 007 - 외부)",
+            method: "POST",
+            path: () => {
+                const data = getDynamicData();
+                if(!data.companyId || !data.extTemplateId) throw new Error("외부용 필수값 누락");
+                return `/v2.0/api/documents/external?company_id=${data.companyId}&template_id=${data.extTemplateId}`;
+            },
+            headers: () => {
+                const data = getDynamicData();
+                if(!data.companyApiKey) throw new Error("API Key 누락");
+                return { "Authorization": `Bearer ${btoa(data.companyApiKey)}` };
+            },
+            body: generateDocumentBody,
+            expectedStatus: 200,
+            afterRequest: (json) => {
+                if(json && json.document && json.document.id) {
+                    sharedData.lastCreatedId = json.document.id;
+                    sharedData.createdIdList.push(json.document.id);
+                }
+            }
+        },
+        // 7. OPA 008 Basic
+        {
+            name: "문서 목록 조회 - 기본 (OPA 008)",
+            method: "POST",
+            path: "/v2.0/api/list_document",
+            body: generateListBody,
+            expectedStatus: 200
+        },
+        // 8. OPA 008 Detailed
+        {
+            name: "문서 목록 조회 - 상세 (OPA 008)",
+            method: "POST",
+            path: "/v2.0/api/list_document?include_fields=true&include_histories=true&include_previous_status=true&include_next_status=true&include_external_token=true&include_detail_template_info=true",
+            body: generateListBody,
+            expectedStatus: 200
+        },
+        // 9. OPA 42 Cancel
+        {
+            name: "문서 취소 (OPA 42)",
+            method: "POST",
+            path: "/v2.0/api/documents/cancel",
+            body: () => {
+                if (sharedData.createdIdList.length === 0) throw new Error("취소할 문서 ID 없음");
+                return { "input": { "document_ids": sharedData.createdIdList } };
+            },
+            expectedStatus: 200
+        },
+        // 10. OPA 009 Delete
+        {
+            name: "문서 삭제 (OPA 009)",
+            method: "DELETE",
+            path: "/v2.0/api/documents",
+            body: () => {
+                if (sharedData.createdIdList.length === 0) throw new Error("삭제할 문서 ID 없음");
+                return { "document_ids": sharedData.createdIdList };
+            },
+            expectedStatus: 200
+        },
+
+        // --- Member APIs ---
+
+        // 11. Member Create
+        {
+            name: "멤버 추가 (POST)",
+            method: "POST",
+            path: "/v2.0/api/members?mailOption=false",
+            body: () => {
+                const data = getDynamicData();
+                if(!data.memberId) throw new Error("멤버 ID를 입력해주세요.");
+                return {
+                    "account": {
+                        "id": data.memberId,
+                        "password": "forcs0421!@",
+                        "first_name": "테스터",
+                        "department": "",
+                        "position": "",
+                        "external_sso_info": {
+                            "uuid": "12345678219",
+                            "account_id": "test1@forcs.com"
+                        }
+                    }
+                };
+            },
+            expectedStatus: 200
+        },
+
+        // 12. Member List
+        {
+            name: "멤버 목록 조회 (GET)",
+            method: "GET",
+            path: "/v2.0/api/members",
+            body: null,
+            expectedStatus: 200
+        },
+
+        // 13. Member Update
+        {
+            name: "멤버 수정 (PATCH)",
+            method: "PATCH",
+            path: () => {
+                const data = getDynamicData();
+                if(!data.memberId) throw new Error("멤버 ID가 없습니다.");
+                return `/v2.0/api/members/${data.memberId}`;
+            },
+            body: () => {
+                const data = getDynamicData();
+                return {
+                    "account": {
+                        "id": data.memberId,
+                        "name": "테스터수정",
+                        "enabled": true,
+                        "contact": {
+                            "number": "010-1111-1111",
+                            "tel": "010-1234-5678"
+                        },
+                        "department": "연구소",
+                        "position": "전임연구원",
+                        "role": ["template_manager"]
+                    }
+                };
+            },
+            expectedStatus: 200
+        },
+
+        // 14. Member Delete
+        {
+            name: "멤버 삭제 (DELETE)",
+            method: "DELETE",
+            path: () => {
+                const data = getDynamicData();
+                if(!data.memberId) throw new Error("멤버 ID가 없습니다.");
+                return `/v2.0/api/members/${data.memberId}`;
+            },
+            body: null,
+            expectedStatus: 200
+        }
+    ];
+
+    async function runAllTests() {
+        const baseUrl = document.getElementById('baseUrl').value.replace(/\/$/, "");
+        const commonToken = document.getElementById('accessToken').value;
+        const tbody = document.getElementById('resultTableBody');
+        const progressBar = document.getElementById('progressBar');
+        const progressText = document.getElementById('progressText');
+
+        tbody.innerHTML = "";
+        sharedData.lastCreatedId = null;
+        sharedData.createdIdList = []; 
+        let successCount = 0;
+        let failCount = 0;
+
+        for (let i = 0; i < testList.length; i++) {
+            const test = testList[i];
+            let url = "";
+            let bodyData = null;
+            let errorMessage = "";
+            let responseJson = null;
+
+            const percent = Math.round(((i + 1) / testList.length) * 100);
+            progressBar.style.width = `${percent}%`;
+            progressText.innerText = `Testing... ${test.name}`;
+
+            try {
+                const pathStr = typeof test.path === 'function' ? test.path() : test.path;
+                url = `${baseUrl}${pathStr}`;
+                if (test.body) bodyData = typeof test.body === 'function' ? test.body() : test.body;
+            } catch (err) { errorMessage = err.message; }
+
+            let requestHeaders = {
+                "Content-Type": "application/json",
+                ...(commonToken ? { "Authorization": `Bearer ${commonToken}` } : {})
+            };
+
+            if (test.headers) {
+                try {
+                    const customHeaders = typeof test.headers === 'function' ? test.headers() : test.headers;
+                    requestHeaders = { ...requestHeaders, ...customHeaders };
+                } catch (e) { errorMessage = e.message; }
+            }
+
+            const options = { method: test.method, headers: requestHeaders };
+            if (bodyData) options.body = JSON.stringify(bodyData);
+
+            const startTime = performance.now();
+            let resultStatus = "ERROR";
+            let resultClass = "status-fail";
+            let rowColor = "table-danger";
+            let responseText = errorMessage;
+            let duration = "-";
+
+            if (!errorMessage) {
+                try {
+                    const response = await fetch(url, options);
+                    const endTime = performance.now();
+                    duration = (endTime - startTime).toFixed(0) + "ms";
+
+                    const contentType = response.headers.get("content-type");
+                    if (contentType && (contentType.includes("pdf") || contentType.includes("zip") || contentType.includes("octet-stream") || contentType.includes("image"))) {
+                        const blob = await response.blob();
+                        responseText = `[Binary File] Type: ${contentType}, Size: ${blob.size} bytes`;
+                        responseJson = null;
+                    } else {
+                        const text = await response.text();
+                        responseText = text;
+                        try {
+                            responseJson = JSON.parse(text);
+                            responseText = JSON.stringify(responseJson, null, 2);
+                        } catch(e) { }
+                    }
+
+                    if (response.status === test.expectedStatus) {
+                        resultStatus = "PASS";
+                        resultClass = "status-pass";
+                        rowColor = ""; 
+                        successCount++;
+                        if(test.afterRequest && responseJson) test.afterRequest(responseJson);
+                    } else {
+                        resultStatus = `FAIL (${response.status})`;
+                        failCount++;
+                    }
+                } catch (networkError) {
+                    responseText = `Network Error: ${networkError.message}`;
+                    failCount++;
+                }
+            } else {
+                failCount++;
+            }
+
+            const rowId = `log-${i}`;
+            const row = `
+                <tr class="${rowColor}">
+                    <td class="text-center fw-bold">${i + 1}</td>
+                    <td>
+                        <div class="fw-bold">${test.name}</div>
+                        <div class="small text-muted text-break">${url}</div>
+                    </td>
+                    <td class="text-center"><span class="badge bg-secondary">${test.method}</span></td>
+                    <td class="text-center ${resultClass}">${resultStatus}</td>
+                    <td class="text-center">${duration}</td>
+                    <td class="text-center">
+                        <button class="btn btn-sm btn-outline-secondary" onclick="toggleLog('${rowId}')">결과보기</button>
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="6" class="p-0 border-0">
+                        <div id="${rowId}" class="log-box">
+                            <div class="text-primary fw-bold">[Request Body]</div>
+                            ${bodyData ? JSON.stringify(bodyData, null, 2) : "(Empty)"}
+                            <hr class="my-1">
+                            <div class="text-success fw-bold">[Response]</div>
+                            ${responseText}
+                        </div>
+                    </td>
+                </tr>
+            `;
+            tbody.insertAdjacentHTML('beforeend', row);
+            
+            // API 호출 간격 조절
+            await new Promise(r => setTimeout(r, 500));
+        }
+
+        progressText.innerText = `완료! (성공: ${successCount} / 실패: ${failCount})`;
+        progressBar.classList.remove('progress-bar-animated');
+        progressBar.classList.add(failCount > 0 ? 'bg-danger' : 'bg-success');
+    }
+
+    function toggleLog(id) {
+        const box = document.getElementById(id);
+        box.style.display = (box.style.display === "block") ? "none" : "block";
+    }
+</script>
+
+</body>
+</html>
