@@ -1,5 +1,7 @@
 {
   "rewrites": [
-    { "source": "/templatecopy", "destination": "/api/templatecopy" }
+    { "source": "/templatecopy", "destination": "/api/templatecopy" },
+    { "source": "/ApiAutoTest", "destination": "/api/ApiAutoTest" }
+
   ]
 }

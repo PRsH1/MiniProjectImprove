@@ -14,7 +14,7 @@ export default async function handler(req, res) {
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
       return res.status(200).send(html);
     } catch (err) {
-      console.error('templatecopy read error:', err);
+      console.error('ApiAutoTest read error:', err);
       return res.status(500).send('Error loading page.');
     }
   }
