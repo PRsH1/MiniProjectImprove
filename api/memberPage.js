@@ -1,10 +1,10 @@
+// /api/memberPage.js
 import { promises as fs } from 'fs';
 import path from 'path';
 import { parse } from 'cookie';
 
 export default async function handler(req, res) {
   const cookies = parse(req.headers.cookie || '');
-  // 멤버 페이지용 쿠키 이름 사용
   const authCookie = cookies['vercel-auth-member'];
 
   if (authCookie === process.env.AUTH_COOKIE_VALUE) {
@@ -19,6 +19,6 @@ export default async function handler(req, res) {
     }
   }
 
-  const next = encodeURIComponent('/private/Member.html'); 
-  res.redirect(302, `/auth/login.html?next=${next}`);
+  const next = encodeURIComponent('/private/Member.html'); // 또는 너가 쓰는 멤버 경로
+  return res.redirect(302, `/auth/login.html?next=${next}&scope=member`);
 }

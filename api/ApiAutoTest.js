@@ -5,7 +5,6 @@ import { parse } from 'cookie';
 
 export default async function handler(req, res) {
   const cookies = parse(req.headers.cookie || '');
-  // API 자동 테스트 페이지용 쿠키 이름 사용
   const authCookie = cookies['vercel-auth-apiautotest'];
 
   if (authCookie === process.env.AUTH_COOKIE_VALUE) {
@@ -21,5 +20,5 @@ export default async function handler(req, res) {
   }
 
   const next = encodeURIComponent('/ApiAutoTest');
-  res.redirect(302, `/auth/login.html?next=${next}`);
+  return res.redirect(302, `/auth/login.html?next=${next}&scope=apiautotest`);
 }

@@ -80,6 +80,8 @@
       </div>
 
       <input type="hidden" name="next" id="next" />
+      <!-- scope: member | templatecopy | apiautotest -->
+      <input type="hidden" name="scope" id="scope" />
 
       <p id="errorMessage" class="error"></p>
 
@@ -91,28 +93,25 @@
   </div>
 
   <script>
-    // 쿼리 파라미터 처리: ?error=1 & ?next=/원래경로
     const params = new URLSearchParams(window.location.search);
+
     const next = params.get('next') || '/';
+    const scope = params.get('scope') || 'member';
+
     document.getElementById('next').value = next;
+    document.getElementById('scope').value = scope;
 
     if (params.has('error')) {
       document.getElementById('errorMessage').textContent = '암호가 올바르지 않습니다.';
     }
 
-  // 페이지 제목 동적 설정
-
-    const prettyName = (path) => {
-  if (path.startsWith('/templatecopy')) return '템플릿 복제 페이지 접근';
-  if (path.startsWith('/ApiAutoTest') || path.startsWith('/api/ApiAutoTest')) return 'API 자동 테스트 페이지 접근';
-  if (
-    path.startsWith('/private/Member.html') ||
-    path.startsWith('/member') ||
-    path.startsWith('/api/memberPage')
-  ) return '멤버 페이지 접근';
-  return '보호 페이지 접근';
-};
-    document.getElementById('title').textContent = prettyName(next);
+    const prettyNameByScope = (s) => {
+      if (s === 'templatecopy') return '템플릿 복제 페이지 접근';
+      if (s === 'apiautotest') return 'API 자동 테스트 페이지 접근';
+      if (s === 'member') return '멤버 페이지 접근';
+      return '보호 페이지 접근';
+    };
+    document.getElementById('title').textContent = prettyNameByScope(scope);
 
     // 비밀번호 보기 토글
     const pwd = document.getElementById('password');
