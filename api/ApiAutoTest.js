@@ -1,4 +1,4 @@
-// /api/templatecopy.js
+// /api/ApiAutoTest.js
 import { promises as fs } from 'fs';
 import path from 'path';
 import { parse } from 'cookie';
@@ -9,7 +9,7 @@ export default async function handler(req, res) {
 
   if (authCookie === process.env.AUTH_COOKIE_VALUE) {
     try {
-      const filePath = path.join(process.cwd(), 'utils', 'ApiAutoTest.html');
+      const filePath = path.join(process.cwd(), 'private', 'ApiAutoTest.html');
       const html = await fs.readFile(filePath, 'utf8');
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
       return res.status(200).send(html);
