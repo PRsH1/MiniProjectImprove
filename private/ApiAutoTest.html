@@ -2,13 +2,14 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>Integrated API Test Dashboard V10 (Final)</title>
+    <title>API 테스트 자동화 페이지</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body { padding: 20px; background-color: #f8f9fa; }
         .container { max-width: 1200px; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         .status-pass { color: green; font-weight: bold; }
         .status-fail { color: red; font-weight: bold; }
+        .status-skip { color: #f0ad4e; font-weight: bold; }
         .log-box { font-size: 0.85em; max-height: 200px; overflow-y: auto; background: #eee; padding: 10px; display: none; margin-top: 5px; border-radius: 5px; white-space: pre-wrap; }
         .special-config { background-color: #e3f2fd; border: 1px solid #90caf9; padding: 20px; border-radius: 5px; margin-bottom: 20px; }
         .field-row { background: #fff; padding: 8px; border-radius: 4px; border: 1px solid #dee2e6; margin-bottom: 5px; }
@@ -19,7 +20,7 @@
 <body>
 
 <div class="container">
-    <h2 class="mb-4">🚀 API 시나리오 테스트 (v1)</h2>
+    <h2 class="mb-4">🚀 API 시나리오 테스트</h2>
 
     <div class="card mb-3">
         <div class="card-header bg-dark text-white">1. 공통 설정 (기본 인증)</div>
@@ -41,10 +42,10 @@
         <h5 class="fw-bold text-primary mb-3">⚡ 시나리오별 필수 데이터 설정</h5>
         
         <div class="p-3 bg-white rounded mb-3 border">
-            <div class="section-title text-success">공통 입력 데이터 (OPA 005 & 007 공용)</div>
+            <div class="section-title text-success">공통 입력 데이터 (OPA 005, 007, 014 공용)</div>
             <div class="row g-2 mb-2">
                 <div class="col-md-4">
-                    <input type="text" id="targetEmail" class="form-control form-control-sm" placeholder="수신자 Email (비우면 [])">
+                    <input type="text" id="targetEmail" class="form-control form-control-sm" placeholder="수신자 Email">
                 </div>
                 <div class="col-md-4">
                     <input type="text" id="targetName" class="form-control form-control-sm" placeholder="수신자 이름">
@@ -53,6 +54,8 @@
                     <input type="text" id="targetPhone" class="form-control form-control-sm" placeholder="수신자 연락처">
                 </div>
             </div>
+            <div class="form-text text-danger mb-2 small">* OPA 14(재요청) 테스트를 위해선 위 수신자 정보가 필수입니다.</div>
+
             <div class="d-flex justify-content-between align-items-center mb-1">
                 <span class="small text-muted">입력 필드 (Fields)</span>
                 <button class="btn btn-sm btn-outline-success py-0" onclick="addFieldRow()">+ 필드 추가</button>
@@ -107,7 +110,6 @@
             <div class="col-md-6">
                 <label class="form-label small fw-bold text-warning">테스트할 멤버 ID (Email)</label>
                 <input type="text" id="memberId" class="form-control form-control-sm border-warning" value="test123456@test1234.com" placeholder="예: test@test.com">
-                <div class="form-text small">이 ID로 생성, 수정, 삭제 테스트가 진행됩니다.</div>
             </div>
         </div>
     </div>
@@ -175,7 +177,7 @@
         };
     };
 
-    // [Logic] Body Generators
+    // [Logic] OPA 005, 007 Body
     const generateDocumentBody = () => {
         const data = getDynamicData();
         const fieldsArr = getFieldsArray();
@@ -194,19 +196,34 @@
         return { "document": { "fields": fieldsArr, "recipients": recipientsList, "parameters": [], "notification": [] } };
     };
 
+    // [Logic] OPA 14 Re-request Body
+    const generateReRequestBody = () => {
+        const data = getDynamicData();
+        if (!data.email && !data.name && !data.phone) return null;
+        return {
+            "input": {
+                "next_steps": [{
+                    "step_type": "05", "step_seq": "2",
+                    "recipients": [{
+                        "member": { "name": data.name, "id": data.email, "sms": { "country_code": "+82", "phone_number": data.phone } },
+                        "use_mail": true, "use_sms": true
+                    }],
+                    "comment": "재요청 API 테스트입니다."
+                }]
+            }
+        };
+    };
+
     const generateListBody = () => {
         return { "type": "04", "title_and_content": "", "title": "", "content": "", "limit": "100", "skip": "0" };
     };
 
     // [Store]
-    let sharedData = {
-        lastCreatedId: null,
-        createdIdList: []
-    };
+    let sharedData = { lastCreatedId: null, createdIdList: [] };
 
-    // [TEST LIST] - '내 정보 조회' 제거됨
+    // [TEST LIST]
     const testList = [
-        // 1. OPA 005 (Internal)
+        // 1. OPA 005
         {
             name: "새 문서 작성 (OPA 005 - 내부)",
             method: "POST",
@@ -270,7 +287,18 @@
             body: null,
             expectedStatus: 200
         },
-        // 6. OPA 007
+        // 6. OPA 14 Re-request
+        {
+            name: "수신자 문서 재요청 (OPA 14)",
+            method: "POST",
+            path: () => {
+                if(!sharedData.lastCreatedId) throw new Error("앞서 생성된 문서가 없어 재요청 불가");
+                return `/v2.0/api/documents/${sharedData.lastCreatedId}/re_request_outsider`;
+            },
+            body: generateReRequestBody, 
+            expectedStatus: 200
+        },
+        // 7. OPA 007
         {
             name: "새 문서 작성 (OPA 007 - 외부)",
             method: "POST",
@@ -293,7 +321,7 @@
                 }
             }
         },
-        // 7. OPA 008 Basic
+        // 8. OPA 008 Basic
         {
             name: "문서 목록 조회 - 기본 (OPA 008)",
             method: "POST",
@@ -301,7 +329,7 @@
             body: generateListBody,
             expectedStatus: 200
         },
-        // 8. OPA 008 Detailed
+        // 9. OPA 008 Detailed
         {
             name: "문서 목록 조회 - 상세 (OPA 008)",
             method: "POST",
@@ -309,7 +337,7 @@
             body: generateListBody,
             expectedStatus: 200
         },
-        // 9. OPA 42 Cancel
+        // 10. OPA 42 Cancel
         {
             name: "문서 취소 (OPA 42)",
             method: "POST",
@@ -320,7 +348,7 @@
             },
             expectedStatus: 200
         },
-        // 10. OPA 009 Delete
+        // 11. OPA 009 Delete
         {
             name: "문서 삭제 (OPA 009)",
             method: "DELETE",
@@ -333,8 +361,7 @@
         },
 
         // --- Member APIs ---
-
-        // 11. Member Create
+        // 12. Member Create
         {
             name: "멤버 추가 (POST)",
             method: "POST",
@@ -342,24 +369,11 @@
             body: () => {
                 const data = getDynamicData();
                 if(!data.memberId) throw new Error("멤버 ID를 입력해주세요.");
-                return {
-                    "account": {
-                        "id": data.memberId,
-                        "password": "forcs0421!@",
-                        "first_name": "테스터",
-                        "department": "",
-                        "position": "",
-                        "external_sso_info": {
-                            "uuid": "12345678219",
-                            "account_id": "test1@forcs.com"
-                        }
-                    }
-                };
+                return { "account": { "id": data.memberId, "password": "forcs0421!@", "first_name": "테스터", "external_sso_info": { "uuid": "123", "account_id": "test" } } };
             },
             expectedStatus: 200
         },
-
-        // 12. Member List
+        // 13. Member List
         {
             name: "멤버 목록 조회 (GET)",
             method: "GET",
@@ -367,14 +381,13 @@
             body: null,
             expectedStatus: 200
         },
-
-        // 13. Member Update
+        // 14. Member Update
         {
             name: "멤버 수정 (PATCH)",
             method: "PATCH",
             path: () => {
                 const data = getDynamicData();
-                if(!data.memberId) throw new Error("멤버 ID가 없습니다.");
+                if(!data.memberId) throw new Error("멤버 ID 누락");
                 return `/v2.0/api/members/${data.memberId}`;
             },
             body: () => {
@@ -384,10 +397,7 @@
                         "id": data.memberId,
                         "name": "테스터수정",
                         "enabled": true,
-                        "contact": {
-                            "number": "010-1111-1111",
-                            "tel": "010-1234-5678"
-                        },
+                        "contact": { "number": "010-1111-1111", "tel": "010-1234-5678" },
                         "department": "연구소",
                         "position": "전임연구원",
                         "role": ["template_manager"]
@@ -396,16 +406,25 @@
             },
             expectedStatus: 200
         },
-
-        // 14. Member Delete
+        // 15. Member Delete
         {
             name: "멤버 삭제 (DELETE)",
             method: "DELETE",
             path: () => {
                 const data = getDynamicData();
-                if(!data.memberId) throw new Error("멤버 ID가 없습니다.");
+                if(!data.memberId) throw new Error("멤버 ID 누락");
                 return `/v2.0/api/members/${data.memberId}`;
             },
+            body: null,
+            expectedStatus: 200
+        },
+
+        // --- New API ---
+        // 16. OPA 015
+        {
+            name: "작성 가능한 템플릿 목록 조회 (OPA 015)",
+            method: "GET",
+            path: "/v2.0/api/forms",
             body: null,
             expectedStatus: 200
         }
@@ -438,8 +457,31 @@
             try {
                 const pathStr = typeof test.path === 'function' ? test.path() : test.path;
                 url = `${baseUrl}${pathStr}`;
-                if (test.body) bodyData = typeof test.body === 'function' ? test.body() : test.body;
+                if (test.body) {
+                    const generatedBody = typeof test.body === 'function' ? test.body() : test.body;
+                    if (generatedBody === null && test.name.includes("OPA 14")) {
+                        throw new Error("SKIP_OPA14");
+                    }
+                    bodyData = generatedBody;
+                }
             } catch (err) { errorMessage = err.message; }
+
+            if (errorMessage === "SKIP_OPA14") {
+                const rowId = `log-${i}`;
+                const row = `
+                    <tr class="table-warning">
+                        <td class="text-center fw-bold">${i + 1}</td>
+                        <td><div class="fw-bold">${test.name}</div><div class="small text-muted">Skipped</div></td>
+                        <td class="text-center"><span class="badge bg-secondary">${test.method}</span></td>
+                        <td class="text-center status-skip">SKIPPED</td>
+                        <td class="text-center">-</td>
+                        <td class="text-center"><button class="btn btn-sm btn-outline-secondary" onclick="toggleLog('${rowId}')">결과보기</button></td>
+                    </tr>
+                    <tr><td colspan="6" class="p-0 border-0"><div id="${rowId}" class="log-box">수신자 정보가 없어 건너뜀</div></td></tr>
+                `;
+                tbody.insertAdjacentHTML('beforeend', row);
+                continue; 
+            }
 
             let requestHeaders = {
                 "Content-Type": "application/json",
@@ -530,7 +572,6 @@
             `;
             tbody.insertAdjacentHTML('beforeend', row);
             
-            // API 호출 간격 조절
             await new Promise(r => setTimeout(r, 500));
         }
 
