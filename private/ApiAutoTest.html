@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>API 테스트 자동화 페이지</title>
+    <title>API 테스트 자동화</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body { padding: 20px; background-color: #f8f9fa; }
@@ -42,7 +42,7 @@
         <h5 class="fw-bold text-primary mb-3">⚡ 시나리오별 필수 데이터 설정</h5>
         
         <div class="p-3 bg-white rounded mb-3 border">
-            <div class="section-title text-success">공통 입력 데이터 (OPA 005, 007, 014 공용)</div>
+            <div class="section-title text-success">공통 입력 데이터 (작성 API 공용)</div>
             <div class="row g-2 mb-2">
                 <div class="col-md-4">
                     <input type="text" id="targetEmail" class="form-control form-control-sm" placeholder="수신자 Email">
@@ -177,12 +177,13 @@
         };
     };
 
-    // [Logic] OPA 005, 007 Body
-    const generateDocumentBody = () => {
+    // [Refactoring] 문서 내부 데이터 생성 (Fields, Recipients) - 공통 함수
+    const getInnerDocumentData = () => {
         const data = getDynamicData();
         const fieldsArr = getFieldsArray();
         let recipientsList = [];
         const hasRecipientInfo = (data.email.trim() !== "") || (data.name.trim() !== "") || (data.phone.trim() !== "");
+        
         if (hasRecipientInfo) {
             recipientsList.push({
                 "step_type": "05", "use_mail": true, "use_sms": true,
@@ -193,7 +194,30 @@
                 "auth": { "password": "", "valid": { "day": 0, "hour": 0 } }
             });
         }
-        return { "document": { "fields": fieldsArr, "recipients": recipientsList, "parameters": [], "notification": [] } };
+
+        return {
+            "fields": fieldsArr,
+            "recipients": recipientsList,
+            "parameters": [],
+            "notification": []
+        };
+    };
+
+    // [Logic] OPA 005, 007 Body (단건 작성)
+    const generateDocumentBody = () => {
+        return { "document": getInnerDocumentData() };
+    };
+
+    // [Logic] OPA 016 Mass Create Body (일괄 작성) - [수정됨] document_name 제거
+    const generateMassDocumentBody = () => {
+        const innerData = getInnerDocumentData();
+        // 동일한 데이터로 2개의 문서를 생성 (document_name 제거됨)
+        return {
+            "documents": [
+                { ...innerData, "select_group_name": "" },
+                { ...innerData, "select_group_name": "" }
+            ]
+        };
     };
 
     // [Logic] OPA 14 Re-request Body
@@ -337,9 +361,42 @@
             body: generateListBody,
             expectedStatus: 200
         },
-        // 10. OPA 42 Cancel
+        // 10. OPA 015
         {
-            name: "문서 취소 (OPA 42)",
+            name: "작성 가능한 템플릿 목록 조회 (OPA 015)",
+            method: "GET",
+            path: "/v2.0/api/forms",
+            body: null,
+            expectedStatus: 200
+        },
+        // 11. OPA 016 Mass Create (Fixed)
+        {
+            name: "문서 일괄 작성 (OPA 016)",
+            method: "POST",
+            path: () => {
+                const data = getDynamicData();
+                if(!data.templateId) throw new Error("내부용 Template ID 누락");
+                return `/v2.0/api/forms/mass_documents?template_id=${data.templateId}`;
+            },
+            body: generateMassDocumentBody,
+            expectedStatus: 200,
+            afterRequest: (json) => {
+                // 응답에서 생성된 문서 ID 수집 (Cleanup을 위해)
+                if(json && json.documents && Array.isArray(json.documents)) {
+                    json.documents.forEach(doc => {
+                        if(doc.id) {
+                            sharedData.createdIdList.push(doc.id);
+                        }
+                    });
+                    console.log(`[OPA 016] ${json.documents.length} created IDs added to cleanup list.`);
+                }
+            }
+        },
+
+        // --- Cleanup (Cancel & Delete) ---
+        // 12. OPA 42 Cancel
+        {
+            name: "문서 취소 (OPA 42 - Cleanup)",
             method: "POST",
             path: "/v2.0/api/documents/cancel",
             body: () => {
@@ -348,9 +405,9 @@
             },
             expectedStatus: 200
         },
-        // 11. OPA 009 Delete
+        // 13. OPA 009 Delete
         {
-            name: "문서 삭제 (OPA 009)",
+            name: "문서 삭제 (OPA 009 - Cleanup)",
             method: "DELETE",
             path: "/v2.0/api/documents",
             body: () => {
@@ -361,7 +418,7 @@
         },
 
         // --- Member APIs ---
-        // 12. Member Create
+        // 14. Member Create
         {
             name: "멤버 추가 (POST)",
             method: "POST",
@@ -373,7 +430,7 @@
             },
             expectedStatus: 200
         },
-        // 13. Member List
+        // 15. Member List
         {
             name: "멤버 목록 조회 (GET)",
             method: "GET",
@@ -381,7 +438,7 @@
             body: null,
             expectedStatus: 200
         },
-        // 14. Member Update
+        // 16. Member Update
         {
             name: "멤버 수정 (PATCH)",
             method: "PATCH",
@@ -406,7 +463,7 @@
             },
             expectedStatus: 200
         },
-        // 15. Member Delete
+        // 17. Member Delete
         {
             name: "멤버 삭제 (DELETE)",
             method: "DELETE",
@@ -415,16 +472,6 @@
                 if(!data.memberId) throw new Error("멤버 ID 누락");
                 return `/v2.0/api/members/${data.memberId}`;
             },
-            body: null,
-            expectedStatus: 200
-        },
-
-        // --- New API ---
-        // 16. OPA 015
-        {
-            name: "작성 가능한 템플릿 목록 조회 (OPA 015)",
-            method: "GET",
-            path: "/v2.0/api/forms",
             body: null,
             expectedStatus: 200
         }
