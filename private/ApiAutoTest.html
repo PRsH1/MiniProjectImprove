@@ -42,7 +42,7 @@
         <h5 class="fw-bold text-primary mb-3">⚡ 시나리오별 필수 데이터 설정</h5>
         
         <div class="p-3 bg-white rounded mb-3 border">
-            <div class="section-title text-success">공통 입력 데이터 (작성 API 공용)</div>
+            <div class="section-title text-success">공통 입력 데이터 (일괄작성(멀티템플릿) Doc 1 & 작성 API 공용)</div>
             <div class="row g-2 mb-2">
                 <div class="col-md-4">
                     <input type="text" id="targetEmail" class="form-control form-control-sm" placeholder="수신자 Email">
@@ -54,11 +54,10 @@
                     <input type="text" id="targetPhone" class="form-control form-control-sm" placeholder="수신자 연락처">
                 </div>
             </div>
-            <div class="form-text text-danger mb-2 small">* OPA 14(재요청) 테스트를 위해선 위 수신자 정보가 필수입니다.</div>
-
+            
             <div class="d-flex justify-content-between align-items-center mb-1">
-                <span class="small text-muted">입력 필드 (Fields)</span>
-                <button class="btn btn-sm btn-outline-success py-0" onclick="addFieldRow()">+ 필드 추가</button>
+                <span class="small text-muted fw-bold">입력 필드 (Fields - 일괄작성(멀티템플릿) Doc 1 / 공용)</span>
+                <button class="btn btn-sm btn-outline-success py-0" onclick="addFieldRow('fieldsContainer')">+ 필드 추가</button>
             </div>
             <div id="fieldsContainer"></div>
         </div>
@@ -66,7 +65,7 @@
         <div class="section-title">A. 새 문서 작성 (OPA 005 - 내부자)</div>
         <div class="row g-3 mb-2">
             <div class="col-md-4">
-                <label class="form-label small fw-bold">Template ID</label>
+                <label class="form-label small fw-bold">Template ID 일괄작성(멀티템플릿) (Doc 1)</label>
                 <input type="text" id="targetTemplateId" class="form-control form-control-sm" placeholder="내부용 템플릿 ID">
             </div>
         </div>
@@ -105,12 +104,42 @@
 
         <div class="separator"></div>
 
-        <div class="section-title text-warning">D. 멤버 관리 (Member APIs)</div>
-        <div class="row g-3">
+        <div class="section-title text-warning">D. 멤버 & 그룹 관리</div>
+        <div class="row g-3 mb-2">
             <div class="col-md-6">
-                <label class="form-label small fw-bold text-warning">테스트할 멤버 ID (Email)</label>
-                <input type="text" id="memberId" class="form-control form-control-sm border-warning" value="test123456@test1234.com" placeholder="예: test@test.com">
+                <label class="form-label small fw-bold text-warning">테스트할 멤버 ID</label>
+                <input type="text" id="memberId" class="form-control form-control-sm border-warning" value="test123456@test1234.com">
             </div>
+        </div>
+
+        <div class="separator"></div>
+
+        <div class="section-title text-info">E. 멀티 템플릿 작성 추가 설정 (OPA 021 - Doc 2)</div>
+        <div class="p-3 bg-white rounded border border-info">
+            <div class="row g-2 mb-2">
+                <div class="col-md-3">
+                    <label class="form-label small fw-bold">Template ID 2 *</label>
+                    <input type="text" id="targetTemplateId2" class="form-control form-control-sm" placeholder="두 번째 템플릿 ID">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small">수신자 Email 2</label>
+                    <input type="text" id="targetEmail2" class="form-control form-control-sm" placeholder="Doc 2 수신자 Email">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small">수신자 이름 2</label>
+                    <input type="text" id="targetName2" class="form-control form-control-sm" placeholder="Doc 2 수신자 이름">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small">수신자 연락처 2</label>
+                    <input type="text" id="targetPhone2" class="form-control form-control-sm" placeholder="Doc 2 수신자 연락처">
+                </div>
+            </div>
+            
+            <div class="d-flex justify-content-between align-items-center mb-1 mt-2">
+                <span class="small text-muted fw-bold text-info">입력 필드 (Fields - Doc 2 전용)</span>
+                <button class="btn btn-sm btn-outline-info py-0" onclick="addFieldRow('fieldsContainer2')">+ Doc 2 필드 추가</button>
+            </div>
+            <div id="fieldsContainer2"></div>
         </div>
     </div>
 
@@ -138,8 +167,8 @@
 
 <script>
     // [UI Helper] 필드 추가
-    function addFieldRow() {
-        const container = document.getElementById('fieldsContainer');
+    function addFieldRow(containerId = 'fieldsContainer') {
+        const container = document.getElementById(containerId);
         const div = document.createElement('div');
         div.className = 'field-row row g-2 align-items-center';
         div.innerHTML = `
@@ -150,8 +179,11 @@
         container.appendChild(div);
     }
 
-    function getFieldsArray() {
-        const rows = document.querySelectorAll('.field-row');
+    // [Logic] 필드 배열 가져오기
+    function getFieldsArray(containerId = 'fieldsContainer') {
+        const container = document.getElementById(containerId);
+        if (!container) return [];
+        const rows = container.querySelectorAll('.field-row');
         const fields = [];
         rows.forEach(row => {
             const id = row.querySelector('.field-id').value;
@@ -168,82 +200,92 @@
             name: document.getElementById('targetName').value,
             phone: document.getElementById('targetPhone').value,
             templateId: document.getElementById('targetTemplateId').value,
+            
             companyId: document.getElementById('companyId').value,
             extTemplateId: document.getElementById('extTemplateId').value,
             companyApiKey: document.getElementById('companyApiKey').value,
+            
             downloadDocId: document.getElementById('downloadDocId').value,
             attachDocId: document.getElementById('attachDocId').value,
-            memberId: document.getElementById('memberId').value
+            memberId: document.getElementById('memberId').value,
+
+            templateId2: document.getElementById('targetTemplateId2').value,
+            email2: document.getElementById('targetEmail2').value,
+            name2: document.getElementById('targetName2').value,
+            phone2: document.getElementById('targetPhone2').value
         };
     };
 
-    // [Refactoring] 문서 내부 데이터 생성 (Fields, Recipients) - 공통 함수
-    const getInnerDocumentData = () => {
-        const data = getDynamicData();
-        const fieldsArr = getFieldsArray();
+    // [Refactoring] 문서 내부 데이터 생성
+    const getInnerDocumentData = (email, name, phone, fieldsArr) => {
         let recipientsList = [];
-        const hasRecipientInfo = (data.email.trim() !== "") || (data.name.trim() !== "") || (data.phone.trim() !== "");
+        const hasRecipientInfo = (email && email.trim() !== "") || (name && name.trim() !== "") || (phone && phone.trim() !== "");
         
         if (hasRecipientInfo) {
             recipientsList.push({
                 "step_type": "05", "use_mail": true, "use_sms": true,
                 "member": {
-                    "id": data.email, "name": data.name,
-                    "sms": { "country_code": "82", "phone_number": data.phone }
+                    "id": email, "name": name,
+                    "sms": { "country_code": "82", "phone_number": phone }
                 },
                 "auth": { "password": "", "valid": { "day": 0, "hour": 0 } }
             });
         }
-
-        return {
-            "fields": fieldsArr,
-            "recipients": recipientsList,
-            "parameters": [],
-            "notification": []
-        };
+        return { "fields": fieldsArr, "recipients": recipientsList, "parameters": [], "notification": [] };
     };
 
-    // [Logic] OPA 005, 007 Body (단건 작성)
     const generateDocumentBody = () => {
-        return { "document": getInnerDocumentData() };
+        const data = getDynamicData();
+        const commonFields = getFieldsArray('fieldsContainer');
+        return { "document": getInnerDocumentData(data.email, data.name, data.phone, commonFields) };
     };
 
-    // [Logic] OPA 016 Mass Create Body (일괄 작성) - [수정됨] document_name 제거
     const generateMassDocumentBody = () => {
-        const innerData = getInnerDocumentData();
-        // 동일한 데이터로 2개의 문서를 생성 (document_name 제거됨)
-        return {
-            "documents": [
-                { ...innerData, "select_group_name": "" },
-                { ...innerData, "select_group_name": "" }
-            ]
-        };
+        const data = getDynamicData();
+        const commonFields = getFieldsArray('fieldsContainer');
+        const innerData = getInnerDocumentData(data.email, data.name, data.phone, commonFields);
+        return { "documents": [ { ...innerData, "select_group_name": "" }, { ...innerData, "select_group_name": "" } ] };
     };
 
-    // [Logic] OPA 14 Re-request Body
+    // [NEW] OPA 021 Multi-Template Body (document_name removed)
+    const generateMassMultiDocumentBody = () => {
+        const data = getDynamicData();
+        
+        // Doc 1: 기본 필드 사용
+        const doc1Fields = getFieldsArray('fieldsContainer');
+        const doc1 = {
+            "template_id": data.templateId,
+            // document_name 삭제됨
+            ...getInnerDocumentData(data.email, data.name, data.phone, doc1Fields)
+        };
+
+        // Doc 2: 전용 필드 사용
+        const doc2Fields = getFieldsArray('fieldsContainer2');
+        const doc2 = {
+            "template_id": data.templateId2,
+            // document_name 삭제됨
+            ...getInnerDocumentData(data.email2, data.name2, data.phone2, doc2Fields)
+        };
+
+        const docs = [doc1];
+        if(data.templateId2) docs.push(doc2);
+
+        return { "documents": docs };
+    };
+
     const generateReRequestBody = () => {
         const data = getDynamicData();
         if (!data.email && !data.name && !data.phone) return null;
-        return {
-            "input": {
-                "next_steps": [{
-                    "step_type": "05", "step_seq": "2",
-                    "recipients": [{
-                        "member": { "name": data.name, "id": data.email, "sms": { "country_code": "+82", "phone_number": data.phone } },
-                        "use_mail": true, "use_sms": true
-                    }],
-                    "comment": "재요청 API 테스트입니다."
-                }]
-            }
-        };
+        return { "input": { "next_steps": [{ "step_type": "05", "step_seq": "2", "recipients": [{ "member": { "name": data.name, "id": data.email, "sms": { "country_code": "+82", "phone_number": data.phone } }, "use_mail": true, "use_sms": true }], "comment": "재요청 API 테스트입니다." }] } };
     };
-
-    const generateListBody = () => {
-        return { "type": "04", "title_and_content": "", "title": "", "content": "", "limit": "100", "skip": "0" };
-    };
+    const generateListBody = () => { return { "type": "04", "title_and_content": "", "title": "", "content": "", "limit": "100", "skip": "0" }; };
 
     // [Store]
-    let sharedData = { lastCreatedId: null, createdIdList: [] };
+    let sharedData = {
+        lastCreatedId: null,
+        createdIdList: [],
+        createdGroupId: null 
+    };
 
     // [TEST LIST]
     const testList = [
@@ -369,7 +411,7 @@
             body: null,
             expectedStatus: 200
         },
-        // 11. OPA 016 Mass Create (Fixed)
+        // 11. OPA 016 Mass Create
         {
             name: "문서 일괄 작성 (OPA 016)",
             method: "POST",
@@ -381,20 +423,29 @@
             body: generateMassDocumentBody,
             expectedStatus: 200,
             afterRequest: (json) => {
-                // 응답에서 생성된 문서 ID 수집 (Cleanup을 위해)
                 if(json && json.documents && Array.isArray(json.documents)) {
-                    json.documents.forEach(doc => {
-                        if(doc.id) {
-                            sharedData.createdIdList.push(doc.id);
-                        }
-                    });
+                    json.documents.forEach(doc => { if(doc.id) sharedData.createdIdList.push(doc.id); });
                     console.log(`[OPA 016] ${json.documents.length} created IDs added to cleanup list.`);
+                }
+            }
+        },
+        // 12. OPA 021 Multi-Mass Create
+        {
+            name: "문서 일괄 작성 - 멀티 템플릿 (OPA 021)",
+            method: "POST",
+            path: "/v2.0/api/forms/mass_multi_documents",
+            body: generateMassMultiDocumentBody,
+            expectedStatus: 200,
+            afterRequest: (json) => {
+                if(json && json.documents && Array.isArray(json.documents)) {
+                    json.documents.forEach(doc => { if(doc.id) sharedData.createdIdList.push(doc.id); });
+                    console.log(`[OPA 021] ${json.documents.length} created IDs added to cleanup list.`);
                 }
             }
         },
 
         // --- Cleanup (Cancel & Delete) ---
-        // 12. OPA 42 Cancel
+        // 13. OPA 42
         {
             name: "문서 취소 (OPA 42 - Cleanup)",
             method: "POST",
@@ -405,7 +456,7 @@
             },
             expectedStatus: 200
         },
-        // 13. OPA 009 Delete
+        // 14. OPA 009
         {
             name: "문서 삭제 (OPA 009 - Cleanup)",
             method: "DELETE",
@@ -418,7 +469,7 @@
         },
 
         // --- Member APIs ---
-        // 14. Member Create
+        // 15. Member Create
         {
             name: "멤버 추가 (POST)",
             method: "POST",
@@ -430,7 +481,7 @@
             },
             expectedStatus: 200
         },
-        // 15. Member List
+        // 16. Member List
         {
             name: "멤버 목록 조회 (GET)",
             method: "GET",
@@ -438,7 +489,7 @@
             body: null,
             expectedStatus: 200
         },
-        // 16. Member Update
+        // 17. Member Update
         {
             name: "멤버 수정 (PATCH)",
             method: "PATCH",
@@ -463,7 +514,7 @@
             },
             expectedStatus: 200
         },
-        // 17. Member Delete
+        // 18. Member Delete
         {
             name: "멤버 삭제 (DELETE)",
             method: "DELETE",
@@ -473,6 +524,70 @@
                 return `/v2.0/api/members/${data.memberId}`;
             },
             body: null,
+            expectedStatus: 200
+        },
+
+        // --- Group APIs ---
+        // 19. Group List
+        {
+            name: "그룹 목록 조회 (OPA 017)",
+            method: "GET",
+            path: "/v2.0/api/groups",
+            body: null,
+            expectedStatus: 200
+        },
+        // 20. Group Create
+        {
+            name: "그룹 추가 (OPA 018)",
+            method: "POST",
+            path: "/v2.0/api/groups",
+            body: () => {
+                const data = getDynamicData();
+                if(!data.memberId) throw new Error("멤버 ID 누락");
+                return {
+                    "group": {
+                        "name": "테스트그룹",
+                        "description": "클라우드팀",
+                        "members": [ data.memberId ]
+                    }
+                };
+            },
+            expectedStatus: 200,
+            afterRequest: (json) => {
+                if(json && json.group && json.group.id) {
+                    sharedData.createdGroupId = json.group.id;
+                }
+            }
+        },
+        // 21. Group Update
+        {
+            name: "그룹 수정 (OPA 019)",
+            method: "PATCH",
+            path: () => {
+                if(!sharedData.createdGroupId) throw new Error("그룹 ID 없음");
+                return `/v2.0/api/groups/${sharedData.createdGroupId}`;
+            },
+            body: () => {
+                const data = getDynamicData();
+                return {
+                    "group": {
+                        "name": "테스트그룹2",
+                        "description": "클라우드2팀",
+                        "members": [ data.memberId ]
+                    }
+                };
+            },
+            expectedStatus: 200
+        },
+        // 22. Group Delete
+        {
+            name: "그룹 삭제 (OPA 020)",
+            method: "DELETE",
+            path: "/v2.0/api/groups",
+            body: () => {
+                if(!sharedData.createdGroupId) throw new Error("삭제할 그룹 ID 없음");
+                return { "group_ids": [ sharedData.createdGroupId ] };
+            },
             expectedStatus: 200
         }
     ];
@@ -487,6 +602,7 @@
         tbody.innerHTML = "";
         sharedData.lastCreatedId = null;
         sharedData.createdIdList = []; 
+        sharedData.createdGroupId = null;
         let successCount = 0;
         let failCount = 0;
 
