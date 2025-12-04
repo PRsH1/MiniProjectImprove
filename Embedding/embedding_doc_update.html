@@ -373,9 +373,9 @@
         $("#addRecipientBtn").click(addRecipientEntry);
         $("#getTokenButton").click(getAccessToken);
         $("#startButton").click(startDocument);
-          // ✅ manual 토큰 모드 바인딩
-  $('#manualTokenToggle').on('change', toggleManualTokenMode);
-  toggleManualTokenMode(); // 초기 상태 세팅
+        // ✅ manual 토큰 모드 바인딩
+        $("#manualTokenToggle").on("change", toggleManualTokenMode);
+        toggleManualTokenMode(); // 초기 상태 세팅
 
         updateServerUrl();
       });
@@ -413,22 +413,21 @@
         $("#docIdGroup")[v === "02" || v === "03" ? "show" : "hide"]();
       }
 
-      function toggleUserSection(){
-  const ut = $('#userTypeSelect').val();
-  const manual = $('#manualTokenToggle').is(':checked');
+      function toggleUserSection() {
+        const ut = $("#userTypeSelect").val();
+        const manual = $("#manualTokenToggle").is(":checked");
 
-  if (ut === '01') {
-    $('#authSection').show();
-    $('#externalInfoSection').hide();
-    // 멤버 + manual 모드면 회사ID 직접 입력 허용
-    $('#companyId').prop('readonly', !manual);
-  } else {
-    $('#authSection').hide();
-    $('#externalInfoSection').show();
-    $('#companyId').prop('readonly', false).val('');
-  }
-}
-
+        if (ut === "01") {
+          $("#authSection").show();
+          $("#externalInfoSection").hide();
+          // 멤버 + manual 모드면 회사ID 직접 입력 허용
+          $("#companyId").prop("readonly", !manual);
+        } else {
+          $("#authSection").hide();
+          $("#externalInfoSection").show();
+          $("#companyId").prop("readonly", false).val("");
+        }
+      }
 
       function toggleActions() {
         const shown = this.checked;
@@ -486,23 +485,23 @@
           },
         });
       }
-      function toggleManualTokenMode(){
-  const manual = $('#manualTokenToggle').is(':checked');
-  const ut = $('#userTypeSelect').val();
+      function toggleManualTokenMode() {
+        const manual = $("#manualTokenToggle").is(":checked");
+        const ut = $("#userTypeSelect").val();
 
-  // manual 모드일 때: 사용자 입력 가능
-  $('#accessToken, #refreshToken').prop('readonly', !manual);
+        // manual 모드일 때: 사용자 입력 가능
+        $("#accessToken, #refreshToken").prop("readonly", !manual);
 
-  // 멤버(01) + manual 모드일 때만 회사 ID도 직접 입력 가능
-  if (ut === '01') {
-    $('#companyId').prop('readonly', !manual);
-  }
+        // 멤버(01) + manual 모드일 때만 회사 ID도 직접 입력 가능
+        if (ut === "01") {
+          $("#companyId").prop("readonly", !manual);
+        }
 
-  // manual 모드일 때는 PrivateKey / API Key / 멤버 ID / 토큰발급방식 / 버튼 비활성화
-  $('#privateKeyHex, #apiKey, #userId, #tokenMethodSelect, #getTokenButton')
-    .prop('disabled', manual);
-}
-
+        // manual 모드일 때는 PrivateKey / API Key / 멤버 ID / 토큰발급방식 / 버튼 비활성화
+        $(
+          "#privateKeyHex, #apiKey, #userId, #tokenMethodSelect, #getTokenButton"
+        ).prop("disabled", manual);
+      }
 
       function addFieldEntry() {
         const entry = $(`
@@ -817,10 +816,10 @@
         </div>
       </div>
 
-  <div class="form-group">
-    <label>Company ID:</label>
-    <input id="companyId" placeholder="회사 ID 입력" />
-  </div>
+      <div class="form-group">
+        <label>Company ID:</label>
+        <input id="companyId" placeholder="회사 ID 입력" />
+      </div>
 
       <div id="authSection">
         <div class="form-group">
@@ -841,22 +840,25 @@
         <div class="form-group">
           <label>멤버 ID:</label><input id="userId" placeholder="이메일 입력" />
         </div>
-          <!-- ✅ 토큰 직접 입력 모드 추가 -->
-<div class="form-group">
-  <label style="font-weight:bold; margin-bottom:5px;">토큰 입력 모드:</label>
-  <div class="switch-wrapper" style="justify-content:flex-start;">
-    <label class="switch">
-      <input type="checkbox" id="manualTokenToggle" />
-      <span class="slider"></span>
-    </label>
-    <span style="margin-left:8px; font-size:0.9rem; color:#555;">
-      Access/Refresh Token 직접 입력 모드 사용
-    </span>
-  </div>
-  <div style="font-size:0.78rem; color:#777; margin-top:4px;">
-    (체크 시 PrivateKey / API Key / 멤버 ID 없이 토큰을 직접 입력할 수 있습니다.)
-  </div>
-</div>
+        <!-- ✅ 토큰 직접 입력 모드 추가 -->
+        <div class="form-group">
+          <label style="font-weight: bold; margin-bottom: 5px"
+            >토큰 입력 모드:</label
+          >
+          <div class="switch-wrapper" style="justify-content: flex-start">
+            <label class="switch">
+              <input type="checkbox" id="manualTokenToggle" />
+              <span class="slider"></span>
+            </label>
+            <span style="margin-left: 8px; font-size: 0.9rem; color: #555">
+              Access/Refresh Token 직접 입력 모드 사용
+            </span>
+          </div>
+          <div style="font-size: 0.78rem; color: #777; margin-top: 4px">
+            (체크 시 PrivateKey / API Key / 멤버 ID 없이 토큰을 직접 입력할 수
+            있습니다.)
+          </div>
+        </div>
         <button id="getTokenButton" class="btn">Get Access Token</button>
 
         <div
@@ -876,7 +878,6 @@
             <label>Refresh Token:</label>
             <input id="refreshToken" />
           </div>
-         
         </div>
       </div>
 
@@ -1008,11 +1009,7 @@
         </div>
       </div>
 
-      <button
-        id="startButton"
-        class="btn"
-        style="background: #28a745; margin-top: 20px"
-      >
+      <button id="startButton" class="btn" style="background: #28a745; margin-top: 20px">
         Start Document
       </button>
     </div>
@@ -1024,15 +1021,7 @@
       <div id="iframeActionContainer">
         <div id="actionControlArea">
           <div class="switch-wrapper">
-            <span
-              style="
-                font-size: 0.9rem;
-                color: #555;
-                margin-right: 10px;
-                font-weight: bold;
-              "
-              >Action 버튼 제어</span
-            >
+            <span style="font-size: 0.9rem; color: #555; margin-right: 10px; font-weight: bold;">Action 버튼 제어</span>
             <label class="switch">
               <input type="checkbox" id="toggleActionSwitch" />
               <span class="slider"></span>
