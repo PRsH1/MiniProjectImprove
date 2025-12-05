@@ -2,8 +2,9 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>API 테스트 자동화</title>
+    <title>API 자동화 테스트 페이지</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <style>
         body { padding: 20px; background-color: #f8f9fa; }
         .container { max-width: 1200px; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
@@ -15,12 +16,42 @@
         .field-row { background: #fff; padding: 8px; border-radius: 4px; border: 1px solid #dee2e6; margin-bottom: 5px; }
         .separator { border-top: 1px dashed #90caf9; margin: 20px 0; }
         .section-title { font-weight: bold; color: #495057; margin-bottom: 10px; }
+        
+        .opa-badge { 
+            display: flex; 
+            align-items: center;
+            padding: 8px 12px; 
+            margin-bottom: 5px; 
+            background: #fff; 
+            border: 1px solid #dee2e6; 
+            border-radius: 6px; 
+            font-size: 0.9em; 
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+        .opa-code { font-weight: bold; color: #333; margin-right: 5px; display: block;}
+        .opa-name { color: #666; font-size: 0.9em; }
+        .method-badge { width: 60px; text-align: center; margin-right: 10px; flex-shrink: 0; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2 class="mb-4">🚀 API 시나리오 테스트</h2>
+    <h2 class="mb-4">🚀 API 시나리오 테스트 (Total V21)</h2>
+
+    <div class="accordion mb-4" id="accordionApiList">
+        <div class="accordion-item">
+            <h2 class="accordion-header">
+                <button class="accordion-button collapsed fw-bold bg-light" type="button" data-bs-toggle="collapse" data-bs-target="#collapseList">
+                    📋 테스트 가능한 API 목록 및 메소드 확인 (클릭하여 펼치기)
+                </button>
+            </h2>
+            <div id="collapseList" class="accordion-collapse collapse" data-bs-parent="#accordionApiList">
+                <div class="accordion-body bg-light">
+                    <div class="row g-2" id="apiListContainer"></div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <div class="card mb-3">
         <div class="card-header bg-dark text-white">1. 공통 설정 (기본 인증)</div>
@@ -42,7 +73,7 @@
         <h5 class="fw-bold text-primary mb-3">⚡ 시나리오별 필수 데이터 설정</h5>
         
         <div class="p-3 bg-white rounded mb-3 border">
-            <div class="section-title text-success">공통 입력 데이터 (일괄작성(멀티템플릿) Doc 1 & 작성 API 공용)</div>
+            <div class="section-title text-success">공통 입력 데이터 (Doc 1 & 작성 API 공용)</div>
             <div class="row g-2 mb-2">
                 <div class="col-md-4">
                     <input type="text" id="targetEmail" class="form-control form-control-sm" placeholder="수신자 Email">
@@ -56,7 +87,7 @@
             </div>
             
             <div class="d-flex justify-content-between align-items-center mb-1">
-                <span class="small text-muted fw-bold">입력 필드 (Fields - 일괄작성(멀티템플릿) Doc 1 / 공용)</span>
+                <span class="small text-muted fw-bold">입력 필드 (Fields - Doc 1 / 공용)</span>
                 <button class="btn btn-sm btn-outline-success py-0" onclick="addFieldRow('fieldsContainer')">+ 필드 추가</button>
             </div>
             <div id="fieldsContainer"></div>
@@ -65,7 +96,7 @@
         <div class="section-title">A. 새 문서 작성 (OPA 005 - 내부자)</div>
         <div class="row g-3 mb-2">
             <div class="col-md-4">
-                <label class="form-label small fw-bold">Template ID 일괄작성(멀티템플릿) (Doc 1)</label>
+                <label class="form-label small fw-bold">Template ID (Doc 1)</label>
                 <input type="text" id="targetTemplateId" class="form-control form-control-sm" placeholder="내부용 템플릿 ID">
             </div>
         </div>
@@ -166,6 +197,60 @@
 </div>
 
 <script>
+    window.onload = function() {
+        renderApiList();
+    };
+
+    function renderApiList() {
+        // [UPDATED] 멤버 API OPA 번호 반영
+        const apiData = [
+            { code: "OPA 003", method: "GET", name: "문서 정보 조회" },
+            { code: "OPA 004", method: "GET", name: "문서 파일 다운로드" },
+            { code: "OPA 005", method: "POST", name: "새 문서 작성 (내부)" },
+            { code: "OPA 006", method: "GET", name: "문서 첨부 파일 다운로드" },
+            { code: "OPA 007", method: "POST", name: "새 문서 작성 (외부)" },
+            { code: "OPA 008", method: "POST", name: "문서 목록 조회" },
+            { code: "OPA 009", method: "DELETE", name: "문서 삭제" },
+            { code: "OPA 010", method: "GET", name: "멤버 목록 조회" },
+            { code: "OPA 011", method: "POST", name: "멤버 추가" },
+            { code: "OPA 012", method: "PATCH", name: "멤버 수정" },
+            { code: "OPA 013", method: "DELETE", name: "멤버 삭제" },
+            { code: "OPA 014", method: "POST", name: "수신자 문서 재요청" },
+            { code: "OPA 015", method: "GET", name: "작성 가능한 템플릿 목록" },
+            { code: "OPA 016", method: "POST", name: "문서 일괄 작성" },
+            { code: "OPA 017", method: "GET", name: "그룹 목록 조회" },
+            { code: "OPA 018", method: "POST", name: "그룹 추가" },
+            { code: "OPA 019", method: "PATCH", name: "그룹 수정" },
+            { code: "OPA 020", method: "DELETE", name: "그룹 삭제" },
+            { code: "OPA 021", method: "POST", name: "문서 일괄 작성 (멀티)" },
+            { code: "OPA 042", method: "POST", name: "문서 취소" }
+        ];
+
+        const container = document.getElementById('apiListContainer');
+        let html = "";
+        
+        apiData.forEach(api => {
+            let badgeClass = "bg-secondary";
+            if(api.method === "GET") badgeClass = "bg-primary";
+            else if(api.method === "POST") badgeClass = "bg-success";
+            else if(api.method === "PATCH") badgeClass = "bg-warning text-dark";
+            else if(api.method === "DELETE") badgeClass = "bg-danger";
+
+            html += `
+                <div class="col-md-4 col-sm-6">
+                    <div class="opa-badge">
+                        <span class="badge ${badgeClass} method-badge">${api.method}</span>
+                        <div>
+                            <span class="opa-code">${api.code}</span>
+                            <span class="opa-name">${api.name}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        container.innerHTML = html;
+    }
+
     // [UI Helper] 필드 추가
     function addFieldRow(containerId = 'fieldsContainer') {
         const container = document.getElementById(containerId);
@@ -179,7 +264,6 @@
         container.appendChild(div);
     }
 
-    // [Logic] 필드 배열 가져오기
     function getFieldsArray(containerId = 'fieldsContainer') {
         const container = document.getElementById(containerId);
         if (!container) return [];
@@ -200,15 +284,12 @@
             name: document.getElementById('targetName').value,
             phone: document.getElementById('targetPhone').value,
             templateId: document.getElementById('targetTemplateId').value,
-            
             companyId: document.getElementById('companyId').value,
             extTemplateId: document.getElementById('extTemplateId').value,
             companyApiKey: document.getElementById('companyApiKey').value,
-            
             downloadDocId: document.getElementById('downloadDocId').value,
             attachDocId: document.getElementById('attachDocId').value,
             memberId: document.getElementById('memberId').value,
-
             templateId2: document.getElementById('targetTemplateId2').value,
             email2: document.getElementById('targetEmail2').value,
             name2: document.getElementById('targetName2').value,
@@ -220,14 +301,10 @@
     const getInnerDocumentData = (email, name, phone, fieldsArr) => {
         let recipientsList = [];
         const hasRecipientInfo = (email && email.trim() !== "") || (name && name.trim() !== "") || (phone && phone.trim() !== "");
-        
         if (hasRecipientInfo) {
             recipientsList.push({
                 "step_type": "05", "use_mail": true, "use_sms": true,
-                "member": {
-                    "id": email, "name": name,
-                    "sms": { "country_code": "82", "phone_number": phone }
-                },
+                "member": { "id": email, "name": name, "sms": { "country_code": "82", "phone_number": phone } },
                 "auth": { "password": "", "valid": { "day": 0, "hour": 0 } }
             });
         }
@@ -247,29 +324,14 @@
         return { "documents": [ { ...innerData, "select_group_name": "" }, { ...innerData, "select_group_name": "" } ] };
     };
 
-    // [NEW] OPA 021 Multi-Template Body (document_name removed)
     const generateMassMultiDocumentBody = () => {
         const data = getDynamicData();
-        
-        // Doc 1: 기본 필드 사용
         const doc1Fields = getFieldsArray('fieldsContainer');
-        const doc1 = {
-            "template_id": data.templateId,
-            // document_name 삭제됨
-            ...getInnerDocumentData(data.email, data.name, data.phone, doc1Fields)
-        };
-
-        // Doc 2: 전용 필드 사용
+        const doc1 = { "template_id": data.templateId, ...getInnerDocumentData(data.email, data.name, data.phone, doc1Fields) };
         const doc2Fields = getFieldsArray('fieldsContainer2');
-        const doc2 = {
-            "template_id": data.templateId2,
-            // document_name 삭제됨
-            ...getInnerDocumentData(data.email2, data.name2, data.phone2, doc2Fields)
-        };
-
+        const doc2 = { "template_id": data.templateId2, ...getInnerDocumentData(data.email2, data.name2, data.phone2, doc2Fields) };
         const docs = [doc1];
         if(data.templateId2) docs.push(doc2);
-
         return { "documents": docs };
     };
 
@@ -281,11 +343,7 @@
     const generateListBody = () => { return { "type": "04", "title_and_content": "", "title": "", "content": "", "limit": "100", "skip": "0" }; };
 
     // [Store]
-    let sharedData = {
-        lastCreatedId: null,
-        createdIdList: [],
-        createdGroupId: null 
-    };
+    let sharedData = { lastCreatedId: null, createdIdList: [], createdGroupId: null };
 
     // [TEST LIST]
     const testList = [
@@ -355,7 +413,7 @@
         },
         // 6. OPA 14 Re-request
         {
-            name: "수신자 문서 재요청 (OPA 14)",
+            name: "수신자 문서 재요청 (OPA 014)",
             method: "POST",
             path: () => {
                 if(!sharedData.lastCreatedId) throw new Error("앞서 생성된 문서가 없어 재요청 불가");
@@ -444,10 +502,10 @@
             }
         },
 
-        // --- Cleanup (Cancel & Delete) ---
+        // --- Cleanup ---
         // 13. OPA 42
         {
-            name: "문서 취소 (OPA 42 - Cleanup)",
+            name: "문서 취소 (OPA 042 - Cleanup)",
             method: "POST",
             path: "/v2.0/api/documents/cancel",
             body: () => {
@@ -471,7 +529,7 @@
         // --- Member APIs ---
         // 15. Member Create
         {
-            name: "멤버 추가 (POST)",
+            name: "멤버 추가 (OPA 011)",
             method: "POST",
             path: "/v2.0/api/members?mailOption=false",
             body: () => {
@@ -483,7 +541,7 @@
         },
         // 16. Member List
         {
-            name: "멤버 목록 조회 (GET)",
+            name: "멤버 목록 조회 (OPA 010)",
             method: "GET",
             path: "/v2.0/api/members",
             body: null,
@@ -491,7 +549,7 @@
         },
         // 17. Member Update
         {
-            name: "멤버 수정 (PATCH)",
+            name: "멤버 수정 (OPA 012)",
             method: "PATCH",
             path: () => {
                 const data = getDynamicData();
@@ -516,7 +574,7 @@
         },
         // 18. Member Delete
         {
-            name: "멤버 삭제 (DELETE)",
+            name: "멤버 삭제 (OPA 013)",
             method: "DELETE",
             path: () => {
                 const data = getDynamicData();
@@ -622,7 +680,7 @@
                 url = `${baseUrl}${pathStr}`;
                 if (test.body) {
                     const generatedBody = typeof test.body === 'function' ? test.body() : test.body;
-                    if (generatedBody === null && test.name.includes("OPA 14")) {
+                    if (generatedBody === null && test.name.includes("OPA 014")) {
                         throw new Error("SKIP_OPA14");
                     }
                     bodyData = generatedBody;

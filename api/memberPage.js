@@ -19,6 +19,6 @@ export default async function handler(req, res) {
     }
   }
 
-  const next = encodeURIComponent('/private/Member.html'); // 또는 너가 쓰는 멤버 경로
+  const next = encodeURIComponent('/private/Member.html'); 
   return res.redirect(302, `/auth/login.html?next=${next}&scope=member`);
 }
