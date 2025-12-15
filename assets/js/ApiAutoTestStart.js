@@ -27,7 +27,10 @@ function renderApiList() {
         { code: "OPA 023", method: "GET", name: "회사 도장 정보 조회" },
         { code: "OPA 030", method: "POST", name: "멤버 일괄 추가" },
         { code: "OPA 037", method: "POST", name: "일괄 완료 문서 PDF 전송" },
-        { code: "OPA 042", method: "POST", name: "문서 취소" }
+        { code: "OPA 040", method: "POST", name: "문서 파일 일괄 다운로드" },
+        { code: "OPA 042", method: "POST", name: "문서 취소" },
+        // [NEW] OPA 045 Added
+        { code: "OPA 045", method: "POST", name: "완료 토큰 기한 연장" }
     ].sort((a, b) => a.code.localeCompare(b.code));
 
     const container = document.getElementById('apiListContainer');
@@ -154,7 +157,6 @@ const generateBulkMemberBody = () => {
     ];
 };
 
-// [OPA 037] PDF Send Body (Index 0: Email, Index 1: SMS)
 const generateSendPdfBody = () => {
     const data = getDynamicData();
     
@@ -166,37 +168,29 @@ const generateSendPdfBody = () => {
 
     targetIds.forEach((docId, index) => {
         const pdfInfos = [];
-
-        // 첫 번째 문서는 Email
         if (index === 0 && data.pdfEmail) {
-            pdfInfos.push({
-                "name": data.pdfName || "수신자",
-                "method": "email",
-                "method_info": data.pdfEmail,
-                "sms_option": {}
-            });
-        } 
-        // 두 번째 문서는 SMS
-        else if (index === 1 && data.pdfPhone) {
-            pdfInfos.push({
-                "name": data.pdfName || "수신자",
-                "method": "sms",
-                "method_info": data.pdfPhone,
-                "code": "+82",
-                "sms_option": {}
-            });
+            pdfInfos.push({ "name": data.pdfName || "수신자", "method": "email", "method_info": data.pdfEmail, "sms_option": {} });
+        } else if (index === 1 && data.pdfPhone) {
+            pdfInfos.push({ "name": data.pdfName || "수신자", "method": "sms", "method_info": data.pdfPhone, "code": "+82", "sms_option": {} });
         }
-
         if (pdfInfos.length > 0) {
-            sendPdfs.push({
-                "document_id": docId,
-                "pdf_send_infos": pdfInfos
-            });
+            sendPdfs.push({ "document_id": docId, "pdf_send_infos": pdfInfos });
         }
     });
 
     if (sendPdfs.length === 0) throw new Error("SKIP_OPA037");
     return { "input": { "send_pdfs": sendPdfs } };
+};
+
+const generateMultiDownloadBody = () => {
+    if(!sharedData.completedDocIds || sharedData.completedDocIds.length === 0) {
+        throw new Error("완료된 문서가 없어 다운로드할 수 없습니다. (OPA 008 선행 필수)");
+    }
+    const targetIds = sharedData.completedDocIds.slice(0, 2);
+    return {
+        "document_ids": targetIds,
+        "file_type": ["document", "audit_trail"]
+    };
 };
 
 const generateReRequestBody = () => {
@@ -216,7 +210,7 @@ let sharedData = {
     completedDocIds: []
 };
 
-// [TEST LIST] - 가독성을 위해 포맷팅 복구
+// [TEST LIST]
 const testList = [
     // 1. OPA 005
     {
@@ -316,7 +310,7 @@ const testList = [
             }
         }
     },
-    // 8. OPA 008 Basic (Data Prep for OPA 037)
+    // 8. OPA 008 Basic (Data Prep)
     {
         name: "문서 목록 조회 - 기본 (OPA 008)",
         method: "POST",
@@ -324,10 +318,10 @@ const testList = [
         body: generateListBody,
         expectedStatus: 200,
         afterRequest: (json) => {
-            // 완료된 문서(003) 수집
             if (json && json.documents && Array.isArray(json.documents)) {
+                // 완료된 문서(003) 수집 for OPA 037, 040, 045
                 const completedDocs = json.documents.filter(doc => doc.current_status && doc.current_status.status_type === '003');
-                sharedData.completedDocIds = completedDocs.slice(0, 2).map(doc => doc.id);
+                sharedData.completedDocIds = completedDocs.map(doc => doc.id);
                 console.log(`[OPA 008] Collected ${sharedData.completedDocIds.length} completed docs.`);
             }
         }
@@ -348,7 +342,7 @@ const testList = [
         body: null,
         expectedStatus: 200
     },
-    // 11. OPA 016
+    // 11. OPA 016 Mass Create
     {
         name: "문서 일괄 작성 (OPA 016)",
         method: "POST",
@@ -368,7 +362,7 @@ const testList = [
             }
         }
     },
-    // 12. OPA 021
+    // 12. OPA 021 Multi-Mass Create
     {
         name: "문서 일괄 작성 - 멀티 템플릿 (OPA 021)",
         method: "POST",
@@ -555,7 +549,31 @@ const testList = [
         body: generateSendPdfBody,
         expectedStatus: 200
     },
-    // 25. Cleanup Bulk 1
+    // 25. Multi File Download (OPA 040)
+    {
+        name: "문서 파일 일괄 다운로드 (OPA 040)",
+        method: "POST",
+        path: "/v2.0/api/documents/download_multi_files",
+        body: generateMultiDownloadBody,
+        expectedStatus: 200
+    },
+    // 26. [NEW] Refresh Complete Token (OPA 045)
+    {
+        name: "완료 토큰 기한 연장 (OPA 045)",
+        method: "POST",
+        path: () => {
+            // "complete" token implies we should use a completed document.
+            // Pick randomly from the collected completedDocIds.
+            if (!sharedData.completedDocIds || sharedData.completedDocIds.length === 0) {
+                throw new Error("완료된 문서가 없어 토큰을 연장할 수 없습니다.");
+            }
+            const randomId = sharedData.completedDocIds[Math.floor(Math.random() * sharedData.completedDocIds.length)];
+            return `/v2.0/api/documents/${randomId}/refresh_complete_token`;
+        },
+        body: { "step_seq": [] },
+        expectedStatus: 200
+    },
+    // 27. Cleanup Bulk 1
     {
         name: "일괄 추가된 멤버 1 삭제 (Cleanup)",
         method: "DELETE",
@@ -566,7 +584,7 @@ const testList = [
         body: null,
         expectedStatus: 200
     },
-    // 26. Cleanup Bulk 2
+    // 28. Cleanup Bulk 2
     {
         name: "일괄 추가된 멤버 2 삭제 (Cleanup)",
         method: "DELETE",
@@ -577,7 +595,7 @@ const testList = [
         body: null,
         expectedStatus: 200
     },
-    // 27. Cleanup Doc Cancel (OPA 42)
+    // 29. Cleanup Doc Cancel (OPA 42)
     {
         name: "문서 취소 (OPA 042 - Cleanup)",
         method: "POST",
@@ -588,7 +606,7 @@ const testList = [
         },
         expectedStatus: 200
     },
-    // 28. Cleanup Doc Delete (OPA 009)
+    // 30. Cleanup Doc Delete (OPA 009)
     {
         name: "문서 삭제 (OPA 009 - Cleanup)",
         method: "DELETE",
@@ -609,7 +627,6 @@ async function runAllTests() {
     const progressText = document.getElementById('progressText');
 
     tbody.innerHTML = "";
-    // Reset Data
     sharedData = { lastCreatedId: null, createdIdList: [], createdGroupId: null, companyStampId: null, bulkMemberIds: [], completedDocIds: [] };
     let successCount = 0;
     let failCount = 0;
@@ -639,7 +656,7 @@ async function runAllTests() {
 
         if (errorMessage === "SKIP_OPA14" || errorMessage === "SKIP_OPA037" || errorMessage === "SKIP_ACTION") {
             const rowId = `log-${i}`;
-            tbody.insertAdjacentHTML('beforeend', `<tr class="table-warning"><td class="text-center fw-bold">${i+1}</td><td><div class="fw-bold">${test.name}</div></td><td class="text-center"><span class="badge bg-secondary">${test.method}</span></td><td class="text-center status-skip">SKIPPED</td><td class="text-center">-</td><td class="text-center"><button class="btn btn-sm btn-outline-secondary" onclick="toggleLog('${rowId}')">결과보기</button></td></tr><tr><td colspan="6" class="p-0 border-0"><div id="${rowId}" class="log-box">Skipped due to missing data</div></td></tr>`);
+            tbody.insertAdjacentHTML('beforeend', `<tr class="table-warning"><td class="text-center fw-bold">${i+1}</td><td><div class="fw-bold">${test.name}</div></td><td class="text-center"><span class="badge bg-secondary">${test.method}</span></td><td class="text-center status-skip">SKIPPED</td><td class="text-center">-</td><td class="text-center"><button class="btn btn-sm btn-outline-secondary" onclick="toggleLog('${rowId}')">결과보기</button></td></tr><tr><td colspan="6" class="p-0 border-0"><div id="${rowId}" class="log-box">Skipped due to missing data (수신자 정보 또는 완료 문서 ID 등)</div></td></tr>`);
             continue;
         }
 
