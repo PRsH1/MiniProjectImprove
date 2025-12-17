@@ -1,7 +1,6 @@
 // api/auth.js
-const samlify = require('samlify'); 
+
 const { idp, sp } = require('../lib/saml');
-const { v4: uuidv4 } = require('uuid');
 
 module.exports = async (req, res) => {
   if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
@@ -10,16 +9,12 @@ module.exports = async (req, res) => {
   const user = { email, name };
 
   try {
-    // 1. SAML 요청 파싱
-    // (여기서 samlify 객체를 사용하므로 상단에 require가 필수입니다)
-    const parseRequest = SAMLRequest 
-      ? await samlify.SamlLib.decodeBase64(SAMLRequest) 
-      : { id: 'request_id', issuer: 'urn:eformsign:service' };
+  
 
-    // 2. SAML Response 생성
+  
     const { context } = await idp.createLoginResponse(
       sp,
-      { extract: { request: { id: 'request_id' } } },
+      { extract: { request: { id: 'request_id' } } }, // 테스트용 요청 ID 강제 주입
       'post',
       user,
       createTemplateCallback(user)
@@ -27,7 +22,7 @@ module.exports = async (req, res) => {
 
     // 3. B사이트로 자동 Submit 되는 HTML 반환
     const acsUrl = 'https://test-kr-service.eformsign.com/v1.0/saml_redirect';
-    
+
     const autoPostHtml = `
       <!DOCTYPE html>
       <html>
@@ -46,26 +41,34 @@ module.exports = async (req, res) => {
 
   } catch (e) {
     console.error(e);
-    // 에러 발생 시 명확한 로그 출력
     res.status(500).send('SAML Error: ' + e.message);
   }
 };
 
-// 속성 매핑 헬퍼 함수
+// [핵심 수정] 라이브러리 의존성 없이 직접 XML을 주입하는 함수
 function createTemplateCallback(user) {
   return (template) => {
-    const assertionTag = {
-      'saml:AttributeStatement': {
-        'saml:Attribute': [
-          { '@Name': 'email', 'saml:AttributeValue': user.email },
-          { '@Name': 'name', 'saml:AttributeValue': user.name }
-        ]
-      }
-    };
+    // 1. 주입할 Attribute XML 생성
+    // (xsi:type과 xmlns 정의를 명확히 하여 호환성을 높였습니다)
+    const attributesXml = `
+      <saml:Attribute xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" Name="email" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:basic">
+        <saml:AttributeValue xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="xs:string">${user.email}</saml:AttributeValue>
+      </saml:Attribute>
+      <saml:Attribute xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" Name="name" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:basic">
+        <saml:AttributeValue xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="xs:string">${user.name}</saml:AttributeValue>
+      </saml:Attribute>
+    `;
+
+    // 2. AttributeStatement 태그 안에 우리가 만든 XML을 삽입합니다.
+    // 기존 템플릿의 닫는 태그 </saml:AttributeStatement> 직전에 삽입하는 방식
+    const newContext = template.replace(
+      '</saml:AttributeStatement>', 
+      `${attributesXml}</saml:AttributeStatement>`
+    );
+
     return {
-      id: uuidv4(),
-      // (여기서도 samlify 객체를 사용합니다)
-      context: samlify.SamlLib.replaceTagsByValue(template, assertionTag),
+      id: 'response_id_' + Date.now(), // 고유 ID 생성
+      context: newContext
     };
   };
 }
