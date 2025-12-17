@@ -31,7 +31,7 @@ module.exports = (req, res) => {
             <input type="hidden" name="SAMLRequest" value="${SAMLRequest || ''}">
             <input type="hidden" name="RelayState" value="${RelayState || ''}">
             
-            <button type="submit">로그인 및 B사이트로 이동</button>
+            <button type="submit">로그인 및 eformsign 이동</button>
           </form>
         </div>
       </body>
