@@ -1,5 +1,4 @@
 // api/auth.js
-
 const { idp, sp } = require('../lib/saml');
 
 module.exports = async (req, res) => {
@@ -9,20 +8,18 @@ module.exports = async (req, res) => {
   const user = { email, name };
 
   try {
-  
-
-  
+    // 1. SAML Response 생성
     const { context } = await idp.createLoginResponse(
       sp,
-      { extract: { request: { id: 'request_id' } } }, // 테스트용 요청 ID 강제 주입
+      { extract: { request: { id: 'request_id' } } }, 
       'post',
       user,
       createTemplateCallback(user)
     );
 
-    // 3. B사이트로 자동 Submit 되는 HTML 반환
+    // 2. B사이트로 자동 Submit
     const acsUrl = 'https://test-kr-service.eformsign.com/v1.0/saml_redirect';
-
+    
     const autoPostHtml = `
       <!DOCTYPE html>
       <html>
@@ -31,7 +28,7 @@ module.exports = async (req, res) => {
           <input type="hidden" name="SAMLResponse" value="${context}">
           <input type="hidden" name="RelayState" value="${RelayState || ''}">
         </form>
-        <p>eformsign 사이트로 이동 중입니다...</p>
+        <p>B사이트로 이동 중입니다...</p>
       </body>
       </html>
     `;
@@ -45,29 +42,28 @@ module.exports = async (req, res) => {
   }
 };
 
-// [핵심 수정] 라이브러리 의존성 없이 직접 XML을 주입하는 함수
+// [핵심 수정 사항]
 function createTemplateCallback(user) {
   return (template) => {
-    // 1. 주입할 Attribute XML 생성
-    // (xsi:type과 xmlns 정의를 명확히 하여 호환성을 높였습니다)
+    /* 수정 1: xmlns:xs="http://www.w3.org/2001/XMLSchema" 추가 (xs:string 타입을 인식시키기 위함)
+      수정 2: NameFormat을 'unspecified'로 변경 (Azure 등 호환성 증대)
+    */
     const attributesXml = `
-      <saml:Attribute xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" Name="email" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:basic">
-        <saml:AttributeValue xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="xs:string">${user.email}</saml:AttributeValue>
+      <saml:Attribute xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" Name="email" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:unspecified">
+        <saml:AttributeValue xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xs="http://www.w3.org/2001/XMLSchema" xsi:type="xs:string">${user.email}</saml:AttributeValue>
       </saml:Attribute>
-      <saml:Attribute xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" Name="name" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:basic">
-        <saml:AttributeValue xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="xs:string">${user.name}</saml:AttributeValue>
+      <saml:Attribute xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" Name="name" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:unspecified">
+        <saml:AttributeValue xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xs="http://www.w3.org/2001/XMLSchema" xsi:type="xs:string">${user.name}</saml:AttributeValue>
       </saml:Attribute>
     `;
 
-    // 2. AttributeStatement 태그 안에 우리가 만든 XML을 삽입합니다.
-    // 기존 템플릿의 닫는 태그 </saml:AttributeStatement> 직전에 삽입하는 방식
     const newContext = template.replace(
       '</saml:AttributeStatement>', 
       `${attributesXml}</saml:AttributeStatement>`
     );
 
     return {
-      id: 'response_id_' + Date.now(), // 고유 ID 생성
+      id: 'response_id_' + Date.now(),
       context: newContext
     };
   };
