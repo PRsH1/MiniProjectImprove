@@ -24,7 +24,7 @@ module.exports = async (req, res) => {
     );
 
     // 3. B사이트로 자동 Submit 되는 HTML 반환
-    const acsUrl = 'https://kr-service.eformsign.com/v1.0/saml_redirect';
+    const acsUrl = 'https://test-kr-service.eformsign.com/v1.0/saml_redirect';
     
     const autoPostHtml = `
       <!DOCTYPE html>
