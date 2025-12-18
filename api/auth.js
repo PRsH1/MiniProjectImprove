@@ -4,7 +4,6 @@ const { DOMParser } = require('@xmldom/xmldom');
 const zlib = require('zlib');
 const { v4: uuidv4 } = require('uuid');
 
-// 환경변수에서 키 로드 (Base64 -> String)
 const privateKey = process.env.SAML_PRIVATE_KEY
   ? Buffer.from(process.env.SAML_PRIVATE_KEY, 'base64').toString('utf-8')
   : '';
@@ -19,37 +18,36 @@ module.exports = async (req, res) => {
   const { email, name, SAMLRequest, RelayState } = req.body;
 
   try {
-   
     const issuer = 'https://mini-project-improve.vercel.app/api/metadata';
     const acsUrl = 'https://test-kr-service.eformsign.com/v1.0/saml_redirect';
     const now = new Date();
     const issueInstant = now.toISOString();
-    const notOnOrAfter = new Date(now.getTime() + 5 * 60 * 1000).toISOString(); // 5분 유효
+    const notOnOrAfter = new Date(now.getTime() + 5 * 60 * 1000).toISOString();
     const responseId = '_' + uuidv4();
     const assertionId = '_' + uuidv4();
 
-  
+    // SAMLRequest ID 추출 로직
     let requestId = null;
     if (SAMLRequest) {
       try {
-        // Redirect Binding은 Deflated 되어 있을 수 있음. 실패하면 Raw Base64로 시도.
         let decoded = '';
         try {
           const buffer = Buffer.from(SAMLRequest, 'base64');
+          // Redirect Binding(GET)의 경우 Deflate 된 경우가 많음
           decoded = zlib.inflateRawSync(buffer).toString();
         } catch (e) {
+          // POST Binding의 경우 단순 Base64
           decoded = Buffer.from(SAMLRequest, 'base64').toString('utf-8');
         }
-        // ID="something" 패턴 추출
         const match = decoded.match(/ID="([^"]+)"/);
         if (match) requestId = match[1];
       } catch (e) {
-        console.warn("Failed to extract ID from SAMLRequest", e);
+        console.warn("Failed to extract ID", e);
       }
     }
     const inResponseToAttr = requestId ? `InResponseTo="${requestId}"` : '';
 
-    
+    // XML 템플릿 (Azure 표준 속성 강제 주입)
     const xml = `<samlp:Response xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" ID="${responseId}" Version="2.0" IssueInstant="${issueInstant}" Destination="${acsUrl}" ${inResponseToAttr}>
   <saml:Issuer>${issuer}</saml:Issuer>
   <samlp:Status>
@@ -84,37 +82,39 @@ module.exports = async (req, res) => {
   </saml:Assertion>
 </samlp:Response>`;
 
-    // 4. 서명 (Sign)
+    // 서명 설정
     const sig = new SignedXml();
-    
-    // 서명 알고리즘 설정 (eformsign 호환)
     sig.signatureAlgorithm = "http://www.w3.org/2001/04/xmldsig-more#rsa-sha256";
-    sig.addReference("//*[local-name(.)='Response']", [
-      "http://www.w3.org/2000/09/xmldsig#enveloped-signature",
-      "http://www.w3.org/2001/10/xml-exc-c14n#"
-    ], "http://www.w3.org/2001/04/xmlenc#sha256");
+    
+    // [중요] addReference 호출 (배열 등 인자 명확화)
+    sig.addReference(
+      "//*[local-name(.)='Response']",
+      ["http://www.w3.org/2000/09/xmldsig#enveloped-signature", "http://www.w3.org/2001/10/xml-exc-c14n#"],
+      "http://www.w3.org/2001/04/xmlenc#sha256"
+    );
 
     sig.signingKey = privateKey;
     
-    // 공개키 정보 주입 (헤더 제거 처리)
+    // 인증서 정보 주입
     const cleanCert = publicCert.replace(/-----BEGIN CERTIFICATE-----/g, '').replace(/-----END CERTIFICATE-----/g, '').replace(/\s/g, '');
     sig.keyInfoProvider = {
       getKeyInfo: () => `<ds:X509Data><ds:X509Certificate>${cleanCert}</ds:X509Certificate></ds:X509Data>`
     };
 
-    // 서명 위치 지정 (Issuer 뒤에 삽입)
+    // 서명 계산 (Issuer 뒤에 삽입)
     sig.computeSignature(xml, {
       location: { reference: "//*[local-name(.)='Issuer']", action: "after" }
     });
 
     const signedXml = sig.getSignedXml();
-
-    // 5. 최종 전송
     console.log("✅ Custom XML Generated & Signed successfully.");
     console.log(signedXml);
-    console.log("Redirecting to ACS URL:", acsUrl); 
-    console.log("With RelayState:", RelayState);
-  
+    console.log("➡ Redirecting to ACS...");
+    console.log(`   ACS URL: ${acsUrl}`);
+    console.log(`   RelayState: ${RelayState || ''}`);
+
+
+    // 응답으로 자동 제출 폼 전송
     
     res.setHeader('Content-Type', 'text/html');
     res.send(`
