@@ -17,7 +17,15 @@ module.exports = async (req, res) => {
       createTemplateCallback(user)
     );
 
-    // 2. B사이트로 자동 Submit
+    // [로그 기능 추가]
+    console.log("==================================================");
+    console.log("🚀 [SAML Response Debug Log]");
+    console.log("User Email:", email);
+    console.log("User Name:", name);
+    console.log("Generated XML:\n", context); // 디코딩된 XML 원본 출력
+    console.log("==================================================");
+
+    // 2. 자동 폼 제출 HTML 생성
     const acsUrl = 'https://test-kr-service.eformsign.com/v1.0/saml_redirect';
     
     const autoPostHtml = `
@@ -28,8 +36,8 @@ module.exports = async (req, res) => {
           <input type="hidden" name="SAMLResponse" value="${context}">
           <input type="hidden" name="RelayState" value="${RelayState || ''}">
         </form>
-        <p>B사이트로 이동 중입니다...</p>
-      </body>
+        <p>eformsign으로 이동 중입니다...</p>
+        </body>
       </html>
     `;
 
@@ -37,22 +45,21 @@ module.exports = async (req, res) => {
     res.send(autoPostHtml);
 
   } catch (e) {
-    console.error(e);
+    console.error("❌ SAML Generation Error:", e);
     res.status(500).send('SAML Error: ' + e.message);
   }
 };
 
-// [핵심 수정 사항]
+// [핵심 수정] Azure AD 표준 Claim URI 적용
 function createTemplateCallback(user) {
   return (template) => {
-    /* 수정 1: xmlns:xs="http://www.w3.org/2001/XMLSchema" 추가 (xs:string 타입을 인식시키기 위함)
-      수정 2: NameFormat을 'unspecified'로 변경 (Azure 등 호환성 증대)
-    */
+    // Attribute XML 부분을 Azure AD 표준 Claim URI로 대체
     const attributesXml = `
-      <saml:Attribute xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" Name="email" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:unspecified">
+      <saml:Attribute xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" Name="http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:basic">
         <saml:AttributeValue xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xs="http://www.w3.org/2001/XMLSchema" xsi:type="xs:string">${user.email}</saml:AttributeValue>
       </saml:Attribute>
-      <saml:Attribute xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" Name="name" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:unspecified">
+      
+      <saml:Attribute xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" Name="http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:basic">
         <saml:AttributeValue xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xs="http://www.w3.org/2001/XMLSchema" xsi:type="xs:string">${user.name}</saml:AttributeValue>
       </saml:Attribute>
     `;
