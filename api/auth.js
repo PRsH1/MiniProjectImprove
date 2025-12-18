@@ -26,67 +26,35 @@ module.exports = async (req, res) => {
     const responseId = '_' + uuidv4();
     const assertionId = '_' + uuidv4();
 
-    // SAMLRequest ID 추출 로직
+    // SAMLRequest ID 추출
     let requestId = null;
     if (SAMLRequest) {
       try {
         let decoded = '';
         try {
-          const buffer = Buffer.from(SAMLRequest, 'base64');
-          // Redirect Binding(GET)의 경우 Deflate 된 경우가 많음
-          decoded = zlib.inflateRawSync(buffer).toString();
+          // Redirect Binding (Deflated)
+          decoded = zlib.inflateRawSync(Buffer.from(SAMLRequest, 'base64')).toString();
         } catch (e) {
-          // POST Binding의 경우 단순 Base64
+          // POST Binding (Plain Base64)
           decoded = Buffer.from(SAMLRequest, 'base64').toString('utf-8');
         }
         const match = decoded.match(/ID="([^"]+)"/);
         if (match) requestId = match[1];
       } catch (e) {
-        console.warn("Failed to extract ID", e);
+        console.warn("ID Extraction failed", e);
       }
     }
     const inResponseToAttr = requestId ? `InResponseTo="${requestId}"` : '';
 
-    // XML 템플릿 (Azure 표준 속성 강제 주입)
-    const xml = `<samlp:Response xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" ID="${responseId}" Version="2.0" IssueInstant="${issueInstant}" Destination="${acsUrl}" ${inResponseToAttr}>
-  <saml:Issuer>${issuer}</saml:Issuer>
-  <samlp:Status>
-    <samlp:StatusCode Value="urn:oasis:names:tc:SAML:2.0:status:Success"/>
-  </samlp:Status>
-  <saml:Assertion xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" ID="${assertionId}" Version="2.0" IssueInstant="${issueInstant}">
-    <saml:Issuer>${issuer}</saml:Issuer>
-    <saml:Subject>
-      <saml:NameID Format="urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified">${email}</saml:NameID>
-      <saml:SubjectConfirmation Method="urn:oasis:names:tc:SAML:2.0:cm:bearer">
-        <saml:SubjectConfirmationData NotOnOrAfter="${notOnOrAfter}" Recipient="${acsUrl}" ${inResponseToAttr}/>
-      </saml:SubjectConfirmation>
-    </saml:Subject>
-    <saml:Conditions NotBefore="${issueInstant}" NotOnOrAfter="${notOnOrAfter}">
-      <saml:AudienceRestriction>
-        <saml:Audience>urn:eformsign:service</saml:Audience>
-      </saml:AudienceRestriction>
-    </saml:Conditions>
-    <saml:AuthnStatement AuthnInstant="${issueInstant}" SessionIndex="${assertionId}">
-      <saml:AuthnContext>
-        <saml:AuthnContextClassRef>urn:oasis:names:tc:SAML:2.0:ac:classes:unspecified</saml:AuthnContextClassRef>
-      </saml:AuthnContext>
-    </saml:AuthnStatement>
-    <saml:AttributeStatement>
-      <saml:Attribute Name="http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:basic">
-        <saml:AttributeValue xsi:type="xs:string">${email}</saml:AttributeValue>
-      </saml:Attribute>
-      <saml:Attribute Name="http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:basic">
-        <saml:AttributeValue xsi:type="xs:string">${name}</saml:AttributeValue>
-      </saml:Attribute>
-    </saml:AttributeStatement>
-  </saml:Assertion>
-</samlp:Response>`;
+    /* [중요 수정 사항]
+       1. 모든 XML을 공백 없이 한 줄로 연결 (Canonicalization 이슈 방지)
+       2. xmlns 정의를 최상위 요소로 통합
+    */
+    const xml = `<samlp:Response xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xs="http://www.w3.org/2001/XMLSchema" ID="${responseId}" Version="2.0" IssueInstant="${issueInstant}" Destination="${acsUrl}" ${inResponseToAttr}><saml:Issuer>${issuer}</saml:Issuer><samlp:Status><samlp:StatusCode Value="urn:oasis:names:tc:SAML:2.0:status:Success"/></samlp:Status><saml:Assertion ID="${assertionId}" Version="2.0" IssueInstant="${issueInstant}"><saml:Issuer>${issuer}</saml:Issuer><saml:Subject><saml:NameID Format="urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified">${email}</saml:NameID><saml:SubjectConfirmation Method="urn:oasis:names:tc:SAML:2.0:cm:bearer"><saml:SubjectConfirmationData NotOnOrAfter="${notOnOrAfter}" Recipient="${acsUrl}" ${inResponseToAttr}/></saml:SubjectConfirmation></saml:Subject><saml:Conditions NotBefore="${issueInstant}" NotOnOrAfter="${notOnOrAfter}"><saml:AudienceRestriction><saml:Audience>urn:eformsign:service</saml:Audience></saml:AudienceRestriction></saml:Conditions><saml:AuthnStatement AuthnInstant="${issueInstant}" SessionIndex="${assertionId}"><saml:AuthnContext><saml:AuthnContextClassRef>urn:oasis:names:tc:SAML:2.0:ac:classes:unspecified</saml:AuthnContextClassRef></saml:AuthnContext></saml:AuthnStatement><saml:AttributeStatement><saml:Attribute Name="http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:basic"><saml:AttributeValue xsi:type="xs:string">${email}</saml:AttributeValue></saml:Attribute><saml:Attribute Name="http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:basic"><saml:AttributeValue xsi:type="xs:string">${name}</saml:AttributeValue></saml:Attribute></saml:AttributeStatement></saml:Assertion></samlp:Response>`;
 
-    // 서명 설정
+    // 서명 생성
     const sig = new SignedXml();
     sig.signatureAlgorithm = "http://www.w3.org/2001/04/xmldsig-more#rsa-sha256";
-    
-    // [중요] addReference 호출 (배열 등 인자 명확화)
     sig.addReference(
       "//*[local-name(.)='Response']",
       ["http://www.w3.org/2000/09/xmldsig#enveloped-signature", "http://www.w3.org/2001/10/xml-exc-c14n#"],
@@ -94,28 +62,19 @@ module.exports = async (req, res) => {
     );
 
     sig.signingKey = privateKey;
-    
-    // 인증서 정보 주입
+
     const cleanCert = publicCert.replace(/-----BEGIN CERTIFICATE-----/g, '').replace(/-----END CERTIFICATE-----/g, '').replace(/\s/g, '');
     sig.keyInfoProvider = {
       getKeyInfo: () => `<ds:X509Data><ds:X509Certificate>${cleanCert}</ds:X509Certificate></ds:X509Data>`
     };
 
-    // 서명 계산 (Issuer 뒤에 삽입)
     sig.computeSignature(xml, {
       location: { reference: "//*[local-name(.)='Issuer']", action: "after" }
     });
 
     const signedXml = sig.getSignedXml();
     console.log("✅ Custom XML Generated & Signed successfully.");
-    console.log(signedXml);
-    console.log("➡ Redirecting to ACS...");
-    console.log(`   ACS URL: ${acsUrl}`);
-    console.log(`   RelayState: ${RelayState || ''}`);
 
-
-    // 응답으로 자동 제출 폼 전송
-    
     res.setHeader('Content-Type', 'text/html');
     res.send(`
       <!DOCTYPE html>
