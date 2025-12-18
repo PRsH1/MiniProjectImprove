@@ -15,6 +15,10 @@ module.exports = async (req, res) => {
       user
       // 커스텀 치환 콜백은 우선 제거
     );
+    const decodedXml = Buffer.from(context, 'base64').toString('utf8');
+    console.log('has AttributeStatement?', decodedXml.includes('AttributeStatement'));
+    console.log('has claims/name?', decodedXml.includes('http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'));
+    console.log('has user.name literal?', decodedXml.includes(name));
 
     const acsUrl = 'https://test-kr-service.eformsign.com/v1.0/saml_redirect';
     console.log("✅ SAML Response generated, redirecting to ACS:", acsUrl);
