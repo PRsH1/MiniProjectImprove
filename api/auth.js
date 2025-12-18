@@ -17,6 +17,15 @@ module.exports = async (req, res) => {
     );
 
     const acsUrl = 'https://test-kr-service.eformsign.com/v1.0/saml_redirect';
+    console.log("✅ SAML Response generated, redirecting to ACS:", acsUrl);
+    console.log("SAML Response Context:", context);
+    console.log("RelayState:", RelayState);
+    console.log("User Info:", user);
+    console.log("user name: ", name);
+    console.log("Request ID:", 'request_id');
+    console.log("Timestamp:", new Date().toISOString());
+    console.log("--------------------------------------------------");
+    
 
     res.setHeader('Content-Type', 'text/html');
     res.send(`
