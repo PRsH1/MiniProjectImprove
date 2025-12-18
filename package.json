@@ -10,7 +10,7 @@
     "pusher": "^5.2.0",
     "samlify": "^2.10.2",
     "uuid": "^8.3.2",
-    "xml-crypto": "^6.1.2"
+    "xml-crypto": "^3.2.0"
   },
   "devDependencies": {
     "next": "^15.5.7"
