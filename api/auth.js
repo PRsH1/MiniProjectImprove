@@ -19,7 +19,9 @@ module.exports = async (req, res) => {
 
     // [로그 확인용] 생성된 XML 구조 확인
     console.log("🚀 [SAML Response Generated]");
-    // console.log(context); // 필요 시 주석 해제하여 전체 XML 확인
+    console.log("====================================");
+    console.log("Generated SAML Response XML:");   
+    console.log(context);
 
   
     const acsUrl = 'https://test-kr-service.eformsign.com/v1.0/saml_redirect';
