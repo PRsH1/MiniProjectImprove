@@ -23,10 +23,10 @@ module.exports = (req, res) => {
           <h2 style="text-align:center;">SAML 테스트 로그인</h2>
           <form action="/api/auth" method="POST">
             <label>이메일</label>
-            <input type="email" name="email" value="test@example.com" required>
+            <input type="email" name="email" placeholder="test@example.com" required>
             
             <label>이름</label>
-            <input type="text" name="name" value="테스트유저" required>
+            <input type="text" name="name" placeholder="테스트유저" required>
 
             <input type="hidden" name="SAMLRequest" value="${SAMLRequest || ''}">
             <input type="hidden" name="RelayState" value="${RelayState || ''}">
