@@ -25,6 +25,7 @@ module.exports = async (req, res) => {
     console.log("User Info: ", user);
 
     // eformsign ACS URL로 자동 POST 폼 전송
+    // 실제 운영 환경에 맞게 ACS URL을 변경하세요.
 
     const acsUrl = 'https://test-kr-service.eformsign.com/v1.0/saml_redirect';
     
