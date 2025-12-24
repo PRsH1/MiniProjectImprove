@@ -6,28 +6,29 @@ module.exports = async (req, res) => {
 
   const { email, name, SAMLRequest, RelayState } = req.body;
 
-  // 템플릿의 {email}, {name}, {NameID} 치환자와 매핑될 객체입니다.
+  // lib/saml.js의 valueTag('email', 'name')와 일치하는 키를 가진 객체 생성
   const user = { 
     email: email, 
-    name: name,
-    NameID: email // Subject NameID도 이메일로 설정
+    name: name
   };
 
   try {
-    // 이제 콜백 함수 없이 호출해도 됩니다.
-    // 라이브러리가 lib/saml.js에 정의된 템플릿을 사용하여 값을 채웁니다.
+    // createLoginResponse 호출 (콜백 함수 불필요)
     const { context } = await idp.createLoginResponse(
       sp,
-      { extract: { request: { id: 'request_id' } } }, // 필요 시 ID 파싱 로직 추가 가능
+      { extract: { request: { id: 'request_id' } } },
       'post',
-      user
+      user 
     );
 
-    // [디버그] 결과 확인
+    // [디버그] 속성 포함 여부 확인
     const hasAttributes = context.includes('AttributeStatement');
     console.log(`🚀 SAML Response Generated. Has Attributes? ${hasAttributes}`);
-    
-    // eformsign ACS URL로 전송
+    console.log('Generated SAML Response:', context);
+    console.log('User Info:', user);
+
+    // eformsign ACS URL로 자동 제출 폼 생성
+
     const acsUrl = 'https://test-kr-service.eformsign.com/v1.0/saml_redirect';
     
     res.setHeader('Content-Type', 'text/html');
