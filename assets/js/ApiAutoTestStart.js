@@ -721,6 +721,8 @@ async function runAllTests() {
     progressText.innerText = `완료! (성공: ${successCount} / 실패: ${failCount})`;
     progressBar.classList.remove('progress-bar-animated');
     progressBar.classList.add(failCount > 0 ? 'bg-danger' : 'bg-success');
+    console.log("All tests completed.");
+   
 }
 
 function toggleLog(id) { const box = document.getElementById(id); box.style.display = (box.style.display === "block") ? "none" : "block"; }
