@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Unix 시간 변환 유틸리티 (다중 단위)</title>
   <style>
-    :root { --bg:#1d1f21; --card:#282a2e; --muted:#969896; --text:#c5c8c6; --accent:#81a2be; --input-bg:#373b41; }
+    :root { --bg:#1d1f21; --card:#282a2e; --muted:#969896; --text:#c5c8c6; --accent:#81a2be; --input-bg:#373b41; --error:#cc6666; }
     * { box-sizing: border-box; }
     html, body { height: 100%; }
     body { margin: 0; background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif; line-height: 1.6; }
@@ -42,6 +42,16 @@
     .btn:hover { background: #9abed9; }
     .btn.secondary { background: var(--input-bg); color: var(--text); }
     .btn.secondary:hover { background: #4a4f58; }
+    
+    /* 에러 메시지 스타일 추가 */
+    .error-msg {
+        color: var(--error);
+        font-size: 0.9rem;
+        margin-top: 0.5rem;
+        display: none; /* 기본 숨김 */
+        font-weight: bold;
+    }
+
     .results { margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--input-bg); }
     .result-item {
       display: grid;
@@ -77,6 +87,8 @@
           <option value="ns">Nanoseconds (ns)</option>
         </select>
       </div>
+      <div id="unix-input-error" class="error-msg"></div>
+
       <div class="btn-group">
         <button class="btn" id="btn-to-date">변환</button>
         <button class="btn secondary" id="btn-now-unix">현재 시간</button>
@@ -133,6 +145,7 @@
       const tzSelect = document.getElementById('tz-select');
       const dateResultsContainer = document.getElementById('date-results-container');
       const unixResultsContainer = document.getElementById('unix-results-container');
+      const unixInputError = document.getElementById('unix-input-error'); // 에러 메시지 요소
 
       // --- 시간대 목록 ---
       const timezones = [
@@ -147,14 +160,60 @@
         tzSelect.appendChild(option);
       });
 
+      // --- 유효성 검사 함수 ---
+      function validateTimestamp(valueStr, unit) {
+        const len = valueStr.length;
+        
+        // 현대(1970년대 이후 ~ 가까운 미래) 시간대 기준 자릿수 체크
+        // s: 10자리 (ex: 1700000000)
+        // ms: 13자리
+        // us: 16자리
+        // ns: 19자리
+        
+        // 너무 관대하지 않게, 일반적인 "실수"를 잡을 수 있는 범위 설정
+        if (unit === 's') {
+            if (len >= 12) return "입력값이 '초(s)' 단위치고 너무 깁니다. 밀리초(ms)나 마이크로초(μs)가 아닌가요?";
+        } 
+        else if (unit === 'ms') {
+            if (len <= 11) return "입력값이 '밀리초(ms)' 단위치고 너무 짧습니다. 초(s) 단위가 아닌가요?";
+            if (len >= 15) return "입력값이 '밀리초(ms)' 단위치고 너무 깁니다. 마이크로초(μs)가 아닌가요?";
+        }
+        else if (unit === 'us') {
+            if (len <= 14) return "입력값이 '마이크로초(μs)' 단위치고 너무 짧습니다. 밀리초(ms)가 아닌가요?";
+            if (len >= 18) return "입력값이 '마이크로초(μs)' 단위치고 너무 깁니다. 나노초(ns)가 아닌가요?";
+        }
+        else if (unit === 'ns') {
+            if (len <= 17) return "입력값이 '나노초(ns)' 단위치고 너무 짧습니다. 마이크로초(μs)가 아닌가요?";
+        }
+        return null; // 문제 없음
+      }
+
       // --- 변환 함수 (BigInt 사용) ---
       function convertFromTimestamp() {
-        if (!unixInput.value.match(/^[0-9]+$/)) {
-          alert('유효한 숫자를 입력하세요.');
+        // 1. 초기화
+        unixInputError.style.display = 'none';
+        unixInputError.textContent = '';
+        dateResultsContainer.style.display = 'none';
+
+        const val = unixInput.value.trim();
+        if (!val) return; // 비어있으면 무시
+
+        if (!val.match(/^[0-9]+$/)) {
+          showError('숫자만 입력해 주세요.');
           return;
         }
-        const timestamp = BigInt(unixInput.value);
+
         const unit = unitSelectFrom.value;
+
+        // 2. 단위 불일치 검증 로직 수행
+        const warningMsg = validateTimestamp(val, unit);
+        if (warningMsg) {
+            showError(warningMsg);
+            return; // 에러가 있으면 변환 중단
+        }
+
+        // 3. 변환 로직
+        const timestamp = BigInt(val);
         let millis;
 
         if (unit === 's') millis = timestamp * 1000n;
@@ -164,6 +223,12 @@
 
         const date = new Date(Number(millis)); // Date 객체는 Number를 인자로 받음
 
+        // 연도 체크 (너무 터무니 없는 연도가 나오면 추가 방어)
+        if (date.getFullYear() < 1970 || date.getFullYear() > 3000) {
+            showError(`변환된 연도가 ${date.getFullYear()}년 입니다. 선택한 단위가 올바른지 확인해주세요.`);
+            return;
+        }
+
         const gmtFormatter = new Intl.DateTimeFormat('en-US', { timeZone: 'UTC', year: 'numeric', month: 'long', day: '2-digit', weekday: 'long', hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true });
         document.getElementById('result-gmt').textContent = gmtFormatter.format(date);
 
@@ -172,6 +237,11 @@
         
         updateCustomTime(date);
         dateResultsContainer.style.display = 'block';
+      }
+
+      function showError(msg) {
+          unixInputError.textContent = `⚠️ ${msg}`;
+          unixInputError.style.display = 'block';
       }
 
       function convertFromDate() {
@@ -195,17 +265,11 @@
       }
       
       function updateCustomTime(dateObj) {
+        // 이 함수는 이미 검증된 dateObj가 넘어오거나, 재계산이 필요할 때 호출됨
         if(!dateObj) {
-            if (!unixInput.value.match(/^[0-9]+$/)) return;
-            // 재계산 로직 추가
-            const timestamp = BigInt(unixInput.value);
-            const unit = unitSelectFrom.value;
-            let millis;
-            if (unit === 's') millis = timestamp * 1000n;
-            else if (unit === 'ms') millis = timestamp;
-            else if (unit === 'us') millis = timestamp / 1000n;
-            else if (unit === 'ns') millis = timestamp / 1000000n;
-            dateObj = new Date(Number(millis));
+            // 재계산 시에는 convertFromTimestamp를 다시 타지 않고 값만 포맷팅하려 할 수 있으나,
+            // 안전하게 로직을 분리하지 않고 여기서는 dateObj가 있을 때만 처리하도록 단순화
+             return; 
         }
         const selectedTz = tzSelect.value;
         const customFormatter = new Intl.DateTimeFormat('ko-KR', { timeZone: selectedTz, year: 'numeric', month: 'long', day: 'numeric', weekday: 'long', hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true });
@@ -215,8 +279,20 @@
       // --- 이벤트 리스너 ---
       document.getElementById('btn-to-date').addEventListener('click', convertFromTimestamp);
       document.getElementById('btn-to-unix').addEventListener('click', convertFromDate);
-      unitSelectTo.addEventListener('change', convertFromDate); // 출력 단위 변경 시 바로 재계산
-      tzSelect.addEventListener('change', () => updateCustomTime());
+      unitSelectTo.addEventListener('change', convertFromDate); 
+      
+      // select 박스 변경 시 결과가 떠 있다면 바로 재검증/재변환
+      unitSelectFrom.addEventListener('change', () => {
+          if(unixInput.value) convertFromTimestamp();
+      });
+
+      tzSelect.addEventListener('change', () => {
+         // 현재 결과창이 떠있을 때만 업데이트
+         if(dateResultsContainer.style.display === 'block') {
+             // 원본 데이터를 다시 파싱하는 것보다 현재 로직상 convertFromTimestamp를 호출하는게 안전
+             convertFromTimestamp();
+         }
+      });
       
       document.getElementById('btn-now-unix').addEventListener('click', () => {
           const unit = unitSelectFrom.value;
@@ -233,7 +309,6 @@
       document.getElementById('btn-now-date').addEventListener('click', () => {
           const now = new Date();
           now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-          // 초 단위를 포함하기 위해 `slice(0, 19)`와 `T`를 사용
           const localISOString = now.toISOString().slice(0, 19);
           dateInput.value = localISOString;
           convertFromDate();
