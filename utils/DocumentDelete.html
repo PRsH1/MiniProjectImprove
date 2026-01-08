@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>eformsign 문서 일괄 삭제 도구 (Progress Bar)</title>
+    <title>eformsign 문서 일괄 삭제 도구 (Permanent Delete)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jsrsasign/10.5.25/jsrsasign-all-min.js"></script>
@@ -100,6 +100,15 @@
             </div>
         </div>
 
+        <div class="mb-4 flex items-center justify-end">
+            <label class="inline-flex items-center cursor-pointer bg-red-50 px-4 py-2 rounded border border-red-200 hover:bg-red-100 transition">
+                <input type="checkbox" id="isPermanent" class="form-checkbox text-red-600 h-5 w-5">
+                <span class="ml-2 text-red-600 font-bold">
+                    <i class="fas fa-exclamation-triangle mr-1"></i>완전 삭제 (휴지통 미사용)
+                </span>
+            </label>
+        </div>
+
         <div class="flex space-x-4 mb-6">
             <button onclick="startProcess()" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded transition shadow-md">
                 <i class="fas fa-search mr-2"></i>1. 조건 검색 및 조회
@@ -171,6 +180,7 @@
             if (type === 'error') p.className = 'text-red-400';
             else if (type === 'success') p.className = 'text-yellow-300 font-bold';
             else if (type === 'system') p.className = 'text-blue-300';
+            else if (type === 'warning') p.className = 'text-orange-400 font-bold';
             
             p.innerText = `[${time}] ${message}`;
             consoleBox.appendChild(p);
@@ -224,7 +234,6 @@
 
         // --- 2. 프로세스 시작 ---
         async function startProcess() {
-            // 새 조회 시 프로그레스 바 숨김 및 리셋
             document.getElementById('progressContainer').classList.add('hidden');
             document.getElementById('progressBar').style.width = '0%';
             
@@ -306,31 +315,47 @@
             }
         }
 
-        // --- 4. 삭제 로직 (프로그레스 바 추가) ---
+        // --- 4. 삭제 로직 (완전 삭제 옵션 추가) ---
         function confirmDelete() {
             const count = targetDocumentIds.length;
-            if (confirm(`총 ${count}건의 문서를 삭제하시겠습니까?`)) {
-                executeBatchDelete();
+            const isPermanent = document.getElementById('isPermanent').checked;
+            
+            let message = `총 ${count}건의 문서를 삭제하시겠습니까?`;
+            
+            if (isPermanent) {
+                message += `\n\n[!!!주의!!!]\n'완전 삭제' 옵션이 선택되었습니다.\n이 문서는 휴지통으로 이동하지 않고 즉시 소멸되며 복구할 수 없습니다.`;
+            } else {
+                message += `\n(휴지통으로 이동됩니다)`;
+            }
+
+            if (confirm(message)) {
+                executeBatchDelete(isPermanent);
             }
         }
 
-        async function executeBatchDelete() {
+        async function executeBatchDelete(isPermanent) {
             const token = document.getElementById('currentAccessToken').value;
             const baseUrl = document.getElementById('currentDomain').value;
             const totalDocs = targetDocumentIds.length;
             
             document.getElementById('deleteBtn').disabled = true;
             
-            // 프로그레스 바 초기화 및 표시
+            // 프로그레스 바 초기화
             const progressContainer = document.getElementById('progressContainer');
             const progressBar = document.getElementById('progressBar');
             const progressText = document.getElementById('progressText');
-            
             progressContainer.classList.remove('hidden');
             progressBar.style.width = '0%';
             progressText.innerText = `0% (0/${totalDocs})`;
 
-            log(`=== 일괄 삭제 시작 (${totalDocs}건) ===`, 'system');
+            // API 엔드포인트 설정 (완전 삭제 여부에 따라 쿼리 파라미터 추가)
+            let deleteUrl = `${baseUrl}/v2.0/api/documents`;
+            if (isPermanent) {
+                deleteUrl += '?is_permanent=true';
+                log(`=== 완전 삭제(Hard Delete) 시작 (${totalDocs}건) ===`, 'warning');
+            } else {
+                log(`=== 일반 삭제(Soft Delete) 시작 (${totalDocs}건) ===`, 'system');
+            }
 
             let deletedCount = 0;
 
@@ -338,20 +363,19 @@
                 const chunkIds = targetDocumentIds.slice(i, i + BATCH_SIZE);
                 try {
                     log(`삭제 진행... ${i + 1} ~ ${Math.min(i + BATCH_SIZE, totalDocs)}`);
-                    await axios.delete(`${baseUrl}/v2.0/api/documents`, {
+                    
+                    await axios.delete(deleteUrl, {
                         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
                         data: { "document_ids": chunkIds }
                     });
                     
-                    // 성공적으로 삭제한 갯수 업데이트
                     deletedCount += chunkIds.length;
                     
-                    // 프로그레스 바 업데이트 계산
                     const percentage = Math.floor((deletedCount / totalDocs) * 100);
                     progressBar.style.width = `${percentage}%`;
                     progressText.innerText = `${percentage}% (${deletedCount}/${totalDocs})`;
 
-                    log(`-> ${chunkIds.length}건 삭제 성공.`, 'success');
+                    log(`-> ${chunkIds.length}건 처리 성공.`, 'success');
                 } catch (error) {
                     log(`삭제 실패: ${error.message}`, 'error');
                 }
@@ -363,13 +387,11 @@
             }
             log(`=== 작업 종료 ===`, 'success');
             
-            // 완료 후 100% 확실하게 표시
             progressBar.style.width = '100%';
             progressText.innerText = `100% (${totalDocs}/${totalDocs})`;
             
             alert("삭제 작업이 완료되었습니다.");
             
-            // 초기화
             targetDocumentIds = [];
             document.getElementById('foundCount').innerText = '0';
             document.getElementById('deleteBtn').disabled = true;
