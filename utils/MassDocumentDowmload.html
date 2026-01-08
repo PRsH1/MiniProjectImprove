@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>eformsign 문서 일괄 다운로드 도구 (v2.6)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsrsasign/10.5.25/jsrsasign-all-min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <style>
+        #logConsole::-webkit-scrollbar { width: 8px; }
+        #logConsole::-webkit-scrollbar-track { background: #1f2937; }
+        #logConsole::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 4px; }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 font-sans p-6">
+
+    <div class="max-w-5xl mx-auto bg-white shadow-xl rounded-lg p-8">
+        <h1 class="text-3xl font-bold mb-6 text-blue-700 border-b pb-4 flex items-center">
+            <i class="fas fa-file-archive mr-3"></i>eformsign 문서 일괄 다운로드
+            <span class="ml-auto text-sm font-normal text-gray-500 bg-gray-100 px-3 py-1 rounded-full">v2.6 Stable</span>
+        </h1>
+        
+        <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-8 shadow-sm">
+            <h3 class="text-lg font-bold text-blue-800">사용 가이드</h3>
+            <ul class="list-disc list-inside mt-2 text-sm text-blue-700 space-y-1">
+                <li>서버 정책 준수를 위해 <strong>한 번에 20건씩</strong> 분할 다운로드합니다.</li>
+                <li><strong>감사추적증명서</strong>는 <strong>'완료'</strong>된 문서만 존재하므로, 다른 상태가 포함되면 선택할 수 없습니다.</li>
+                <li>대용량(1,000건 이상) 작업 시 <strong>'병합' 옵션을 끄고</strong> 진행하는 것을 권장합니다.</li>
+            </ul>
+        </div>
+
+        <div class="mb-8 bg-white p-6 rounded-lg border border-gray-200 shadow-sm relative overflow-hidden">
+            <div class="absolute top-0 left-0 w-1 h-full bg-blue-500"></div>
+            <h2 class="text-xl font-bold mb-4 text-gray-800 flex items-center">
+                <span class="bg-blue-100 text-blue-700 w-8 h-8 rounded-full flex items-center justify-center mr-3 text-sm">1</span>
+                인증 정보 설정
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="col-span-2">
+                    <label class="block text-sm font-bold text-gray-700 mb-2">환경</label>
+                    <select id="envSelection" onchange="updateDomain()" class="w-full p-3 border rounded focus:ring-2 focus:ring-blue-500 outline-none">
+                        <option value="op_saas">운영 (SaaS) - kr-api.eformsign.com</option>
+                        <option value="csap">공공 (CSAP) - www.gov-eformsign.com</option>
+                        <option value="custom">직접 입력 (Custom)</option>
+                    </select>
+                    <div id="customDomainWrapper" class="hidden mt-2">
+                        <input type="text" id="customDomainInput" placeholder="https://api.example.com" oninput="updateDomain()" class="w-full p-2 border bg-gray-50 rounded text-sm">
+                    </div>
+                </div>
+                <div><label class="block text-sm font-bold mb-2">API Key</label><input type="text" id="apiKey" class="w-full p-3 border rounded"></div>
+                <div><label class="block text-sm font-bold mb-2">Member ID</label><input type="text" id="memberId" class="w-full p-3 border rounded"></div>
+                <div class="col-span-2">
+                    <div class="flex items-center space-x-6 mb-3">
+                        <label class="inline-flex items-center"><input type="radio" name="secretMethod" value="signature" checked onclick="toggleSecretPlaceholder()" class="mr-2">Signature</label>
+                        <label class="inline-flex items-center"><input type="radio" name="secretMethod" value="bearer" onclick="toggleSecretPlaceholder()" class="mr-2">Bearer Token</label>
+                    </div>
+                    <input type="password" id="secretKey" placeholder="Private Key (Hex)" class="w-full p-3 border rounded font-mono text-sm">
+                </div>
+                <input type="hidden" id="currentAccessToken"><input type="hidden" id="currentDomain">
+            </div>
+        </div>
+        
+        <div class="mb-8 bg-white p-6 rounded-lg border border-gray-200 shadow-sm relative overflow-hidden">
+            <div class="absolute top-0 left-0 w-1 h-full bg-green-500"></div>
+            <h2 class="text-xl font-bold mb-4 text-gray-800 flex items-center">
+                <span class="bg-green-100 text-green-700 w-8 h-8 rounded-full flex items-center justify-center mr-3 text-sm">2</span>
+                조회 조건
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div>
+                    <label class="block text-sm font-bold mb-3">날짜 기준</label>
+                    <div class="flex space-x-4 mb-4 bg-gray-50 p-3 rounded border">
+                        <label class="inline-flex items-center"><input type="radio" name="dateTarget" value="update_date" checked class="mr-2">마지막 처리일</label>
+                        <label class="inline-flex items-center"><input type="radio" name="dateTarget" value="create_date" class="mr-2">기안/전송일</label>
+                    </div>
+                    <div class="flex space-x-2">
+                        <div class="flex-1"><span class="text-xs text-gray-500 block mb-1">시작일</span><input type="date" id="startDate" class="w-full p-2 border rounded"></div>
+                        <div class="flex-1"><span class="text-xs text-gray-500 block mb-1">종료일</span><input type="date" id="endDate" class="w-full p-2 border rounded"></div>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-bold mb-3">문서 상태</label>
+                    <div class="bg-gray-50 p-4 border rounded space-y-3">
+                        <label class="flex items-center cursor-pointer">
+                            <input type="checkbox" id="status_proceeding" name="docStatus" value="proceeding" onchange="toggleAuditTrailOption()" class="form-checkbox text-blue-600 mr-3">
+                            진행 중
+                        </label>
+                        <label class="flex items-center cursor-pointer">
+                            <input type="checkbox" id="status_completed" name="docStatus" value="completed" checked onchange="toggleAuditTrailOption()" class="form-checkbox text-green-600 mr-3">
+                            완료
+                        </label>
+                        <label class="flex items-center cursor-pointer">
+                            <input type="checkbox" id="status_canceled" name="docStatus" value="canceled" onchange="toggleAuditTrailOption()" class="form-checkbox text-red-600 mr-3">
+                            취소/반려
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mb-8 bg-white p-6 rounded-lg border border-gray-200 shadow-sm relative overflow-hidden">
+            <div class="absolute top-0 left-0 w-1 h-full bg-purple-500"></div>
+            <h2 class="text-xl font-bold mb-4 text-gray-800 flex items-center">
+                <span class="bg-purple-100 text-purple-700 w-8 h-8 rounded-full flex items-center justify-center mr-3 text-sm">3</span>
+                다운로드 옵션
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-2">포함할 파일</label>
+                    <div class="flex space-x-4 mb-2">
+                        <label class="inline-flex items-center p-3 bg-gray-50 rounded border cursor-pointer w-full hover:bg-purple-50 transition">
+                            <input type="checkbox" id="ft_document" checked class="form-checkbox text-purple-600 mr-2">문서 (PDF)
+                        </label>
+                        <label class="inline-flex items-center p-3 bg-gray-50 rounded border cursor-pointer w-full hover:bg-purple-50 transition" id="label_audit">
+                            <input type="checkbox" id="ft_audit" class="form-checkbox text-purple-600 mr-2">감사추적증명서
+                        </label>
+                    </div>
+                    <p id="auditWarning" class="text-xs text-red-500 font-bold hidden">
+                        <i class="fas fa-exclamation-circle mr-1"></i>완료 문서만 선택 시 가능합니다.
+                    </p>
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-2">파일명 옵션</label>
+                    <label class="inline-flex items-center p-3 bg-gray-50 rounded border cursor-pointer w-full hover:bg-purple-50 transition">
+                        <input type="checkbox" id="useSimpleName" checked class="form-checkbox text-purple-600 mr-2">문서 제목을 파일명으로 사용
+                    </label>
+                </div>
+                <div class="col-span-2 border-t pt-4">
+                    <div class="flex flex-col md:flex-row gap-6">
+                        <div class="flex-1">
+                            <label class="inline-flex items-center mb-2">
+                                <input type="checkbox" id="mergeToOne" checked onchange="toggleInputs()" class="form-checkbox text-blue-600 h-5 w-5">
+                                <span class="ml-2 font-bold text-blue-700">하나의 ZIP 파일로 병합</span>
+                            </label>
+                            <p class="text-xs text-gray-500 ml-7">* 해제 시 20건 단위 분할 다운로드</p>
+                            <p class="text-xs text-orange-500 ml-7 hidden" id="pwWarning">* 병합 시에는 비밀번호 설정이 무시됩니다.</p>
+                        </div>
+                        <div class="flex-1 space-y-3">
+                            <div>
+                                <div class="flex items-center mb-1"><input type="checkbox" id="usePassword" onchange="toggleInputs()" class="mr-2"><label for="usePassword" class="text-sm font-bold">ZIP 비밀번호</label></div>
+                                <input type="password" id="zipPassword" disabled placeholder="비밀번호" class="w-full p-2 border rounded bg-gray-100 disabled:opacity-50 transition">
+                            </div>
+                            <div>
+                                <div class="flex items-center mb-1"><input type="checkbox" id="useZipName" onchange="toggleInputs()" class="mr-2"><label for="useZipName" class="text-sm font-bold">ZIP 파일명</label></div>
+                                <input type="text" id="zipName" disabled placeholder="파일명 (확장자 제외)" class="w-full p-2 border rounded bg-gray-100 disabled:opacity-50 transition">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex space-x-4 mb-8">
+            <button id="searchBtn" onclick="startProcess()" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-6 rounded-lg shadow-md transition transform hover:-translate-y-0.5 flex justify-center items-center text-lg">
+                <i class="fas fa-search mr-2"></i>1. 토큰 발급 및 조회
+            </button>
+            <button id="downloadBtn" onclick="confirmDownload()" disabled class="flex-1 bg-gray-300 text-gray-500 font-bold py-4 px-6 rounded-lg shadow-sm cursor-not-allowed transition flex justify-center items-center text-lg">
+                <i class="fas fa-download mr-2"></i>2. 다운로드 시작
+            </button>
+        </div>
+
+        <div id="progressContainer" class="hidden mb-6 bg-white p-4 rounded-lg border shadow-sm">
+            <div class="flex justify-between mb-2">
+                <span id="progressLabel" class="text-sm font-bold text-blue-700 flex items-center"><i class="fas fa-spinner fa-spin mr-2"></i>대기 중...</span>
+                <span id="progressText" class="text-sm font-bold text-blue-700">0%</span>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-5 overflow-hidden">
+                <div id="progressBar" class="bg-gradient-to-r from-blue-500 to-purple-600 h-5 rounded-full transition-all duration-300" style="width: 0%"></div>
+            </div>
+            <div class="mt-2 text-xs font-bold flex justify-end space-x-3">
+                <span class="text-green-600">성공: <span id="successCount">0</span></span>
+                <span class="text-red-600">실패: <span id="failCount">0</span></span>
+                <span class="text-gray-600">총: <span id="totalCount">0</span></span>
+            </div>
+        </div>
+
+        <div id="statusArea" class="hidden mb-4 p-5 rounded bg-green-50 border border-green-200 flex justify-between items-center shadow-sm">
+            <div><span class="text-lg text-gray-700">조회된 문서: <span id="foundCount" class="font-bold text-green-700 text-2xl mx-1">0</span> 건</span></div>
+            <div id="appliedFilter" class="font-bold text-blue-600">-</div>
+        </div>
+
+        <div class="bg-gray-900 rounded-lg p-4 shadow-inner">
+            <div class="flex justify-between items-center mb-2 border-b border-gray-700 pb-2">
+                <span class="text-gray-400 text-xs font-mono">SYSTEM LOG</span>
+                <button onclick="document.getElementById('logConsole').innerHTML=''" class="text-xs text-gray-500 hover:text-white">Clear</button>
+            </div>
+            <div class="h-64 overflow-y-auto font-mono text-xs leading-relaxed" id="logConsole">
+                <p class="text-green-400">> 시스템 준비 완료.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- 전역 변수 설정 ---
+        let targetDocumentIds = [];
+        const BATCH_SIZE = 20; 
+        const DELAY_MS = 3000;
+        const DOMAIN_MAP = {
+            op_saas: 'https://kr-api.eformsign.com',
+            csap: 'https://www.gov-eformsign.com/Service'
+        };
+
+        const today = new Date();
+        document.getElementById('startDate').value = `${today.getFullYear()}-01-01`;
+        document.getElementById('endDate').value = today.toISOString().split('T')[0];
+        
+        updateDomain();
+        toggleInputs();
+        toggleAuditTrailOption(); 
+
+        // --- UI & 유틸리티 ---
+        function updateDomain() {
+            const val = document.getElementById('envSelection').value;
+            const customDiv = document.getElementById('customDomainWrapper');
+            const hiddenInput = document.getElementById('currentDomain');
+            if(val === 'custom') {
+                customDiv.classList.remove('hidden');
+                hiddenInput.value = document.getElementById('customDomainInput').value.replace(/\/$/, '');
+            } else {
+                customDiv.classList.add('hidden');
+                hiddenInput.value = DOMAIN_MAP[val];
+            }
+        }
+
+        function toggleSecretPlaceholder() {
+            const method = document.querySelector('input[name="secretMethod"]:checked').value;
+            document.getElementById('secretKey').placeholder = method === 'signature' ? "Private Key (Hex)" : "Bearer Token";
+        }
+
+        function toggleAuditTrailOption() {
+            const isProceeding = document.getElementById('status_proceeding').checked;
+            const isCanceled = document.getElementById('status_canceled').checked;
+            const auditCheckbox = document.getElementById('ft_audit');
+            const auditLabel = document.getElementById('label_audit');
+            const auditWarning = document.getElementById('auditWarning');
+
+            if (isProceeding || isCanceled) {
+                auditCheckbox.checked = false; 
+                auditCheckbox.disabled = true; 
+                auditLabel.classList.add('bg-gray-200', 'cursor-not-allowed', 'opacity-60');
+                auditLabel.classList.remove('hover:bg-purple-50', 'cursor-pointer');
+                auditWarning.classList.remove('hidden'); 
+            } else {
+                auditCheckbox.disabled = false;
+                auditLabel.classList.remove('bg-gray-200', 'cursor-not-allowed', 'opacity-60');
+                auditLabel.classList.add('hover:bg-purple-50', 'cursor-pointer');
+                auditWarning.classList.add('hidden');
+            }
+        }
+
+        function toggleInputs() {
+            const usePw = document.getElementById('usePassword').checked;
+            document.getElementById('zipPassword').disabled = !usePw;
+            const useName = document.getElementById('useZipName').checked;
+            document.getElementById('zipName').disabled = !useName;
+
+            const isMerge = document.getElementById('mergeToOne').checked;
+            const pwWarning = document.getElementById('pwWarning');
+            if(isMerge && usePw) pwWarning.classList.remove('hidden');
+            else pwWarning.classList.add('hidden');
+        }
+
+        function setButtonState(mode) {
+            const searchBtn = document.getElementById('searchBtn');
+            const downBtn = document.getElementById('downloadBtn');
+
+            if(mode === 'loading') {
+                searchBtn.disabled = true; searchBtn.classList.add('bg-gray-300', 'cursor-not-allowed');
+                searchBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+                
+                downBtn.disabled = true; downBtn.classList.add('bg-gray-300', 'cursor-not-allowed');
+                downBtn.classList.remove('bg-purple-600', 'hover:bg-purple-700', 'shadow-md', 'text-white');
+            
+            } else if(mode === 'search_done') {
+                searchBtn.disabled = false; searchBtn.classList.remove('bg-gray-300', 'cursor-not-allowed');
+                searchBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+                
+                if(targetDocumentIds.length > 0) {
+                    downBtn.disabled = false; 
+                    downBtn.classList.remove('bg-gray-300', 'text-gray-500', 'cursor-not-allowed');
+                    downBtn.classList.add('bg-purple-600', 'hover:bg-purple-700', 'text-white', 'shadow-md');
+                } else {
+                    downBtn.disabled = true; 
+                    downBtn.classList.add('bg-gray-300', 'text-gray-500', 'cursor-not-allowed');
+                    downBtn.classList.remove('bg-purple-600', 'hover:bg-purple-700', 'text-white', 'shadow-md');
+                }
+            
+            } else if(mode === 'reset') {
+                searchBtn.disabled = false; searchBtn.classList.add('bg-blue-600'); searchBtn.classList.remove('bg-gray-300', 'cursor-not-allowed');
+                downBtn.disabled = true; downBtn.classList.add('bg-gray-300', 'text-gray-500', 'cursor-not-allowed');
+            }
+        }
+
+        function log(msg, type='info') {
+            const box = document.getElementById('logConsole');
+            const p = document.createElement('p');
+            p.innerText = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            if(type==='error') p.className='text-red-400 font-bold';
+            else if(type==='success') p.className='text-green-400 font-bold';
+            else if(type==='warning') p.className='text-orange-400 font-bold';
+            else if(type==='system') p.className='text-blue-300';
+            else p.className='text-gray-300';
+            box.appendChild(p); box.scrollTop = box.scrollHeight;
+        }
+
+        // --- 1. 토큰 발급 ---
+        async function getAccessToken(isRefresh = false) {
+            const apiKey = document.getElementById('apiKey').value.trim();
+            const memberId = document.getElementById('memberId').value.trim();
+            const secretKeyInput = document.getElementById('secretKey').value.trim().replace(/[\r\n\s]/g, '');
+            const method = document.querySelector('input[name="secretMethod"]:checked').value;
+            const baseUrl = document.getElementById('currentDomain').value;
+
+            if (!apiKey || !memberId || !secretKeyInput || !baseUrl) {
+                alert("필수 정보를 모두 입력해주세요."); return null;
+            }
+            if(isRefresh) log("토큰 갱신 시도...", "warning");
+            else log("토큰 발급 중...", "system");
+
+            try {
+                const execTime = Date.now();
+                let signature;
+                if (method === 'signature') {
+                    let keyObj = null;
+                    try { keyObj = KEYUTIL.getKey(secretKeyInput); } catch(e){}
+                    if(!keyObj) try { keyObj = KEYUTIL.getKeyFromPlainPrivatePKCS8Hex(secretKeyInput); } catch(e){}
+                    
+                    if(!keyObj) { alert("Secret Key 형식이 올바르지 않습니다."); return null; }
+                    
+                    const sig = new KJUR.crypto.Signature({ alg: 'SHA256withECDSA' });
+                    sig.init(keyObj);
+                    sig.updateString(execTime.toString());
+                    signature = sig.sign();
+                } else {
+                    signature = 'Bearer ' + secretKeyInput;
+                }
+
+                const res = await axios.post(`${baseUrl}/v2.0/api_auth/access_token`, 
+                    { execution_time: execTime, member_id: memberId },
+                    { headers: { 'Authorization': 'Bearer ' + btoa(apiKey), 'eformsign_signature': signature }}
+                );
+                document.getElementById('currentAccessToken').value = res.data.oauth_token.access_token;
+                log(isRefresh ? "갱신 성공." : "발급 성공.", "success");
+                return res.data.oauth_token.access_token;
+            } catch (e) {
+                log(`토큰 발급 오류: ${e.message}`, 'error');
+                return null;
+            }
+        }
+
+        // --- 2. 조회 ---
+        async function startProcess() {
+            setButtonState('loading');
+            document.getElementById('progressContainer').classList.add('hidden');
+            const token = await getAccessToken();
+            if(!token) { setButtonState('reset'); return; }
+            await fetchDocuments(token);
+        }
+
+        async function fetchDocuments(token) {
+            const baseUrl = document.getElementById('currentDomain').value;
+            const startTs = new Date(document.getElementById('startDate').value + "T00:00:00").getTime();
+            const endTs = new Date(document.getElementById('endDate').value + "T23:59:59").getTime();
+            const dateTarget = document.querySelector('input[name="dateTarget"]:checked').value;
+            const checkboxes = document.querySelectorAll('input[name="docStatus"]:checked');
+            let statuses = []; checkboxes.forEach(cb => statuses.push(cb.value));
+            const statusVal = statuses.length > 0 ? statuses.join('|') : "";
+
+            log("문서 조회 시작...", "system");
+            targetDocumentIds = [];
+            let skip = 0; let isEnd = false;
+
+            try {
+                while(!isEnd) {
+                    const res = await axios.post(`${baseUrl}/v2.0/api/list_document`, {
+                        type: "04", class_type: statusVal, skip: String(skip), limit: "100",
+                        sort: dateTarget, sort_type: "desc", [dateTarget]: `${startTs}|${endTs}`
+                    }, { headers: { 'Authorization': `Bearer ${token}` }});
+
+                    const docs = res.data.documents;
+                    if(!docs || docs.length === 0) isEnd = true;
+                    else {
+                        docs.forEach(d => targetDocumentIds.push(d.id));
+                        if(targetDocumentIds.length % 500 === 0) log(`${targetDocumentIds.length}건...`);
+                        skip += docs.length;
+                        if(docs.length < 100) isEnd = true;
+                    }
+                }
+                document.getElementById('statusArea').classList.remove('hidden');
+                document.getElementById('foundCount').innerText = targetDocumentIds.length.toLocaleString();
+                document.getElementById('appliedFilter').innerText = statusVal || "All";
+                log(`조회 완료: ${targetDocumentIds.length}건`, "success");
+                setButtonState('search_done');
+            } catch(e) {
+                log(`조회 실패: ${e.message}`, 'error');
+                setButtonState('reset');
+            }
+        }
+
+        // ★★★ 다운로드 시작 전 안전 확인 (수정됨) ★★★
+        function confirmDownload() {
+            const count = targetDocumentIds.length;
+            const isMerge = document.getElementById('mergeToOne').checked;
+
+            // 대용량 + 병합 옵션 경고
+            if (count >= 1000 && isMerge) {
+                const msg = `[⚠️ 고용량 병합 경고]\n\n` +
+                            `현재 ${count}건의 문서를 '하나의 ZIP 파일로 병합'하려고 합니다.\n` +
+                            `1,000건 이상의 대용량 병합은 브라우저 메모리 부족으로 인해\n` +
+                            `다운로드 중 브라우저가 멈추거나 실패할 위험이 높습니다.\n\n` +
+                            `안정적인 다운로드를 위해 '병합' 옵션을 끄는 것을 권장합니다.\n\n` +
+                            `그래도 병합 옵션을 유지하고 진행하시겠습니까?`;
+                
+                if (!confirm(msg)) return; // 취소 시 중단
+            }
+
+            // 최종 확인
+            if (confirm(`총 ${count}건을 다운로드 하시겠습니까?\n(배치 크기: 20건)`)) {
+                executeBatchDownload();
+            }
+        }
+
+        // --- 3. 배치 다운로드 ---
+        async function executeBatchDownload() {
+            let token = document.getElementById('currentAccessToken').value;
+            const baseUrl = document.getElementById('currentDomain').value;
+            const totalDocs = targetDocumentIds.length;
+            
+            const isMerge = document.getElementById('mergeToOne').checked;
+            const fileTypes = [];
+            if(document.getElementById('ft_document').checked) fileTypes.push("document");
+            if(document.getElementById('ft_audit').checked) fileTypes.push("audit_trail");
+            
+            const useSimpleName = document.getElementById('useSimpleName').checked;
+            const zipPassword = document.getElementById('usePassword').checked ? document.getElementById('zipPassword').value : null;
+            const customZipName = document.getElementById('useZipName').checked ? document.getElementById('zipName').value : null;
+
+            if(fileTypes.length === 0) { alert("파일 타입을 선택하세요."); return; }
+
+            setButtonState('loading');
+            const pCont = document.getElementById('progressContainer');
+            pCont.classList.remove('hidden');
+            const pBar = document.getElementById('progressBar');
+            const pText = document.getElementById('progressText');
+            const pLabel = document.getElementById('progressLabel');
+            
+            const elSuccess = document.getElementById('successCount');
+            const elFail = document.getElementById('failCount');
+            const elTotal = document.getElementById('totalCount');
+            elTotal.innerText = totalDocs;
+            
+            let successCnt = 0;
+            let failCnt = 0;
+            let masterZip = isMerge ? new JSZip() : null;
+
+            log(`다운로드 시작 (${isMerge ? '병합' : '분할'}, 20건씩)...`, "system");
+
+            for(let i=0; i<totalDocs; i+=BATCH_SIZE) {
+                const chunkIds = targetDocumentIds.slice(i, i+BATCH_SIZE);
+                let retryCount = 0;
+                let success = false;
+
+                while(!success && retryCount < 2) {
+                    try {
+                        pLabel.innerHTML = `<i class="fas fa-sync fa-spin mr-2"></i>다운로드 중... (${i+1}~${Math.min(i+BATCH_SIZE, totalDocs)})`;
+                        
+                        const reqBody = { document_ids: chunkIds, file_type: fileTypes, use_simple_file_name: useSimpleName };
+                        if(!isMerge) {
+                            if(zipPassword) reqBody.zip_password = zipPassword;
+                            if(customZipName) reqBody.file_name = `${customZipName}_part_${(i/BATCH_SIZE)+1}`;
+                        }
+
+                        const res = await axios.post(`${baseUrl}/v2.0/api/documents/download_multi_files`, reqBody, {
+                            headers: { 'Authorization': `Bearer ${token}` },
+                            responseType: 'blob'
+                        });
+
+                        const blob = res.data;
+
+                        if (isMerge) {
+                            try {
+                                const tempZip = await JSZip.loadAsync(blob);
+                                tempZip.forEach((relPath, file) => masterZip.file(relPath, file.async('blob')));
+                            } catch (zipErr) {
+                                let errorContent = "ZIP 파일 손상";
+                                try {
+                                    errorContent = await blob.text();
+                                    const json = JSON.parse(errorContent);
+                                    if(json.ErrorMessage || json.message) errorContent = json.ErrorMessage || json.message;
+                                } catch (e) {}
+                                throw new Error(errorContent);
+                            }
+                        } else {
+                            const partName = customZipName ? `${customZipName}_${i+1}.zip` : `docs_${i+1}_${Math.min(i+BATCH_SIZE, totalDocs)}.zip`;
+                            saveAs(blob, partName);
+                        }
+
+                        successCnt += chunkIds.length;
+                        success = true;
+                        log(`-> 배치 성공 (${chunkIds.length}건)`, 'success');
+
+                    } catch(error) {
+                        let errMsg = error.message;
+
+                        if (error.response && error.response.status === 401) {
+                            log(`토큰 만료. 갱신 중...`, 'warning');
+                            const newToken = await getAccessToken(true);
+                            if (newToken) { token = newToken; retryCount++; continue; }
+                            else { alert("토큰 갱신 실패"); setButtonState('reset'); return; }
+                        }
+                        
+                        if (error.response && error.response.data instanceof Blob) {
+                            try {
+                                const txt = await error.response.data.text();
+                                const json = JSON.parse(txt);
+                                errMsg = json.ErrorMessage || json.message || txt;
+                            } catch (e) {}
+                        }
+
+                        log(`다운로드 실패: ${errMsg}`, 'error');
+                        failCnt += chunkIds.length;
+                        success = true; 
+                    }
+                }
+
+                const processed = successCnt + failCnt;
+                const pct = Math.floor((processed / totalDocs) * 100);
+                pBar.style.width = `${pct}%`;
+                pText.innerText = `${pct}%`;
+                elSuccess.innerText = successCnt;
+                elFail.innerText = failCnt;
+
+                if (i + BATCH_SIZE < totalDocs) await new Promise(r => setTimeout(r, DELAY_MS));
+            }
+
+            if(isMerge && successCnt > 0) {
+                pLabel.innerHTML = `<i class="fas fa-file-export mr-2"></i>최종 파일 생성 중...`;
+                log("병합 파일 생성 중...", "system");
+                try {
+                    const content = await masterZip.generateAsync({type:"blob"});
+                    const finalName = customZipName ? `${customZipName}.zip` : `eformsign_merged.zip`;
+                    saveAs(content, finalName);
+                    log("최종 저장 완료.", "success");
+                } catch(e) {
+                    log(`병합 저장 실패: ${e.message}`, 'error');
+                    alert("메모리 부족으로 병합 저장에 실패했습니다.");
+                }
+            }
+
+            pBar.style.width = '100%';
+            pText.innerText = '100%';
+            
+            if(failCnt > 0) alert(`작업 완료 (실패 ${failCnt}건 포함)\n로그를 확인하세요.`);
+            else alert("모든 다운로드가 완료되었습니다.");
+            
+            setButtonState('search_done');
+        }
+    </script>
+</body>
+</html>
