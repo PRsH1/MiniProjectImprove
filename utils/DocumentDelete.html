@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>eformsign 문서 일괄 삭제 도구 (Progress Bar)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsrsasign/10.5.25/jsrsasign-all-min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="bg-gray-100 text-gray-800 font-sans p-6">
+
+    <div class="max-w-4xl mx-auto bg-white shadow-lg rounded-lg p-8">
+        <h1 class="text-2xl font-bold mb-6 text-indigo-600 border-b pb-2">
+            <i class="fas fa-trash-alt mr-2"></i>eformsign 문서 일괄 삭제 도구
+        </h1>
+
+        <div class="mb-6 p-4 bg-indigo-50 rounded border border-indigo-200">
+            <h2 class="text-lg font-bold mb-4 text-indigo-800"><i class="fas fa-key mr-2"></i>인증 정보 설정</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="col-span-2">
+                    <label class="block text-sm font-medium mb-1">환경 (Domain 자동 설정)</label>
+                    <select id="envSelection" onchange="updateDomain()" class="w-full p-2 border rounded focus:ring-2 focus:ring-indigo-500">
+                        <option value="op_saas">운영 (SaaS) - kr-api.eformsign.com</option>
+                        <option value="csap">공공 (CSAP) - www.gov-eformsign.com</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">API Key</label>
+                    <input type="text" id="apiKey" placeholder="API Key 입력" class="w-full p-2 border rounded focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Member ID</label>
+                    <input type="text" id="memberId" placeholder="User ID 입력" class="w-full p-2 border rounded focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div class="col-span-2">
+                    <div class="flex items-center space-x-4 mb-2">
+                        <label class="inline-flex items-center cursor-pointer">
+                            <input type="radio" name="secretMethod" value="signature" checked onclick="toggleSecretPlaceholder()" class="form-radio text-indigo-600">
+                            <span class="ml-2">Signature (비밀키 Hex)</span>
+                        </label>
+                        <label class="inline-flex items-center cursor-pointer">
+                            <input type="radio" name="secretMethod" value="bearer" onclick="toggleSecretPlaceholder()" class="form-radio text-indigo-600">
+                            <span class="ml-2">Bearer Token (비밀 토큰)</span>
+                        </label>
+                    </div>
+                    <input type="password" id="secretKey" placeholder="Private Key (Hex) 입력 (예: 3082...)" class="w-full p-2 border rounded focus:ring-2 focus:ring-indigo-500 font-mono text-sm">
+                </div>
+                <input type="hidden" id="currentAccessToken">
+                <input type="hidden" id="currentDomain">
+            </div>
+        </div>
+        
+        <div class="mb-6 p-4 bg-gray-50 rounded border border-gray-200">
+            <h2 class="text-lg font-bold mb-4 text-gray-700"><i class="fas fa-filter mr-2"></i>조회 조건 설정</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="col-span-2 md:col-span-1">
+                    <label class="block text-sm font-bold mb-2 text-gray-600">날짜 기준</label>
+                    <div class="flex space-x-4 mb-3">
+                        <label class="inline-flex items-center cursor-pointer">
+                            <input type="radio" name="dateTarget" value="update_date" checked class="form-radio text-indigo-600">
+                            <span class="ml-2 text-sm">마지막 처리일 (update)</span>
+                        </label>
+                        <label class="inline-flex items-center cursor-pointer">
+                            <input type="radio" name="dateTarget" value="create_date" class="form-radio text-indigo-600">
+                            <span class="ml-2 text-sm">기안/전송일 (create)</span>
+                        </label>
+                    </div>
+                    <label class="block text-sm font-bold mb-2 text-gray-600">조회 기간</label>
+                    <div class="space-y-2">
+                        <div class="flex items-center">
+                            <span class="text-xs text-gray-500 w-12">시작일</span>
+                            <input type="date" id="startDate" class="flex-1 p-2 border rounded bg-white">
+                        </div>
+                        <div class="flex items-center">
+                            <span class="text-xs text-gray-500 w-12">종료일</span>
+                            <input type="date" id="endDate" class="flex-1 p-2 border rounded bg-white">
+                        </div>
+                    </div>
+                </div>
+                <div class="col-span-2 md:col-span-1">
+                    <label class="block text-sm font-bold mb-2 text-gray-600">문서 상태 <span class="text-xs font-normal text-red-500 ml-1">(선택 안 함 = 전체)</span></label>
+                    <div class="bg-white p-3 border rounded h-full flex flex-col justify-center space-y-3">
+                        <label class="inline-flex items-center cursor-pointer hover:bg-gray-50 p-1 rounded">
+                            <input type="checkbox" name="docStatus" value="proceeding" class="form-checkbox text-indigo-600 h-5 w-5">
+                            <span class="ml-2 text-gray-700">진행 중 (proceeding)</span>
+                        </label>
+                        <label class="inline-flex items-center cursor-pointer hover:bg-gray-50 p-1 rounded">
+                            <input type="checkbox" name="docStatus" value="completed" class="form-checkbox text-green-600 h-5 w-5" checked>
+                            <span class="ml-2 text-gray-700">완료 (completed)</span>
+                        </label>
+                        <label class="inline-flex items-center cursor-pointer hover:bg-gray-50 p-1 rounded">
+                            <input type="checkbox" name="docStatus" value="canceled" class="form-checkbox text-red-600 h-5 w-5">
+                            <span class="ml-2 text-gray-700">취소/반려 (canceled)</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex space-x-4 mb-6">
+            <button onclick="startProcess()" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded transition shadow-md">
+                <i class="fas fa-search mr-2"></i>1. 조건 검색 및 조회
+            </button>
+            <button id="deleteBtn" onclick="confirmDelete()" disabled class="flex-1 bg-gray-300 text-gray-500 font-bold py-3 px-4 rounded cursor-not-allowed transition">
+                <i class="fas fa-trash mr-2"></i>2. 삭제 실행
+            </button>
+        </div>
+
+        <div id="progressContainer" class="hidden mb-6">
+            <div class="flex justify-between mb-1">
+                <span class="text-sm font-medium text-indigo-700">삭제 진행률</span>
+                <span id="progressText" class="text-sm font-medium text-indigo-700">0% (0/0)</span>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-4 shadow-inner">
+                <div id="progressBar" class="bg-indigo-600 h-4 rounded-full transition-all duration-500 ease-out" style="width: 0%"></div>
+            </div>
+        </div>
+
+        <div id="statusArea" class="hidden mb-4 p-4 rounded bg-green-50 border border-green-200">
+            <div class="flex justify-between items-center mb-1">
+                <span class="text-lg">조회된 문서: <span id="foundCount" class="font-bold text-green-700">0</span> 건</span>
+                <span class="text-sm text-gray-500 font-bold" id="dateCriteriaDisplay"></span>
+            </div>
+            <div class="text-xs text-gray-500 text-right">
+                적용 필터: <span id="appliedFilter" class="font-bold text-indigo-600">-</span>
+            </div>
+        </div>
+
+        <div class="border rounded bg-gray-900 text-green-400 p-4 h-64 overflow-y-auto font-mono text-xs shadow-inner" id="logConsole">
+            <p>> 시스템 준비 완료.</p>
+        </div>
+    </div>
+
+    <script>
+        // --- 초기화 및 설정 ---
+        let targetDocumentIds = [];
+        const BATCH_SIZE = 100;
+        const DELAY_MS = 3000;
+
+        const DOMAIN_MAP = {
+            op_saas: 'https://kr-api.eformsign.com',
+            csap: 'https://www.gov-eformsign.com/Service'
+        };
+
+        const today = new Date();
+        const year = today.getFullYear();
+        document.getElementById('startDate').value = `${year}-01-01`;
+        document.getElementById('endDate').value = today.toISOString().split('T')[0];
+
+        updateDomain();
+
+        function updateDomain() {
+            const env = document.getElementById('envSelection').value;
+            document.getElementById('currentDomain').value = DOMAIN_MAP[env];
+        }
+
+        function toggleSecretPlaceholder() {
+            const method = document.querySelector('input[name="secretMethod"]:checked').value;
+            const input = document.getElementById('secretKey');
+            input.placeholder = method === 'signature' ? "Private Key (Hex) 입력" : "Bearer Token 입력";
+        }
+
+        function log(message, type = 'info') {
+            const consoleBox = document.getElementById('logConsole');
+            const p = document.createElement('p');
+            const time = new Date().toLocaleTimeString();
+            
+            if (type === 'error') p.className = 'text-red-400';
+            else if (type === 'success') p.className = 'text-yellow-300 font-bold';
+            else if (type === 'system') p.className = 'text-blue-300';
+            
+            p.innerText = `[${time}] ${message}`;
+            consoleBox.appendChild(p);
+            consoleBox.scrollTop = consoleBox.scrollHeight;
+        }
+
+        // --- 1. Access Token 발급 ---
+        async function getAccessToken() {
+            const apiKey = document.getElementById('apiKey').value.trim();
+            const memberId = document.getElementById('memberId').value.trim();
+            const secretKey = document.getElementById('secretKey').value.trim();
+            const method = document.querySelector('input[name="secretMethod"]:checked').value;
+            const baseUrl = document.getElementById('currentDomain').value;
+
+            if (!apiKey || !memberId || !secretKey) {
+                alert("인증 정보를 모두 입력해주세요.");
+                return null;
+            }
+
+            log("Access Token 발급 시도...", "system");
+            const execTime = Date.now();
+            let signature;
+
+            try {
+                if (method === 'signature') {
+                    const keyObj = KEYUTIL.getKeyFromPlainPrivatePKCS8Hex(secretKey);
+                    const sig = new KJUR.crypto.Signature({ alg: 'SHA256withECDSA' });
+                    sig.init(keyObj);
+                    sig.updateString(execTime.toString());
+                    signature = sig.sign();
+                } else {
+                    signature = 'Bearer ' + secretKey;
+                }
+
+                const response = await axios.post(`${baseUrl}/v2.0/api_auth/access_token`, 
+                    { execution_time: execTime, member_id: memberId },
+                    { headers: { 'Authorization': 'Bearer ' + btoa(apiKey), 'eformsign_signature': signature, 'Content-Type': 'application/json' }}
+                );
+
+                const token = response.data.oauth_token.access_token;
+                document.getElementById('currentAccessToken').value = token;
+                log("Token 발급 성공!", "success");
+                return token;
+            } catch (error) {
+                let msg = error.response ? JSON.stringify(error.response.data) : error.message;
+                log(`토큰 발급 실패: ${msg}`, 'error');
+                alert(`토큰 발급 실패: ${msg}`);
+                return null;
+            }
+        }
+
+        // --- 2. 프로세스 시작 ---
+        async function startProcess() {
+            // 새 조회 시 프로그레스 바 숨김 및 리셋
+            document.getElementById('progressContainer').classList.add('hidden');
+            document.getElementById('progressBar').style.width = '0%';
+            
+            const token = await getAccessToken();
+            if (!token) return;
+            await fetchDocuments(token);
+        }
+
+        // --- 3. 문서 조회 ---
+        async function fetchDocuments(token) {
+            const baseUrl = document.getElementById('currentDomain').value;
+            const startDateStr = document.getElementById('startDate').value;
+            const endDateStr = document.getElementById('endDate').value;
+            
+            const startTs = new Date(`${startDateStr}T00:00:00`).getTime();
+            const endTs = new Date(`${endDateStr}T23:59:59`).getTime();
+            const dateRange = `${startTs}|${endTs}`;
+
+            const dateTarget = document.querySelector('input[name="dateTarget"]:checked').value;
+            const checkboxes = document.querySelectorAll('input[name="docStatus"]:checked');
+            let selectedStatuses = [];
+            checkboxes.forEach((cb) => selectedStatuses.push(cb.value));
+            const classTypeVal = selectedStatuses.length > 0 ? selectedStatuses.join('|') : "";
+            const filterDisplayText = classTypeVal === "" ? "전체 상태 (All)" : classTypeVal;
+
+            log(`문서 조회 시작... (${dateTarget === 'update_date' ? '처리일' : '전송일'} 기준)`);
+            
+            targetDocumentIds = [];
+            let skip = 0;
+            let isEnd = false;
+            
+            document.getElementById('deleteBtn').disabled = true;
+            document.getElementById('deleteBtn').classList.add('bg-gray-300', 'cursor-not-allowed');
+            document.getElementById('deleteBtn').classList.remove('bg-red-600', 'hover:bg-red-700', 'text-white');
+
+            try {
+                while (!isEnd) {
+                    const reqBody = {
+                        "type": "04",
+                        "class_type": classTypeVal,
+                        "skip": String(skip),
+                        "limit": "100",
+                        "sort": dateTarget,
+                        "sort_type": "desc",
+                        [dateTarget]: dateRange
+                    };
+
+                    const response = await axios.post(`${baseUrl}/v2.0/api/list_document`, reqBody, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+
+                    const docs = response.data.documents;
+                    if (!docs || docs.length === 0) {
+                        isEnd = true;
+                    } else {
+                        docs.forEach(doc => targetDocumentIds.push(doc.id));
+                        log(`${targetDocumentIds.length}건 수집 중...`);
+                        skip += docs.length;
+                        if (docs.length < 100) isEnd = true;
+                    }
+                }
+
+                document.getElementById('statusArea').classList.remove('hidden');
+                document.getElementById('foundCount').innerText = targetDocumentIds.length.toLocaleString();
+                document.getElementById('dateCriteriaDisplay').innerText = `(${dateTarget === 'update_date' ? '처리일' : '전송일'} 기준)`;
+                document.getElementById('appliedFilter').innerText = filterDisplayText;
+                
+                if (targetDocumentIds.length > 0) {
+                    log(`총 ${targetDocumentIds.length}건 조회 완료.`, 'success');
+                    const delBtn = document.getElementById('deleteBtn');
+                    delBtn.disabled = false;
+                    delBtn.classList.remove('bg-gray-300', 'text-gray-500', 'cursor-not-allowed');
+                    delBtn.classList.add('bg-red-600', 'hover:bg-red-700', 'text-white');
+                } else {
+                    log('조건에 맞는 문서가 없습니다.');
+                }
+            } catch (error) {
+                log(`조회 오류: ${error.message}`, 'error');
+            }
+        }
+
+        // --- 4. 삭제 로직 (프로그레스 바 추가) ---
+        function confirmDelete() {
+            const count = targetDocumentIds.length;
+            if (confirm(`총 ${count}건의 문서를 삭제하시겠습니까?`)) {
+                executeBatchDelete();
+            }
+        }
+
+        async function executeBatchDelete() {
+            const token = document.getElementById('currentAccessToken').value;
+            const baseUrl = document.getElementById('currentDomain').value;
+            const totalDocs = targetDocumentIds.length;
+            
+            document.getElementById('deleteBtn').disabled = true;
+            
+            // 프로그레스 바 초기화 및 표시
+            const progressContainer = document.getElementById('progressContainer');
+            const progressBar = document.getElementById('progressBar');
+            const progressText = document.getElementById('progressText');
+            
+            progressContainer.classList.remove('hidden');
+            progressBar.style.width = '0%';
+            progressText.innerText = `0% (0/${totalDocs})`;
+
+            log(`=== 일괄 삭제 시작 (${totalDocs}건) ===`, 'system');
+
+            let deletedCount = 0;
+
+            for (let i = 0; i < totalDocs; i += BATCH_SIZE) {
+                const chunkIds = targetDocumentIds.slice(i, i + BATCH_SIZE);
+                try {
+                    log(`삭제 진행... ${i + 1} ~ ${Math.min(i + BATCH_SIZE, totalDocs)}`);
+                    await axios.delete(`${baseUrl}/v2.0/api/documents`, {
+                        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                        data: { "document_ids": chunkIds }
+                    });
+                    
+                    // 성공적으로 삭제한 갯수 업데이트
+                    deletedCount += chunkIds.length;
+                    
+                    // 프로그레스 바 업데이트 계산
+                    const percentage = Math.floor((deletedCount / totalDocs) * 100);
+                    progressBar.style.width = `${percentage}%`;
+                    progressText.innerText = `${percentage}% (${deletedCount}/${totalDocs})`;
+
+                    log(`-> ${chunkIds.length}건 삭제 성공.`, 'success');
+                } catch (error) {
+                    log(`삭제 실패: ${error.message}`, 'error');
+                }
+                
+                if (i + BATCH_SIZE < totalDocs) {
+                    log(`서버 보호 대기 (3초)...`);
+                    await new Promise(r => setTimeout(r, DELAY_MS));
+                }
+            }
+            log(`=== 작업 종료 ===`, 'success');
+            
+            // 완료 후 100% 확실하게 표시
+            progressBar.style.width = '100%';
+            progressText.innerText = `100% (${totalDocs}/${totalDocs})`;
+            
+            alert("삭제 작업이 완료되었습니다.");
+            
+            // 초기화
+            targetDocumentIds = [];
+            document.getElementById('foundCount').innerText = '0';
+            document.getElementById('deleteBtn').disabled = true;
+            document.getElementById('deleteBtn').classList.add('bg-gray-300');
+        }
+    </script>
+</body>
+</html>
