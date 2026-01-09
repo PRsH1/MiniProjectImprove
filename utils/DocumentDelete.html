@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>eformsign 대용량 문서 삭제 도구 (v2.9)</title>
+    <title>eformsign 대용량 문서 삭제 도구 (v3.1)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jsrsasign/10.5.25/jsrsasign-all-min.js"></script>
@@ -20,7 +20,7 @@
         <div class="flex justify-between items-center border-b pb-4 mb-6">
             <h1 class="text-3xl font-bold text-indigo-700 flex items-center">
                 <i class="fas fa-robot mr-3"></i>eformsign 문서 삭제 도구
-                <span class="ml-3 text-sm font-normal text-white bg-indigo-600 px-3 py-1 rounded-full">v2.9 WakeLock</span>
+                <span class="ml-3 text-sm font-normal text-white bg-indigo-600 px-3 py-1 rounded-full">v3.1 UI Fix</span>
             </h1>
             <div id="wakeLockStatus" class="hidden text-sm font-bold text-green-600 flex items-center animate-pulse">
                 <i class="fas fa-lightbulb mr-2"></i>화면 켜짐 유지 중
@@ -30,8 +30,10 @@
         <div class="bg-yellow-50 border-l-4 border-yellow-500 p-4 mb-8 shadow-sm">
             <h3 class="text-lg font-bold text-yellow-800">주의사항</h3>
             <ul class="list-disc list-inside mt-2 text-sm text-yellow-700">
-                <li>작업 중 <strong>절전 모드 방지(Wake Lock)</strong>가 작동합니다. 브라우저 창을 끄지 마세요.</li>
-                <li>토큰이 만료되면 <strong>자동으로 갱신</strong>하여 끊김 없이 작업을 이어갑니다.</li>
+                <li>응답 본문을 분석하여 <strong>실제 성공/실패 건수</strong>를 정확히 계산합니다.</li>
+                <li>작업 중 <strong>절전 모드 방지</strong> 및 <strong>토큰 자동 갱신</strong>이 작동합니다.</li>
+                <li>브라우저 창을 <strong>최소화</strong>하면 작업이 중단될 수 있습니다. 계속 활성화 상태를 유지해 주세요.</li>
+                <li>대량의 문서 삭제 작업 시 <strong>작업이 중단되지 않도록 주의</strong>해 주세요.</li>
             </ul>
         </div>
 
@@ -113,13 +115,19 @@
 
         <div id="progressContainer" class="hidden mb-6 bg-white p-4 rounded-lg border shadow-sm">
             <div class="flex justify-between mb-2">
-                <span class="text-sm font-bold text-indigo-700 flex items-center"><i class="fas fa-spinner fa-spin mr-2"></i>작업 진행 중...</span>
+                <span id="progressStatusLabel" class="text-sm font-bold text-indigo-700 flex items-center">
+                    <i class="fas fa-spinner fa-spin mr-2"></i>작업 진행 중...
+                </span>
                 <span id="progressText" class="text-sm font-bold text-indigo-700">0% (0/0)</span>
             </div>
             <div class="w-full bg-gray-200 rounded-full h-5 overflow-hidden">
                 <div id="progressBar" class="bg-gradient-to-r from-indigo-500 to-purple-600 h-5 rounded-full transition-all duration-300" style="width: 0%"></div>
             </div>
-            <p class="text-xs text-gray-400 mt-2 text-right">* 서버 보호를 위해 3초 간격으로 분할 처리합니다.</p>
+            <div class="mt-2 text-xs font-bold flex justify-end space-x-4">
+                <span class="text-green-600"><i class="fas fa-check-circle mr-1"></i>성공: <span id="successCount">0</span></span>
+                <span class="text-red-600"><i class="fas fa-times-circle mr-1"></i>실패: <span id="failCount">0</span></span>
+                <span class="text-gray-600">처리됨: <span id="processedCount">0</span></span>
+            </div>
         </div>
 
         <div id="statusArea" class="hidden mb-4 p-5 rounded bg-green-50 border border-green-200 flex justify-between items-center shadow-sm">
@@ -144,7 +152,7 @@
     <script>
         // --- 전역 설정 ---
         let targetDocumentIds = [];
-        let wakeLock = null; // Wake Lock 객체 저장용
+        let wakeLock = null;
         const BATCH_SIZE = 100;
         const DELAY_MS = 3000;
         const DOMAIN_MAP = { op_saas: 'https://kr-api.eformsign.com', csap: 'https://www.gov-eformsign.com/Service' };
@@ -207,7 +215,6 @@
             box.appendChild(p); box.scrollTop = box.scrollHeight;
         }
 
-        // ★★★ Wake Lock 함수 (화면 꺼짐 방지) ★★★
         async function requestWakeLock() {
             try {
                 if ('wakeLock' in navigator) {
@@ -215,9 +222,7 @@
                     document.getElementById('wakeLockStatus').classList.remove('hidden');
                     log("절전 모드 방지 기능이 활성화되었습니다.", "system");
                 }
-            } catch (err) {
-                console.log(`${err.name}, ${err.message}`);
-            }
+            } catch (err) {}
         }
 
         async function releaseWakeLock() {
@@ -233,11 +238,11 @@
         async function getAccessToken(isRefresh = false) {
             const apiKey = document.getElementById('apiKey').value.trim();
             const memberId = document.getElementById('memberId').value.trim();
-            const secretKey = document.getElementById('secretKey').value.trim().replace(/[\r\n\s]/g, '');
+            const secretKeyInput = document.getElementById('secretKey').value.trim().replace(/[\r\n\s]/g, '');
             const method = document.querySelector('input[name="secretMethod"]:checked').value;
             const baseUrl = document.getElementById('currentDomain').value;
 
-            if (!apiKey || !memberId || !secretKey || !baseUrl) {
+            if (!apiKey || !memberId || !secretKeyInput || !baseUrl) {
                 alert("인증 정보를 모두 입력해주세요."); return null;
             }
             if (isRefresh) log("⚠ 토큰 만료. 갱신 시도...", "warning");
@@ -248,23 +253,21 @@
                 let signature;
                 if (method === 'signature') {
                     let keyObj = null;
-                    try { keyObj = KEYUTIL.getKey(secretKey); } catch(e){}
-                    if(!keyObj) try { keyObj = KEYUTIL.getKeyFromPlainPrivatePKCS8Hex(secretKey); } catch(e){}
+                    try { keyObj = KEYUTIL.getKey(secretKeyInput); } catch(e){}
+                    if(!keyObj) try { keyObj = KEYUTIL.getKeyFromPlainPrivatePKCS8Hex(secretKeyInput); } catch(e){}
                     if(!keyObj) { alert("Secret Key 형식이 올바르지 않습니다."); return null; }
-                    
                     const sig = new KJUR.crypto.Signature({ alg: 'SHA256withECDSA' });
                     sig.init(keyObj);
                     sig.updateString(execTime.toString());
                     signature = sig.sign();
                 } else {
-                    signature = 'Bearer ' + secretKey;
+                    signature = 'Bearer ' + secretKeyInput;
                 }
 
                 const res = await axios.post(`${baseUrl}/v2.0/api_auth/access_token`, 
                     { execution_time: execTime, member_id: memberId },
                     { headers: { 'Authorization': 'Bearer ' + btoa(apiKey), 'eformsign_signature': signature }}
                 );
-                
                 const token = res.data.oauth_token.access_token;
                 document.getElementById('currentAccessToken').value = token;
                 log(isRefresh ? "✅ 갱신 성공." : "발급 성공.", "success");
@@ -275,7 +278,7 @@
             }
         }
 
-        // --- 2. 조회 시작 ---
+        // --- 2. 조회 ---
         async function startProcess() {
             setButtonState('loading');
             document.getElementById('progressContainer').classList.add('hidden');
@@ -284,7 +287,6 @@
             await fetchDocuments(token);
         }
 
-        // --- 3. 조회 로직 ---
         async function fetchDocuments(initialToken) {
             let token = initialToken;
             const baseUrl = document.getElementById('currentDomain').value;
@@ -303,7 +305,6 @@
                 while (!isEnd) {
                     let retryCount = 0;
                     let success = false;
-
                     while(!success && retryCount < 2) {
                         try {
                             const res = await axios.post(`${baseUrl}/v2.0/api/list_document`, {
@@ -321,31 +322,21 @@
                                 if (docs.length < 100) isEnd = true;
                             }
                             success = true; 
-
                         } catch(error) {
                             if (error.response && error.response.status === 401) {
                                 log(`조회 중 토큰 만료. 갱신 시도...`, 'warning');
                                 const newToken = await getAccessToken(true);
-                                if (newToken) { 
-                                    token = newToken; 
-                                    retryCount++; 
-                                    log(`토큰 갱신됨. 조회 재시도...`, 'system');
-                                } else { 
-                                    throw new Error("토큰 갱신 실패로 조회를 중단합니다."); 
-                                }
-                            } else {
-                                throw error; 
-                            }
+                                if (newToken) { token = newToken; retryCount++; log(`토큰 갱신됨. 재시도...`, 'system'); }
+                                else { throw new Error("토큰 갱신 실패"); }
+                            } else { throw error; }
                         }
                     }
                 }
-
                 document.getElementById('statusArea').classList.remove('hidden');
                 document.getElementById('foundCount').innerText = targetDocumentIds.length.toLocaleString();
                 document.getElementById('appliedFilter').innerText = statusVal || "All";
                 log(`조회 완료: ${targetDocumentIds.length}건`, "success");
                 setButtonState('search_done');
-
             } catch (e) {
                 log(`조회 실패: ${e.message}`, 'error');
                 setButtonState('error');
@@ -359,49 +350,64 @@
             if (confirm(msg)) executeBatchDelete(isPermanent);
         }
 
-        // --- 5. 삭제 실행 (Wake Lock + 자동 갱신) ---
+        // --- 5. 삭제 실행 (UI 수정 포함) ---
         async function executeBatchDelete(isPermanent) {
             let token = document.getElementById('currentAccessToken').value;
             const baseUrl = document.getElementById('currentDomain').value;
             const totalDocs = targetDocumentIds.length;
             
-            // Wake Lock 활성화
             await requestWakeLock();
-
             setButtonState('loading');
+            
             const progressContainer = document.getElementById('progressContainer');
             const progressBar = document.getElementById('progressBar');
             const progressText = document.getElementById('progressText');
+            // ★ 라벨 ID로 제어
+            const progressStatusLabel = document.getElementById('progressStatusLabel');
+            
             progressContainer.classList.remove('hidden');
             progressBar.style.width = '0%';
             progressText.innerText = `0% (0/${totalDocs})`;
+            progressStatusLabel.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>작업 진행 중...';
+
+            const elSuccess = document.getElementById('successCount');
+            const elFail = document.getElementById('failCount');
+            const elProcessed = document.getElementById('processedCount');
+            
+            let realSuccessCnt = 0;
+            let realFailCnt = 0;
 
             let deleteUrl = `${baseUrl}/v2.0/api/documents` + (isPermanent ? '?is_permanent=true' : '');
             log(`삭제 시작 (${totalDocs}건)...`, isPermanent ? 'warning' : 'system');
 
-            let deletedCount = 0;
-
             for (let i = 0; i < totalDocs; i += BATCH_SIZE) {
                 const chunkIds = targetDocumentIds.slice(i, i + BATCH_SIZE);
                 let retryCount = 0;
-                let isBatchSuccess = false;
+                let isBatchDone = false;
 
-                while (!isBatchSuccess && retryCount < 2) {
+                while (!isBatchDone && retryCount < 2) {
                     try {
                         log(`[진행] ${i + 1} ~ ${Math.min(i + BATCH_SIZE, totalDocs)}번째 처리 중...`);
                         
-                        await axios.delete(deleteUrl, {
+                        const res = await axios.delete(deleteUrl, {
                             headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
                             data: { "document_ids": chunkIds }
                         });
                         
-                        isBatchSuccess = true;
-                        deletedCount += chunkIds.length;
+                        const result = res.data.result;
+                        const successArr = result.success_result || [];
+                        const failArr = result.fail_result || [];
                         
-                        const pct = Math.floor((deletedCount / totalDocs) * 100);
-                        progressBar.style.width = `${pct}%`;
-                        progressText.innerText = `${pct}% (${deletedCount}/${totalDocs})`;
-                        log(`-> 성공.`, 'success');
+                        realSuccessCnt += successArr.length;
+                        realFailCnt += failArr.length;
+
+                        if (failArr.length > 0) {
+                            log(`⚠️ 부분 실패 (성공:${successArr.length}, 실패:${failArr.length})`, 'warning');
+                            console.warn("실패 ID:", failArr);
+                        } else {
+                            log(`-> ${successArr.length}건 성공`, 'success');
+                        }
+                        isBatchDone = true;
 
                     } catch (error) {
                         if (error.response && error.response.status === 401) {
@@ -412,28 +418,41 @@
                                 log(`토큰 갱신됨. 재시도...`, 'system');
                             } else {
                                 log(`토큰 갱신 실패. 중단.`, 'error');
-                                alert("토큰 갱신 실패"); 
-                                setButtonState('error'); 
-                                await releaseWakeLock(); // 실패 시 Wake Lock 해제
-                                return;
+                                alert("토큰 갱신 실패"); setButtonState('error'); await releaseWakeLock(); return;
                             }
                         } else {
                             log(`삭제 실패(구간 ${i}): ${error.message}`, 'error');
-                            isBatchSuccess = true; // 에러나도 다음으로 진행
+                            realFailCnt += chunkIds.length;
+                            isBatchDone = true; 
                         }
                     }
                 }
 
+                // UI 업데이트
+                const processed = realSuccessCnt + realFailCnt;
+                const pct = Math.floor((processed / totalDocs) * 100);
+                progressBar.style.width = `${pct}%`;
+                progressText.innerText = `${pct}%`;
+                elSuccess.innerText = realSuccessCnt;
+                elFail.innerText = realFailCnt;
+                elProcessed.innerText = processed;
+
                 if (i + BATCH_SIZE < totalDocs) await new Promise(r => setTimeout(r, DELAY_MS));
             }
 
-            // 작업 종료 후 Wake Lock 해제
             await releaseWakeLock();
-
             progressBar.style.width = '100%';
             progressText.innerText = `100%`;
-            log(`=== 작업 완료 ===`, 'success');
-            alert("삭제 작업이 완료되었습니다.");
+            // ★ 완료 시 라벨 변경
+            progressStatusLabel.innerHTML = '<i class="fas fa-check-circle mr-2"></i>작업 완료!';
+            
+            if (realFailCnt > 0) {
+                alert(`작업 완료 (실패 ${realFailCnt}건 포함)\n상세 내역은 로그를 확인하세요.`);
+                log(`=== 완료 (성공:${realSuccessCnt}, 실패:${realFailCnt}) ===`, 'warning');
+            } else {
+                alert("모든 삭제 작업이 성공적으로 완료되었습니다.");
+                log(`=== 모든 작업 성공 (${realSuccessCnt}건) ===`, 'success');
+            }
             
             targetDocumentIds = [];
             document.getElementById('foundCount').innerText = '0';
