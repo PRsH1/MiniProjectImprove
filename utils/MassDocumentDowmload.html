@@ -572,6 +572,8 @@
 
             pBar.style.width = '100%';
             pText.innerText = '100%';
+
+            pLabel.innerHTML = `<i class="fas fa-check-circle mr-2"></i>다운로드 완료!`;
             
             if(failCnt > 0) alert(`작업 완료 (실패 ${failCnt}건 포함)\n로그를 확인하세요.`);
             else alert("모든 다운로드가 완료되었습니다.");

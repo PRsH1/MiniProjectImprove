@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>eformsign 문서 전송 & Access Token 발급</title>
+    <title>eformsign 문서 전송 & Access Token 발급 (Custom Domain 지원)</title>
     <style>
         /* 기본 레이아웃 */
         body { font-family: Arial, sans-serif; margin: 2rem; background: #f9f9f9; }
@@ -31,11 +31,14 @@
         .switch input:checked + .slider { background-color: #4CAF50; }
         .switch input:checked + .slider:before { transform: translateX(24px); }
         .toggle-label { display: inline-flex; align-items: center; font-size: 0.95rem; margin: 1rem 0; }
+        
+        /* [수정] 커스텀 도메인 입력 필드 스타일 */
+        #customDomainWrapper { display: none; margin-top: 0.5rem; padding: 0.5rem; background: #f0f8ff; border: 1px dashed #007bff; border-radius: 4px; }
     </style>
 </head>
 <body>
 
-    <h1>eformsign 문서 전송</h1>
+    <h1>eformsign 문서 전송 (Custom URL 지원)</h1>
 
     <fieldset>
         <legend>Access Token 발급</legend>
@@ -43,8 +46,17 @@
             <select id="envSelection">
                 <option value="op_saas">운영 (SaaS)</option>
                 <option value="csap">공공 (CSAP)</option>
+                <option value="custom">직접 입력 (Custom Domain)</option>
             </select>
         </label>
+        
+        <div id="customDomainWrapper">
+            <label style="margin-top:0;">API 도메인 주소:
+                <input type="text" id="customDomainInput" placeholder="예: https://api.my-eformsign.com"/>
+            </label>
+            <div class="info-text">※ 프로토콜(https://)을 포함하여 입력해주세요. (끝에 '/' 제외)</div>
+        </div>
+
         <label>API KEY:
             <input type="text" id="apiKey" placeholder="API-KEY 입력"/>
         </label>
@@ -89,7 +101,7 @@
                 </label>
                 이 문서 임시저장 (수신자 없이 전송)
             </div>
-            </fieldset>
+        </fieldset>
 
         <fieldset id="recipientsFieldset">
             <legend>수신자 (Recipients)</legend>
@@ -164,30 +176,62 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jsrsasign/10.5.25/jsrsasign-all-min.js"></script>
     <script>
-        // 환경별 엔드포인트 맵
+        // 기본 URL 맵
         const tokenUrlMap = { op_saas: 'https://kr-api.eformsign.com/v2.0/api_auth/access_token', csap: 'https://www.gov-eformsign.com/Service/v2.0/api_auth/access_token' };
         const apiBaseMap = { op_saas: 'https://kr-api.eformsign.com/v2.0/api', csap: 'https://www.gov-eformsign.com/Service/v2.0/api' };
 
         let lastRequestBody = null;
         let lastTemplateResponse = null;
 
-      
+        // [추가] 환경 선택 시 커스텀 도메인 입력창 토글
+        document.getElementById('envSelection').addEventListener('change', function() {
+            const wrapper = document.getElementById('customDomainWrapper');
+            if (this.value === 'custom') {
+                wrapper.style.display = 'block';
+            } else {
+                wrapper.style.display = 'none';
+            }
+        });
+
+        // [추가] 현재 선택된 환경에 맞는 엔드포인트 반환 헬퍼 함수
+        function getEndpoints() {
+            const env = document.getElementById('envSelection').value;
+            
+            if (env === 'custom') {
+                let domain = document.getElementById('customDomainInput').value.trim();
+                if (!domain) {
+                    throw new Error('커스텀 도메인 주소를 입력해주세요.');
+                }
+                // 주소 끝에 '/'가 있다면 제거
+                domain = domain.replace(/\/+$/, '');
+                
+                // 도메인 형식이 프로토콜을 포함하지 않았다면 경고 (선택사항)
+                if (!domain.startsWith('http')) {
+                    // 편의를 위해 https 붙여줄 수도 있음
+                     domain = 'https://' + domain;
+                }
+
+                return {
+                    tokenUrl: `${domain}/v2.0/api_auth/access_token`,
+                    apiBase: `${domain}/v2.0/api`
+                };
+            }
+
+            return {
+                tokenUrl: tokenUrlMap[env],
+                apiBase: apiBaseMap[env]
+            };
+        }
+
         document.getElementById('saveAsDraft').addEventListener('change', function() {
             const recipientsFieldset = document.getElementById('recipientsFieldset');
-            recipientsFieldset.disabled = this.checked; // 체크되면 fieldset 비활성화
+            recipientsFieldset.disabled = this.checked;
         });
-   
-        
-        
-   
-    
- 
+
         setupList('recipients','tpl-recipient','addRecipient');
         setupList('fields','tpl-field','addField');
         setupList('params','tpl-param','addParam');
         setupList('notifications','tpl-notify','addNotify');
-   
-
 
         document.getElementById('docForm').addEventListener('submit', async e => {
             e.preventDefault();
@@ -198,9 +242,8 @@
                 return;
             }
 
-            const isDraft = document.getElementById('saveAsDraft').checked; // 임시저장 여부 확인
+            const isDraft = document.getElementById('saveAsDraft').checked;
 
-            // 1. document 객체의 기본 구조를 만듭니다. (recipients 키 없이)
             const documentObject = {
                 document_name: document.getElementById('docName').value || undefined,
                 comment: document.getElementById('docComment').value || undefined,
@@ -209,9 +252,8 @@
                 notification: []
             };
 
-            // 2. 임시저장이 아닐 경우에만 recipients 배열을 추가하고 채웁니다.
             if (!isDraft) {
-                documentObject.recipients = []; // recipients 키 추가
+                documentObject.recipients = [];
                 document.querySelectorAll('#recipients .list-item').forEach(el => {
                     const rec = { step_type: el.querySelector('[name=step_type]').value };
                     rec.use_mail = el.querySelector('[name=use_mail]').checked;
@@ -241,7 +283,6 @@
                 });
             }
             
-            // fields, parameters, notifications는 항상 포함
             document.querySelectorAll('#fields .list-item').forEach(el => {
                 documentObject.fields.push({ id: el.querySelector('[name=field_id]').value, value: el.querySelector('[name=field_value]').value });
             });
@@ -264,7 +305,6 @@
                 documentObject.notification.push(n);
             });
             
-            // 최종 요청 본문
             const body = { document: documentObject };
 
             lastRequestBody = body;
@@ -274,12 +314,14 @@
                 el.style.display = 'block';
             }
 
-            // API 호출
-            const env = document.getElementById('envSelection').value;
-            const apiBase = apiBaseMap[env];
-            const url = `${apiBase}/documents?template_id=${encodeURIComponent(document.getElementById('templateId').value)}`;
-            document.getElementById('result').textContent = '전송 중...';
+            // [수정] getEndpoints() 함수 사용하여 API Base URL 획득
             try {
+                const endpoints = getEndpoints(); // 여기서 에러나면 catch로 이동
+                const apiBase = endpoints.apiBase;
+                
+                const url = `${apiBase}/documents?template_id=${encodeURIComponent(document.getElementById('templateId').value)}`;
+                document.getElementById('result').textContent = '전송 중...';
+                
                 const res = await fetch(url, {
                     method: 'POST',
                     headers: {
@@ -291,11 +333,10 @@
                 const data = await res.json();
                 document.getElementById('result').textContent = JSON.stringify(data, null, 2);
             } catch (err) {
-                document.getElementById('result').textContent = '전송 오류: ' + err;
+                document.getElementById('result').textContent = '오류: ' + err.message;
             }
         });
 
-       
         document.getElementById('secretMethod').addEventListener('change', () => {
             const m   = document.getElementById('secretMethod').value;
             const lbl = document.getElementById('secretLabel');
@@ -316,7 +357,6 @@
             btn.textContent = '로딩 중...';
             tokenMsg.textContent = '';
 
-            const env    = document.getElementById('envSelection').value;
             const apiKey = document.getElementById('apiKey').value.trim();
             const secret = document.getElementById('privateKeyHex').value.trim();
             const userId = document.getElementById('userIdToken').value.trim();
@@ -328,7 +368,6 @@
                 return;
             }
 
-            const url      = tokenUrlMap[env];
             const execTime = Date.now().toString();
             let signature  = '';
 
@@ -350,6 +389,10 @@
             }
 
             try {
+                // [수정] getEndpoints() 함수를 사용하여 토큰 URL 획득
+                const endpoints = getEndpoints(); 
+                const url = endpoints.tokenUrl;
+
                 const res = await fetch(url, {
                     method: 'POST',
                     headers: {
@@ -394,9 +437,8 @@
             actEl.innerHTML = '';
             respEl.style.display = 'none';
 
-            const token      = document.getElementById('accessToken').value.trim();
+            const token    = document.getElementById('accessToken').value.trim();
             const templateId = document.getElementById('templateId').value.trim();
-            const env        = document.getElementById('envSelection').value;
 
             if (!token) {
                 msgEl.textContent = '먼저 Access Token을 발급받아주세요.';
@@ -410,7 +452,10 @@
             }
 
             try {
-                const base = apiBaseMap[env];
+                // [수정] getEndpoints() 함수를 사용하여 API Base URL 획득
+                const endpoints = getEndpoints();
+                const base = endpoints.apiBase;
+
                 const resp = await fetch(`${base}/forms/info`, {
                     method: 'POST',
                     headers: {

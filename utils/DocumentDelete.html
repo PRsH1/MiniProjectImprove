@@ -216,6 +216,8 @@
         }
 
         async function requestWakeLock() {
+
+            // 절전 모드 방지 기능 요청
             try {
                 if ('wakeLock' in navigator) {
                     wakeLock = await navigator.wakeLock.request('screen');
@@ -226,6 +228,8 @@
         }
 
         async function releaseWakeLock() {
+
+            // 절전 모드 방지 기능 해제
             if (wakeLock !== null) {
                 await wakeLock.release();
                 wakeLock = null;
@@ -307,6 +311,7 @@
                     let success = false;
                     while(!success && retryCount < 2) {
                         try {
+                            // API 호출
                             const res = await axios.post(`${baseUrl}/v2.0/api/list_document`, {
                                 type: "04", class_type: statusVal, skip: String(skip), limit: "100",
                                 sort: dateTarget, sort_type: "desc", [dateTarget]: `${startTs}|${endTs}`
@@ -323,6 +328,8 @@
                             }
                             success = true; 
                         } catch(error) {
+
+                            // 토큰 만료 시 갱신
                             if (error.response && error.response.status === 401) {
                                 log(`조회 중 토큰 만료. 갱신 시도...`, 'warning');
                                 const newToken = await getAccessToken(true);
@@ -357,6 +364,7 @@
             const totalDocs = targetDocumentIds.length;
             
             await requestWakeLock();
+            // wakeLock 요청 후에 버튼 상태 변경
             setButtonState('loading');
             
             const progressContainer = document.getElementById('progressContainer');
@@ -386,7 +394,9 @@
                 let isBatchDone = false;
 
                 while (!isBatchDone && retryCount < 2) {
+                    // API 호출
                     try {
+                        
                         log(`[진행] ${i + 1} ~ ${Math.min(i + BATCH_SIZE, totalDocs)}번째 처리 중...`);
                         
                         const res = await axios.delete(deleteUrl, {
@@ -402,14 +412,17 @@
                         realFailCnt += failArr.length;
 
                         if (failArr.length > 0) {
+                            // 일부 실패 처리
                             log(`⚠️ 부분 실패 (성공:${successArr.length}, 실패:${failArr.length})`, 'warning');
                             console.warn("실패 ID:", failArr);
                         } else {
+                            // 모두 성공 처리
                             log(`-> ${successArr.length}건 성공`, 'success');
                         }
                         isBatchDone = true;
 
                     } catch (error) {
+                        // 토큰 만료 시 갱신
                         if (error.response && error.response.status === 401) {
                             log(`삭제 중 토큰 만료. 갱신 시도...`, 'warning');
                             const newToken = await getAccessToken(true);
@@ -421,6 +434,7 @@
                                 alert("토큰 갱신 실패"); setButtonState('error'); await releaseWakeLock(); return;
                             }
                         } else {
+                            // 기타 오류 처리
                             log(`삭제 실패(구간 ${i}): ${error.message}`, 'error');
                             realFailCnt += chunkIds.length;
                             isBatchDone = true; 
