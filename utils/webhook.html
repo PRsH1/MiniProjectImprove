@@ -17,6 +17,8 @@
             --green: #28a745;
             --blue: #17a2b8;
             --orange: #fd7e14;
+            --header-bg: #1e2a38;
+            --header-text: #a5d6ff;
         }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 20px; }
         .container { max-width: 900px; margin: auto; }
@@ -46,7 +48,21 @@
         .log-table { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
         .log-table td { padding: 8px; border-bottom: 1px solid var(--border-color); color: var(--muted-color); word-break: break-all; }
         .log-table td:first-child { font-weight: bold; width: 150px; color: var(--text-color); }
-        .json-viewer, .doc-info-result { background-color: #111; padding: 15px; border-radius: 5px; max-height: 400px; overflow: auto; white-space: pre-wrap; font-family: "Courier New", Courier, monospace; font-size: 0.9em; margin-top: 10px; display: none; }
+        
+        /* 뷰어 스타일 통합 */
+        .json-viewer, .doc-info-result, .header-viewer { 
+            background-color: #111; padding: 15px; border-radius: 5px; max-height: 400px; overflow: auto; 
+            white-space: pre-wrap; font-family: "Courier New", Courier, monospace; font-size: 0.9em; 
+            margin-top: 10px; display: none; 
+        }
+
+        /* 헤더 뷰어 전용 스타일 */
+        .header-viewer {
+            background-color: var(--header-bg);
+            border: 1px dashed var(--blue);
+            color: var(--header-text);
+        }
+
         .log-actions { margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap; }
         .log-actions button { background-color: #444; border: 1px solid #555; font-weight: normal; padding: 8px 12px; }
         .log-actions button.download-pdf-btn { background-color: var(--blue); border-color: #17a2b8; }
@@ -62,12 +78,7 @@
         #downloadModal .modal-content { text-align: center; }
         .download-options { display: flex; flex-direction: column; gap: 15px; margin-top: 20px; }
         .user-connect-form {
-            display: flex;
-            gap: 10px;
-            padding: 15px;
-            background-color: #222;
-            border-radius: 8px;
-            margin-bottom: 20px;
+            display: flex; gap: 10px; padding: 15px; background-color: #222; border-radius: 8px; margin-bottom: 20px;
         }
     </style>
 </head>
@@ -111,7 +122,12 @@
                 <select id="envSelection">
                     <option value="op_saas">운영 (SaaS)</option>
                     <option value="csap">공공 (CSAP)</option>
+                    <option value="custom">직접 입력 (Custom)</option>
                 </select>
+            </div>
+            <div class="form-group" id="customDomainGroup" style="display:none;">
+                <label for="customDomainInput">API 도메인 URL:</label>
+                <input type="text" id="customDomainInput" placeholder="예: https://api.example.com">
             </div>
             <div class="form-group">
                 <label for="apiKey">API-KEY:</label>
@@ -156,19 +172,20 @@
                 <div class="log-actions">
                     <button class="download-pdf-btn" style="display: none;">📥 PDF 다운로드</button>
                     <button class="get-doc-info">📄 문서 정보 조회</button>
-                    <button class="toggle-json">원본 JSON 보기/숨기기</button>
+                    <button class="toggle-headers">🔍 헤더 정보 보기</button>
+                    <button class="toggle-json">원본 JSON 보기</button>
                     <button class="copy-json">JSON 복사</button>
                 </div>
                 <div class="doc-info-result"></div>
+                <pre class="header-viewer"><code></code></pre>
                 <pre class="json-viewer"><code></code></pre>
             </div>
         </div>
     </template>
     
 <script>
-    // ※ 매우 중요: 아래 두 값을 본인의 Pusher Key 값으로 변경하세요.
     const PUSHER_KEY = '0676069a295da819e2a5'; 
-    const PUSHER_CLUSTER = 'ap3'; // 예: 'ap3'
+    const PUSHER_CLUSTER = 'ap3'; 
 
     $(document).ready(function() {
         let pusher;
@@ -178,13 +195,20 @@
         const statusDiv = $('#connection-status');
         const clearButton = $('#clear-button');
         const statusFilter = $('#status-filter');
-        const DOMAINS = { op_saas: 'https://kr-api.eformsign.com', csap: 'https://www.gov-eformsign.com/Service' };
+        
+        // 도메인 맵핑
+        const DOMAINS = { 
+            op_saas: 'https://kr-api.eformsign.com', 
+            csap: 'https://www.gov-eformsign.com/Service' 
+        };
+        
         const statusMap = { "doc_tempsave": "초안 (임시 저장)", "doc_create": "문서 작성", "doc_request_participant": "참여자 요청", "doc_accept_participant": "참여자 승인", "doc_reject_participant": "참여자 반려", "doc_request_reviewer": "검토자 요청", "doc_accept_reviewer": "검토자 승인", "doc_reject_reviewer": "검토자 반려", "doc_reject_request": "반려 요청", "doc_decline_cancel_request": "반려 요청 거절", "doc_delete_request": "삭제 요청", "doc_decline_delete_request": "삭제 요청 거절", "doc_cancel_request": "요청 취소", "doc_revoke" : "문서 취소", "doc_delete" :"문서 삭제" , "doc_request_approval": "결재 요청", "doc_accept_approval": "결재 승인", "doc_reject_approval": "결재 반려", "doc_request_external": "외부자 요청", "doc_remind_external": "외부자 재요청", "doc_open_external": "외부자 열람", "doc_accept_external": "외부자 승인", "doc_reject_external": "외부자 반려", "doc_request_internal": "내부자 요청", "doc_accept_internal": "내부자 승인", "doc_reject_internal": "내부자 반려", "doc_tempsave_internal": "내부자 임시 저장", "doc_complete": "문서 완료" };
         
         const tokenModal = $('#tokenModal');
         const openTokenModalBtn = $('#openTokenModalBtn');
         const downloadModal = $('#downloadModal');
         
+        // Modal Event Listeners
         $('.modal-close-btn').on('click', function() {
             $(this).closest('.modal-overlay').fadeOut();
         });
@@ -195,9 +219,29 @@
         });
         openTokenModalBtn.on('click', () => tokenModal.fadeIn());
 
+        // Custom Domain Input Toggle
+        $('#envSelection').on('change', function() {
+            if ($(this).val() === 'custom') {
+                $('#customDomainGroup').slideDown();
+            } else {
+                $('#customDomainGroup').slideUp();
+            }
+        });
+
+        // Helper: 현재 선택된 도메인 가져오기
+        function getCurrentDomain() {
+            const selection = $('#envSelection').val();
+            if (selection === 'custom') {
+                const customUrl = $('#customDomainInput').val().trim();
+                // 끝에 슬래시 제거 처리
+                return customUrl.replace(/\/$/, "");
+            }
+            return DOMAINS[selection];
+        }
+
         function connectToEvents(channelName) {
-            if (!PUSHER_KEY || !PUSHER_CLUSTER || PUSHER_KEY === 'YOUR_PUSHER_KEY') {
-                statusDiv.text('● Pusher Key/Cluster를 설정하세요.').removeClass('connected').addClass('disconnected');
+            if (!PUSHER_KEY || !PUSHER_CLUSTER) {
+                statusDiv.text('● Pusher 설정을 확인하세요.').removeClass('connected').addClass('disconnected');
                 return;
             }
             if (pusher && channel) {
@@ -219,39 +263,39 @@
             });
         }
         
-       $('#connectPusherBtn').on('click', function() {
-    const companyId = $('#pusherCompanyId').val().trim();
-    if (!companyId) {
-        alert('Company ID를 입력하세요.');
-        return;
-    }
-
-    
-    const companyChannelName = `company-${companyId}`;
-    
-  
-    const alertMessage = `[프론트엔드] 구독 시도 채널:\n${companyChannelName}`;
-    console.log(alertMessage);
-   
-    
-    connectToEvents(companyChannelName);
-});
+        $('#connectPusherBtn').on('click', function() {
+            const companyId = $('#pusherCompanyId').val().trim();
+            if (!companyId) {
+                alert('Company ID를 입력하세요.');
+                return;
+            }
+            const companyChannelName = `company-${companyId}`;
+            console.log(`[프론트엔드] 구독 시도 채널: ${companyChannelName}`);
+            connectToEvents(companyChannelName);
+        });
 
         async function getAccessToken() {
             const apiKey = $('#apiKey').val().trim();
             const memberId = $('#user_id_token').val().trim();
             const secretKey = $('#secretKey').val().trim();
+            const domain = getCurrentDomain(); // 변경된 로직: 현재 선택된 도메인 가져오기
+
+            if (!domain) {
+                alert('도메인을 선택하거나 입력해주세요.');
+                return;
+            }
             if (!apiKey || !memberId || !secretKey) {
                 alert('API-KEY, Secret Key, User ID를 모두 입력해주세요.');
                 return;
             }
+
             $('#tokenResult').html('<pre>토큰 발급 중...</pre>');
             try {
                 const response = await fetch('/api/getToken', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        domain: DOMAINS[$('#envSelection').val()],
+                        domain: domain,
                         apiKey: apiKey,
                         memberId: memberId,
                         secretKey: secretKey 
@@ -275,7 +319,7 @@
                 return;
             }
             resultContainer.slideDown().html('<pre>문서 정보 조회 중...</pre>');
-            const domain = DOMAINS[$('#envSelection').val()];
+            const domain = getCurrentDomain();
             const url = `/api/getDocumentInfo?domain=${encodeURIComponent(domain)}&documentId=${documentId}&token=${encodeURIComponent(token)}`;
             try {
                 const response = await fetch(url);
@@ -306,7 +350,7 @@
                 return;
             }
             alert('파일 다운로드를 시작합니다...');
-            const domain = DOMAINS[$('#envSelection').val()];
+            const domain = getCurrentDomain();
             const url = `/api/downloadDocument?domain=${encodeURIComponent(domain)}&documentId=${documentId}&file_type=${encodeURIComponent(fileType)}&title=${encodeURIComponent(documentTitle)}`;
             try {
                 const response = await fetch(url, {
@@ -355,26 +399,46 @@
         
         function addLogEntry(data) {
             const newEntry = $(logTemplate.html());
-            const event = data.document || data.ready_document_pdf;
+            
+            // 데이터 구조 파싱 (헤더 포함 여부 확인)
+            // 기존: data = { document: {...}, event_type: ... }
+            // 변경: data = { headers: {...}, body: { document: {...}, ... } }
+            const eventBody = data.body || data; 
+            const eventHeaders = data.headers || {};
+
+            const event = eventBody.document || eventBody.ready_document_pdf || {};
             const status = event.status || event.document_status;
+            const eventType = eventBody.event_type || 'unknown';
             
             newEntry.attr('data-status', status);
             newEntry.attr('data-document-id', event.document_id || event.id);
             newEntry.attr('data-document-title', event.document_title);
-            newEntry.find('.event-type').text(data.event_type.toUpperCase()).addClass(data.event_type);
-            newEntry.find('.timestamp').text(new Date(data.receivedAt).toLocaleString());
+            
+            newEntry.find('.event-type').text(eventType.toUpperCase()).addClass(eventType);
+            newEntry.find('.timestamp').text(new Date(data.receivedAt || eventBody.receivedAt).toLocaleString());
+            
             const statusText = statusMap[status] ? `${statusMap[status]} (${status})` : (status || '-');
             const tableBody = newEntry.find('.log-table tbody');
             const createRow = (key, value) => `<tr><td>${key}</td><td>${value || '-'}</td></tr>`;
-            tableBody.append(createRow('웹훅 ID', data.webhook_id));
+            
+            tableBody.append(createRow('웹훅 ID', eventBody.webhook_id));
             tableBody.append(createRow('문서 ID', event.document_id || event.id));
             tableBody.append(createRow('문서 제목', event.document_title));
             tableBody.append(createRow('상태', statusText));
-            if (data.event_type === 'ready_document_pdf') {
+            
+            if (eventType === 'ready_document_pdf') {
                 newEntry.find('.download-pdf-btn').show();
             }
-            newEntry.find('.json-viewer code').text(JSON.stringify(data, null, 2));
+            
+            // Body JSON 표시
+            newEntry.find('.json-viewer code').text(JSON.stringify(eventBody, null, 2));
+            
+            // Header JSON 표시
+            newEntry.find('.header-viewer code').text(JSON.stringify(eventHeaders, null, 2));
+            
             logContainer.prepend(newEntry);
+            
+            // 필터 적용
             if (statusFilter.val() !== 'all' && statusFilter.val() !== status) {
                 statusFilter.val('all');
             }
@@ -385,8 +449,13 @@
         clearButton.on('click', () => logContainer.html(''));
         statusFilter.on('change', filterLogs);
         
+        // 버튼 이벤트 핸들러
         logContainer.on('click', '.toggle-json', function() {
             $(this).closest('.log-body').find('.json-viewer').slideToggle();
+        });
+
+        logContainer.on('click', '.toggle-headers', function() {
+            $(this).closest('.log-body').find('.header-viewer').slideToggle();
         });
 
         logContainer.on('click', '.copy-json', function() {

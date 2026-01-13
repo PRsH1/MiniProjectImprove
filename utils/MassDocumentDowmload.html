@@ -403,7 +403,18 @@
                                     throw new Error("토큰 갱신 실패로 조회를 중단합니다."); 
                                 }
                             } else {
-                                throw error; // 401 외의 에러는 밖으로 던짐
+                                console.error(error);
+                                
+                                if(error.response && error.response.data && error.response.data.message) {
+                                    log(`조회 오류: ${error.response.data.message}`, 'error');
+                                    throw new Error(`조회 오류: ${error.response.data.message}`);
+                                    
+                                } else {
+                                    log(`조회 오류: ${error.message}`, 'error');
+                                    throw new Error(`조회 오류: ${error.message}`);
+                                }
+
+                                
                             }
                         }
                     }
