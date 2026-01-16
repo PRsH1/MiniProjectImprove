@@ -1,9 +1,6 @@
-// api/sso-login.js
 module.exports = (req, res) => {
-  // B사이트에서 보낸 SAMLRequest와 RelayState를 받습니다.
   const { SAMLRequest, RelayState } = req.query;
 
-  // 간단한 HTML 로그인 폼을 반환합니다.
   const html = `
     <!DOCTYPE html>
     <html>

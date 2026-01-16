@@ -1,4 +1,3 @@
-// /api/webhook-receiver.js
 const Pusher = require('pusher');
 
 const pusher = new Pusher({
@@ -11,15 +10,13 @@ const pusher = new Pusher({
 
 module.exports = async function handler(req, res) {
     if (req.method === 'POST') {
-        // [변경됨] body와 headers를 모두 포함하여 payload 생성
         const eventPayload = { 
-            headers: req.headers, // 헤더 전체 캡처
-            body: req.body,       // 본문 데이터
+            headers: req.headers,
+            body: req.body,
             receivedAt: new Date().toISOString() 
         };
 
         try {
-            // body 안의 company_id를 확인
             const companyId = req.body.company_id;
 
             if (!companyId) {
@@ -29,7 +26,6 @@ module.exports = async function handler(req, res) {
 
             const companyChannelName = `company-${companyId}`;
 
-            // Pusher로 전체 payload 전송
             await pusher.trigger(companyChannelName, "new-event", eventPayload);
             
             res.status(200).json({ message: `Webhook received and forwarded to channel: ${companyChannelName}` });
@@ -42,4 +38,4 @@ module.exports = async function handler(req, res) {
         res.setHeader('Allow', ['POST']);
         res.status(405).end(`Method ${req.method} Not Allowed`);
     }
-}
+};

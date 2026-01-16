@@ -1,14 +1,16 @@
-import nodemailer from 'nodemailer';
-import { URLSearchParams } from 'url';
+const nodemailer = require('nodemailer');
+// URLSearchParams는 Node.js 내장이므로 require 없어도 되지만 명시적으로 추가해도 됨
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
     if (req.method !== 'POST') {
         return res.status(405).json({ success: false, message: 'Method Not Allowed' });
     }
 
-    const logBuffer = []; // 로그를 저장할 배열
+    const logBuffer = []; 
     
     try {
+        // req.body가 이미 JSON 객체라면 URLSearchParams를 쓸 필요가 없을 수도 있습니다.
+        // 하지만 기존 로직 유지를 위해 그대로 둡니다.
         const params = new URLSearchParams(req.body);
         const host = params.get('host');
         const port = parseInt(params.get('port'), 10);
@@ -37,7 +39,7 @@ export default async function handler(req, res) {
             requireTLS: security === 'tls',
             auth: authRequired ? { user, pass } : undefined,
             debug: true,
-            logger: { // logger를 통해 로그를 배열에 저장
+            logger: {
                 info: (...args) => logBuffer.push(`[INFO] ${args.join(' ')}`),
                 debug: (...args) => logBuffer.push(`[DEBUG] ${args.join(' ')}`),
                 warn: (...args) => logBuffer.push(`[WARN] ${args.join(' ')}`),
@@ -73,7 +75,7 @@ export default async function handler(req, res) {
     } catch (error) {
         const errorMessage = `[ERROR] Mail sending failed: ${error.message}`;
         console.error(errorMessage);
-        logBuffer.push(errorMessage); // 에러 로그도 버퍼에 추가
+        logBuffer.push(errorMessage);
 
         res.status(500).json({
             success: false,
@@ -82,4 +84,4 @@ export default async function handler(req, res) {
             error: error.message
         });
     }
-}
+};

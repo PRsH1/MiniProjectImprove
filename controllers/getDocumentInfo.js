@@ -1,5 +1,4 @@
-// /api/getDocumentInfo.js
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
     if (req.method !== 'GET') {
         return res.status(405).json({ message: 'Method Not Allowed' });
     }
@@ -36,4 +35,4 @@ export default async function handler(req, res) {
         console.error('Error fetching document info:', error);
         res.status(500).json({ message: 'Failed to fetch document info', error: error.message });
     }
-}
+};

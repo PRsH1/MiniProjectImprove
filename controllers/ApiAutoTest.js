@@ -1,9 +1,8 @@
-// /api/ApiAutoTest.js
-import { promises as fs } from 'fs';
-import path from 'path';
-import { parse } from 'cookie';
+const { promises: fs } = require('fs');
+const path = require('path');
+const { parse } = require('cookie');
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   const cookies = parse(req.headers.cookie || '');
   const authCookie = cookies['vercel-auth-apiautotest'];
 
@@ -21,4 +20,4 @@ export default async function handler(req, res) {
 
   const next = encodeURIComponent('/ApiAutoTest');
   return res.redirect(302, `/auth/login.html?next=${next}&scope=apiautotest`);
-}
+};

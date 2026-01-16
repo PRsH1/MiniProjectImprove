@@ -1,5 +1,3 @@
-// /api/downloadDocument.js
-
 module.exports = async function handler(req, res) {
     if (req.method !== 'GET') {
         return res.status(405).json({ message: 'Method Not Allowed' });
@@ -28,16 +26,12 @@ module.exports = async function handler(req, res) {
         const contentType = fileResponse.headers.get('content-type');
         const fileBuffer = await fileResponse.arrayBuffer();
 
-       
-
         let finalFileName = title || 'download';
 
-     
         if (file_type === 'audit_trail') {
             finalFileName += '_audit_trail';
         }
         
-       
         if (contentType && contentType.includes('application/pdf') && !finalFileName.toLowerCase().endsWith('.pdf')) {
             finalFileName += '.pdf';
         } else if (contentType && contentType.includes('application/zip') && !finalFileName.toLowerCase().endsWith('.zip')) {
@@ -57,4 +51,4 @@ module.exports = async function handler(req, res) {
         console.error('File download proxy error:', error);
         res.status(500).json({ message: 'Failed to download file', error: error.message });
     }
-}
+};

@@ -1,4 +1,3 @@
-// api/auth.js
 const { idp, sp } = require('../lib/saml');
 
 module.exports = async (req, res) => {
@@ -6,14 +5,12 @@ module.exports = async (req, res) => {
 
   const { email, name, SAMLRequest, RelayState } = req.body;
 
-  // lib/saml.js의 valueTag('email', 'name')와 일치하는 키를 가진 객체 생성
   const user = { 
     email: email, 
     name: name
   };
 
   try {
-    // createLoginResponse 호출 (콜백 함수 불필요)
     const { context } = await idp.createLoginResponse(
       sp,
       { extract: { request: { id: 'request_id' } } },
@@ -21,13 +18,8 @@ module.exports = async (req, res) => {
       user 
     );
 
-    // [디버그] 속성 포함 여부 확인
     const hasAttributes = context.includes('AttributeStatement');
     console.log(`🚀 SAML Response Generated. Has Attributes? ${hasAttributes}`);
-    console.log('Generated SAML Response:', context);
-    console.log('User Info:', user);
-
-    // eformsign ACS URL로 자동 제출 폼 생성
 
     const acsUrl = 'https://test-kr-service.eformsign.com/v1.0/saml_redirect';
     

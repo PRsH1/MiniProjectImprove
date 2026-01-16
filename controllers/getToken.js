@@ -1,7 +1,4 @@
-// /api/getToken.js
-
 const jsrsasign = require('jsrsasign');
-
 
 module.exports = async function handler(req, res) {
     if (req.method !== 'POST') {
@@ -24,7 +21,7 @@ module.exports = async function handler(req, res) {
         sig.updateString(execTime.toString());
         const signature = sig.sign();
 
-        // eformsign에 토큰 요청
+        // Node.js 18+에서는 fetch가 내장되어 있습니다.
         const tokenResponse = await fetch(`${domain}/v2.0/api_auth/access_token`, {
             method: 'POST',
             headers: {
@@ -47,4 +44,4 @@ module.exports = async function handler(req, res) {
         console.error('Error getting access token:', error);
         res.status(500).json({ message: 'Failed to get access token', error: error.message });
     }
-}
+};
