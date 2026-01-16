@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IdP Initiated SSO Test</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #f4f4f9; margin: 0; }
+        .card { background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); width: 100%; max-width: 400px; text-align: center; }
+        h2 { color: #333; margin-bottom: 1.5rem; }
+        .form-group { margin-bottom: 1rem; text-align: left; }
+        label { display: block; margin-bottom: 0.5rem; color: #666; font-size: 0.9rem; }
+        input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 1rem; }
+        button { width: 100%; padding: 12px; background-color: #0070f3; color: white; border: none; border-radius: 6px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+        button:hover { background-color: #0051a2; }
+        .note { margin-top: 1rem; font-size: 0.8rem; color: #888; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>내 시스템 (그룹웨어)</h2>
+        <p>아래 버튼을 누르면 이폼사인으로<br>자동 로그인하여 이동합니다.</p>
+        
+        <form action="/api/idp-initiated-login" method="POST">
+            <div class="form-group">
+                <label>사용자 이메일 (ID)</label>
+                <input type="email" name="email" value="test@test.co.kr" required>
+            </div>
+            <div class="form-group">
+                <label>사용자 이름</label>
+                <input type="text" name="name" value="테스트유저" required>
+            </div>
+            
+            <button type="submit">eformsign 바로가기 🚀</button>
+        </form>
+        
+        <p class="note">※ IdP Initiated SSO (무검증 로그인) 테스트입니다.</p>
+    </div>
+</body>
+</html>
