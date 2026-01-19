@@ -14,12 +14,12 @@ module.exports = async (req, res) => {
   };
 
   try {
-    const { context } = await idp.createLoginResponse(
-      sp,
-      {}, 
-      'post',
-      user
-    );
+  const { context } = await idp.createLoginResponse(
+  sp,
+  { extract: { request: { id: 'idp_initiated' } } }, // 더미 ID 제공
+  'post',
+  user
+);
 
     console.log(`🚀 IdP Initiated Login: ${email} (${name})`);
     const acsUrl = 'https://test-kr-service.eformsign.com/v1.0/saml_redirect';
