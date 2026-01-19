@@ -14,13 +14,22 @@
         button { width: 100%; padding: 12px; background-color: #0070f3; color: white; border: none; border-radius: 6px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
         button:hover { background-color: #0051a2; }
         .note { margin-top: 1rem; font-size: 0.8rem; color: #888; }
+        .notice { position: absolute; top: 15px; left: 50%; transform: translateX(-50%); background: #fffae6; color: #665c00; padding: 7px 10px; border: 1px solid #ffe58f; border-radius: 6px; font-size: 0.9rem; }
     </style>
 </head>
 <body>
+    <div class="notice">
+
+
+        <p>해당 페이지는 eformsign test 서버로 연결되며 현재 @test.co.kr 도메인만 허용되도록 설정되었습니다. (실제 연동 시에는 원하시는 도메인으로 변경 가능합니다.)</p>
+        <p>바로가기를 누르시면 https://test-kr-service.eformsign.com/v1.0/saml_redirect 로 saml response가 전송되며 eformsign 로그인 페이지로 리다이렉트 됩니다.</p>
+        <p>로그인 시 일시적인 오류가 발생했습니다 팝업 발생 후 로그인이 되는데 이는 name attribute값을 전달 안하여 발생한 현상으로 자연스러운 현상이나 <strong>실제 연동 시에는 name attribute값을 반드시 전달해야 합니다.</strong></p>
+    </div>
     <div class="card">
-        <h2>내 시스템 (그룹웨어)</h2>
+        <h2>내 시스템 (그룹웨어)에서 eformsign saml 2.0 sso 로그인 테스트 페이지</h2>
         <p>아래 버튼을 누르면 이폼사인으로<br>자동 로그인하여 이동합니다.</p>
-        
+       
+
         <form action="/api/idp-initiated-login" method="POST">
             <div class="form-group">
                 <label>사용자 이메일 (ID)</label>
