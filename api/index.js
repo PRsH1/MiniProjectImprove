@@ -1,35 +1,33 @@
-// api/index.js (Vercel Entry Point)
+// api/index.js (Lazy Loading 적용)
 
-// [핵심] Vercel이 파일을 인식할 수 있도록 명시적으로 매핑합니다.
+
 const controllers = {
   // --- API 엔드포인트 ---
-  'auth': require('../controllers/auth'),
-  'downloadDocument': require('../controllers/downloadDocument'),
-  'getDocumentInfo': require('../controllers/getDocumentInfo'),
-  'getToken': require('../controllers/getToken'),
-  'idp-initiated-login': require('../controllers/idp-initiated-login'),
-  'login': require('../controllers/login'),
-  'memberPage': require('../controllers/memberPage'),
-  'metadata': require('../controllers/metadata'),
-  'send': require('../controllers/send'),
-  'sso-login': require('../controllers/sso-login'),
-  'templatecopy': require('../controllers/templatecopy'),
-  'webhook-receiver': require('../controllers/webhook-receiver'),
+  'auth': () => require('../controllers/auth'),
+  'downloadDocument': () => require('../controllers/downloadDocument'),
+  'getDocumentInfo': () => require('../controllers/getDocumentInfo'),
+  'getToken': () => require('../controllers/getToken'),
+  'idp-initiated-login': () => require('../controllers/idp-initiated-login'),
+  'login': () => require('../controllers/login'),
+  'memberPage': () => require('../controllers/memberPage'),
+  'metadata': () => require('../controllers/metadata'),
+  'send': () => require('../controllers/send'),
+  'sso-login': () => require('../controllers/sso-login'),
+  'templatecopy': () => require('../controllers/templatecopy'),
+  'webhook-receiver': () => require('../controllers/webhook-receiver'),
   
-  // --- 페이지 엔드포인트 (대소문자 정확히) ---
-  'ApiAutoTest': require('../controllers/ApiAutoTest'),
-  // 'templatecopy'는 위 API 목록에 있으므로 중복 생략 가능
+  // --- 페이지 엔드포인트 ---
+  'ApiAutoTest': () => require('../controllers/ApiAutoTest'),
 };
 
 module.exports = async (req, res) => {
   const { url } = req;
-  const path = url.split('?')[0]; // 쿼리 파라미터 제거
+  const path = url.split('?')[0]; 
 
   let controllerKey = '';
 
-  // 1. URL에 따라 실행할 컨트롤러 키(Key) 결정
+  // 1. URL 파싱
   if (path.startsWith('/api/')) {
-    // 예: /api/auth -> auth
     controllerKey = path.replace('/api/', '').replace('/', '');
   } else if (path === '/ApiAutoTest') {
     controllerKey = 'ApiAutoTest';
@@ -37,17 +35,20 @@ module.exports = async (req, res) => {
     controllerKey = 'templatecopy';
   }
 
-  // 2. 컨트롤러 키가 없거나 맵에 등록되지 않은 경우 404
-  const controller = controllers[controllerKey];
+  // 2. 컨트롤러 로더 찾기
+  const controllerLoader = controllers[controllerKey];
 
-  if (!controllerKey || !controller) {
-    console.warn(`⚠️ 404 Not Found: ${path} (Key: ${controllerKey})`);
+  if (!controllerKey || !controllerLoader) {
+    console.warn(`⚠️ 404 Not Found: ${path}`);
     return res.status(404).send('Not Found');
   }
 
   try {
-    // 3. 컨트롤러 실행
-    // (CommonJS require로 불러왔으므로 default나 module.exports 처리)
+    // 3. [지연 로딩 실행]
+   
+    const controller = controllerLoader();
+
+    // 4. 컨트롤러 실행
     if (typeof controller === 'function') {
       return await controller(req, res);
     } else if (typeof controller.default === 'function') {
