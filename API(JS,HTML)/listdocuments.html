@@ -2,166 +2,412 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>문서 목록 조회 API</title>
+    <title>eformsign 문서 목록 조회 API</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 0; }
-        .container { max-width: 900px; margin: 30px auto; background: #fff; border: 1px solid #ddd; border-radius: 4px; padding: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        h1, h2, h3 { margin-top: 0; }
-        h2 { border-bottom: 1px solid #ddd; padding-bottom: 8px; }
-        .form-group { margin-bottom: 15px; }
-        label { display: block; font-weight: bold; margin-bottom: 5px; }
-        input, select, button, textarea { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
-        button { cursor: pointer; }
-        .radio-group, .checkbox-group { display: flex; gap: 20px; align-items: center; }
-        .radio-group label, .checkbox-group label { font-weight: normal; margin: 0; }
-        .section { margin-bottom: 30px; }
-        #tokenResult, #result { margin-top: 15px; background: #f7f7f7; padding: 10px; border: 1px solid #ddd; white-space: pre-wrap; word-break: break-all; font-size: 0.9em; }
-        #tokenResult pre, #result pre { white-space: pre-wrap; word-break: break-all; margin: 0; }
+        :root {
+            --primary-color: #2563eb;
+            --primary-hover: #1d4ed8;
+            --bg-color: #f3f4f6;
+            --card-bg: #ffffff;
+            --text-color: #1f2937;
+            --border-color: #e5e7eb;
+            --input-bg: #f9fafb;
+            --code-bg: #1e1e1e;
+            --code-text: #d4d4d4;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 40px 20px;
+            line-height: 1.5;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: #111827;
+            margin-bottom: 40px;
+            font-weight: 800;
+            font-size: 2.25rem;
+        }
+
+        .section {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            margin-bottom: 30px;
+            border: 1px solid var(--border-color);
+        }
+
+        .section h2 {
+            margin-top: 0;
+            padding-bottom: 15px;
+            border-bottom: 2px solid var(--bg-color);
+            font-size: 1.5rem;
+            color: #374151;
+            margin-bottom: 25px;
+        }
+
+        .grid-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 15px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #4b5563;
+            font-size: 0.95rem;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        select,
+        textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background-color: var(--input-bg);
+            font-size: 1rem;
+            box-sizing: border-box;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        /* Radio & Checkbox Styling */
+        .check-radio-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            padding: 10px 0;
+        }
+
+        .check-radio-group label {
+            display: flex;
+            align-items: center;
+            font-weight: normal;
+            cursor: pointer;
+            background: #fff;
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            transition: background-color 0.2s;
+        }
+
+        .check-radio-group label:hover {
+            background-color: #f3f4f6;
+        }
+
+        .check-radio-group input {
+            margin-right: 8px;
+            accent-color: var(--primary-color);
+        }
+
+        /* Buttons */
+        button {
+            display: block;
+            width: 100%;
+            padding: 14px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.1s;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            background-color: var(--primary-hover);
+        }
+
+        button:active {
+            transform: translateY(1px);
+        }
+
+        /* Info & Status */
+        .info-box {
+            background-color: #eff6ff;
+            border-left: 4px solid var(--primary-color);
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 0 4px 4px 0;
+            font-size: 0.9rem;
+            color: #1e3a8a;
+        }
+
+        /* Result Area */
+        .result-area {
+            margin-top: 20px;
+            background: var(--code-bg);
+            color: var(--code-text);
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.9em;
+            overflow-x: auto;
+            max-height: 500px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .result-area p { margin-top: 0; color: #9cdcfe; }
+
+        /* Custom URL Input Transition */
+        #customUrlGroup {
+            transition: all 0.3s ease;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>문서 목록 조회 API</h1>
+        <h1>eformsign 문서 목록 조회 API</h1>
+
         <div class="section" id="tokenSection">
-            <h2>Access Token 발급</h2>
-            <div class="form-group">
-                <label for="envSelection">환경 선택:</label>
-                <select id="envSelection">
-                    <option value="op_saas">운영 (SaaS)</option>
-                    <option value="csap">공공 (CSAP)</option>
-                </select>
-            </div>
-            <div id="urlDisplay"></div>
-            <div class="form-group">
-                <label for="apiKey">API-KEY:</label>
-                <input type="text" id="apiKey" placeholder="API-KEY 입력">
-            </div>
-            <div class="form-group">
-                <label>비밀 키 입력 방식:</label>
-                <div class="radio-group">
-                    <label><input type="radio" name="secretKeyMethod" value="signature" checked> Signature 방식</label>
-                    <label><input type="radio" name="secretKeyMethod" value="bearer"> Bearer token 방식</label>
+            <h2>1. Access Token 발급</h2>
+            
+            <div class="grid-row">
+                <div class="form-group">
+                    <label for="envSelection">환경 선택 (Target Environment)</label>
+                    <select id="envSelection">
+                        <option value="op_saas">운영 (SaaS)</option>
+                        <option value="csap">공공 (CSAP)</option>
+                        <option value="custom">직접 입력 (Custom URL)</option>
+                    </select>
+                </div>
+                <div class="form-group" id="customUrlGroup" style="display:none;">
+                    <label for="customBaseUrl">Custom Base URL</label>
+                    <input type="text" id="customBaseUrl" placeholder="예: https://api.myservice.com">
                 </div>
             </div>
+
+            <div class="info-box" id="urlDisplay">
+                </div>
+
+            <div class="grid-row">
+                <div class="form-group">
+                    <label for="apiKey">API-KEY</label>
+                    <input type="text" id="apiKey" placeholder="발급받은 API Key 입력">
+                </div>
+                <div class="form-group">
+                    <label for="user_id_token">User ID (Member ID)</label>
+                    <input type="text" id="user_id_token" placeholder="계정 ID 입력">
+                </div>
+            </div>
+
             <div class="form-group">
-                <label id="secretKeyLabel" for="privateKeyHex">비밀 키 (Secret key, Hex):</label>
+                <label>인증 방식 (Secret Key Type)</label>
+                <div class="check-radio-group">
+                    <label><input type="radio" name="secretKeyMethod" value="signature" checked> Signature 방식</label>
+                    <label><input type="radio" name="secretKeyMethod" value="bearer"> Bearer Token 방식</label>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label id="secretKeyLabel" for="privateKeyHex">비밀 키 (Secret key, Hex)</label>
                 <input type="text" id="privateKeyHex" placeholder="예: 30... (Signature 방식)">
             </div>
-            <div class="form-group">
-                <label for="user_id_token">User ID:</label>
-                <input type="text" id="user_id_token" placeholder="User ID 입력">
-            </div>
+
             <button onclick="getAccessToken()">Access Token 발급</button>
-            <div class="form-group">
-                <label for="accessToken">Access Token:</label>
-                <input type="text" id="accessToken" readonly>
+
+            <div class="form-group" style="margin-top: 20px;">
+                <label for="accessToken">발급된 Access Token</label>
+                <input type="text" id="accessToken" readonly style="background-color: #e5e7eb; cursor: not-allowed;">
             </div>
-            <div id="tokenResult"></div>
+
+            <div id="tokenResult" class="result-area" style="display:none;"></div>
         </div>
+
         <div class="section" id="documentListSection">
-            <h2>문서 목록 조회</h2>
-            <p>Access Token은 위에서 발급받은 값을 사용합니다. (Authorization 헤더에 자동 포함)</p>
+            <h2>2. 문서 목록 조회</h2>
+            <div class="info-box">
+                 위에서 발급받은 Access Token이 Authorization 헤더에 자동으로 포함됩니다.
+            </div>
+
             <div class="form-group">
-                <label>Query String 옵션:</label>
-                <div class="checkbox-group">
+                <label>옵션 설정 (Query String)</label>
+                <div class="check-radio-group">
                     <label><input type="checkbox" id="include_external_token"> 사용자 Token 포함</label>
-                    <label><input type="checkbox" id="include_fields"> 필드 포함 여부</label>
-                    <label><input type="checkbox" id="include_histories"> 문서 이력 포함 여부</label>
-                    <label><input type="checkbox" id="include_next_status"> 다음 단계 정보 포함 여부</label>
-                    <label><input type="checkbox" id="include_previous_status"> 이전 단계 정보 포함 여부</label>
+                    <label><input type="checkbox" id="include_fields"> 필드 포함</label>
+                    <label><input type="checkbox" id="include_histories"> 문서 이력 포함</label>
+                    <label><input type="checkbox" id="include_next_status"> 다음 단계 정보</label>
+                    <label><input type="checkbox" id="include_previous_status"> 이전 단계 정보</label>
                 </div>
             </div>
-            <div class="form-group">
-                <label for="docType">type:</label>
-                <select id="docType">
-                    <option value="01">01: 진행 중</option>
-                    <option value="02">02: 처리할 문서</option>
-                    <option value="03">03: 완료 문서</option>
-                    <option value="04">04: 전체 문서 목록 조회</option>
-                </select>
+
+            <div class="grid-row">
+                <div class="form-group">
+                    <label for="docType">문서 상태 (Type)</label>
+                    <select id="docType">
+                        <option value="01">01: 진행 중</option>
+                        <option value="02">02: 처리할 문서</option>
+                        <option value="03">03: 완료 문서</option>
+                        <option value="04">04: 전체 문서</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="limit">조회 개수 (Limit)</label>
+                    <input type="number" id="limit" value="1000">
+                </div>
             </div>
-            <div class="form-group">
-                <label for="titleAndContent">title_and_content:</label>
-                <input type="text" id="titleAndContent" placeholder="문서 제목 및 내용 검색">
+
+            <div class="grid-row">
+                <div class="form-group">
+                    <label for="titleAndContent">제목 + 내용 검색</label>
+                    <input type="text" id="titleAndContent" placeholder="검색어 입력">
+                </div>
+                 <div class="form-group">
+                    <label for="batchId">일괄 작성 ID (Batch ID)</label>
+                    <input type="text" id="batchId" placeholder="Batch ID 검색">
+                </div>
             </div>
-            <div class="form-group">
-                <label for="title">title:</label>
-                <input type="text" id="title" placeholder="문서 제목 검색">
+
+            <div class="grid-row">
+                <div class="form-group">
+                    <label for="title">제목 검색</label>
+                    <input type="text" id="title" placeholder="제목만 검색">
+                </div>
+                <div class="form-group">
+                    <label for="content">내용 검색</label>
+                    <input type="text" id="content" placeholder="내용만 검색">
+                </div>
             </div>
-            <div class="form-group">
-                <label for="content">content:</label>
-                <input type="text" id="content" placeholder="문서 내용 검색">
+
+            <div class="grid-row">
+                <div class="form-group">
+                    <label for="formId">템플릿 ID (Form ID)</label>
+                    <input type="text" id="formId" placeholder="특정 템플릿 ID">
+                </div>
+                 <div class="form-group">
+                    <label for="outsider_expired">만료 여부</label>
+                    <select id="outsider_expired">
+                        <option value="">선택 안함</option>
+                        <option value="true">True (만료됨)</option>
+                        <option value="false">False (만료안됨)</option>
+                    </select>
+                </div>
             </div>
+
             <div class="form-group">
-                <label for="formId">form_id:</label>
-                <input type="text" id="formId" placeholder="템플릿 별 조회 시 form_id 입력">
+                <label for="skip">건너뛸 문서 수 (Skip)</label>
+                <input type="number" id="skip" value="0">
             </div>
+
             <div class="form-group">
-                <label for="batchId">batch_id:</label>
-                <input type="text" id="batchId" placeholder="일괄 작성 문서 ID 검색">
-            </div>
-            <div class="form-group">
-                <label for="limit">limit:</label>
-                <input type="number" id="limit" value="1000" placeholder="한 번에 표시할 문서 수">
-            </div>
-            <div class="form-group">
-                <label for="outsider_expired">outsider_expired:</label>
-                <select id="outsider_expired">
-                    <option value="">선택 안함</option>
-                    <option value="true">true (만료된 문서)</option>
-                    <option value="false">false (만료되지 않은 문서)</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label for="skip">skip:</label>
-                <input type="number" id="skip" value="0" placeholder="건너뛸 문서 수">
-            </div>
-            <div class="form-group">
-                <label>템플릿 ID 옵션:</label>
-                <div class="radio-group">
+                <label>템플릿 ID 필터링 옵션</label>
+                <div class="check-radio-group">
                     <label><input type="radio" name="templateOption" value="unused" checked> 사용 안 함</label>
                     <label><input type="radio" name="templateOption" value="used"> 사용 함</label>
                 </div>
             </div>
+
             <div class="form-group" id="templateIdsGroup" style="display:none;">
-                <label for="template_ids">템플릿 ID (콤마로 구분):</label>
+                <label for="template_ids">템플릿 ID 목록 (콤마 구분)</label>
                 <input type="text" id="template_ids" placeholder="예: id1, id2, id3">
             </div>
-            <button onclick="listDocuments()">문서 목록 조회</button>
-            <div id="result"></div>
+
+            <button onclick="listDocuments()">문서 목록 조회 실행</button>
+            <div id="result" class="result-area" style="display:none;"></div>
         </div>
     </div>
+
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jsrsasign/10.5.25/jsrsasign-all-min.js"></script>
     <script>
-        const tokenUrlMap = {
-            op_saas: 'https://kr-api.eformsign.com/v2.0/api_auth/access_token',
-            csap: 'https://www.gov-eformsign.com/Service/v2.0/api_auth/access_token'
+        // 기본 URL 맵 (Base URL만 저장)
+        const baseUrlMap = {
+            op_saas: 'https://kr-api.eformsign.com',
+            csap: 'https://www.gov-eformsign.com/Service'
         };
-        const listDocumentUrlMap = {
-            op_saas: 'https://kr-api.eformsign.com/v2.0/api/list_document',
-            csap: 'https://www.gov-eformsign.com/Service/v2.0/api/list_document'
-        };
-        function updateUrlDisplay() {
-            $('#urlDisplay').text(`Access Token URL: ${tokenUrlMap[$('#envSelection').val()]}`);
+
+        // 엔드포인트 상수
+        const PATH_TOKEN = '/v2.0/api_auth/access_token';
+        const PATH_LIST = '/v2.0/api/list_document';
+
+        // 현재 선택된 환경의 Base URL을 가져오는 함수
+        function getBaseUrl() {
+            const env = $('#envSelection').val();
+            if (env === 'custom') {
+                let customUrl = $('#customBaseUrl').val().trim();
+                // 끝에 슬래시가 있다면 제거
+                return customUrl.replace(/\/$/, ''); 
+            }
+            return baseUrlMap[env];
         }
-        $(updateUrlDisplay);
-        $('#envSelection').change(updateUrlDisplay);
-        $('input[name="secretKeyMethod"]').change(() => {
-            const m = $('input[name="secretKeyMethod"]:checked').val();
-            $('#secretKeyLabel').text(m === 'signature' ? '비밀 키 (Secret key, Hex):' : '비밀 토큰:');
-            $('#privateKeyHex').attr('placeholder', m === 'signature' ? '예: 30... (Signature 방식)' : '예: test (Bearer token 방식)');
+
+        // 화면 UI 업데이트 (URL 표시 등)
+        function updateUrlDisplay() {
+            const env = $('#envSelection').val();
+            const $customGroup = $('#customUrlGroup');
+            
+            if (env === 'custom') {
+                $customGroup.show();
+                const currentCustom = $('#customBaseUrl').val().trim();
+                if(currentCustom) {
+                    $('#urlDisplay').text(`Target Base URL: ${currentCustom}`);
+                } else {
+                    $('#urlDisplay').text(`Target Base URL: (직접 입력해 주세요)`);
+                }
+            } else {
+                $customGroup.hide();
+                $('#urlDisplay').text(`Target Base URL: ${baseUrlMap[env]}`);
+            }
+        }
+
+        // 초기화 및 이벤트 바인딩
+        $(document).ready(function() {
+            updateUrlDisplay();
+            
+            $('#envSelection').change(updateUrlDisplay);
+            $('#customBaseUrl').on('input', updateUrlDisplay);
+
+            $('input[name="secretKeyMethod"]').change(() => {
+                const m = $('input[name="secretKeyMethod"]:checked').val();
+                $('#secretKeyLabel').text(m === 'signature' ? '비밀 키 (Secret key, Hex)' : '비밀 토큰 (Bearer Token)');
+                $('#privateKeyHex').attr('placeholder', m === 'signature' ? '예: 30... (Signature 방식)' : '예: test (Bearer token 방식)');
+            });
+
+            $('input[name="templateOption"]').change(function() {
+                $('#templateIdsGroup').toggle($(this).val() === 'used');
+            });
         });
-        $('input[name="templateOption"]').change(function() {
-            $('#templateIdsGroup').toggle($(this).val() === 'used');
-        });
+
+        // 1. Access Token 발급
         function getAccessToken() {
             const execTime = Date.now();
             const apiKey = $('#apiKey').val().trim();
             const privateKey = $('#privateKeyHex').val().trim();
             const memberId = $('#user_id_token').val().trim();
-            if (!apiKey || !privateKey || !memberId) { alert('모든 입력란을 채워주세요.'); return; }
+            const baseUrl = getBaseUrl();
+
+            if (!baseUrl) { alert('API 호출 URL을 확인해주세요. (직접 입력 시 URL 필수)'); return; }
+            if (!apiKey || !privateKey || !memberId) { alert('필수 입력란(API Key, Secret Key, User ID)을 모두 채워주세요.'); return; }
+
             let signature;
             if ($('input[name="secretKeyMethod"]:checked').val() === 'signature') {
                 try {
@@ -171,11 +417,18 @@
                     sig.updateString(execTime.toString());
                     signature = sig.sign();
                 } catch (e) { alert('서명 생성 오류: ' + e); return; }
-            } else signature = 'Bearer ' + privateKey;
-            const url = tokenUrlMap[$('#envSelection').val()];
-            $('#tokenResult').html('<pre>토큰 발급 중...</pre>');
+            } else {
+                signature = 'Bearer ' + privateKey;
+            }
+
+            const url = baseUrl + PATH_TOKEN;
+
+            $('#tokenResult').show().html('<pre>토큰 발급 요청 중...</pre>');
+
             $.ajax({
-                url, method: 'POST', contentType: 'application/json; charset=UTF-8',
+                url: url,
+                method: 'POST',
+                contentType: 'application/json; charset=UTF-8',
                 headers: {
                     Authorization: 'Bearer ' + btoa(apiKey),
                     eformsign_signature: signature
@@ -189,14 +442,21 @@
                     let msg;
                     try { msg = JSON.parse(xhr.responseText); } 
                     catch { msg = { error: xhr.statusText } }
-                    $('#tokenResult').html(`<pre>에러(${xhr.status}): ${JSON.stringify(msg, null, 2)}</pre>`);
+                    $('#tokenResult').html(`<pre style="color:#ff6b6b">에러(${xhr.status}): ${JSON.stringify(msg, null, 2)}</pre>`);
                 }
             });
         }
+
+        // 2. 문서 목록 조회
         function listDocuments() {
             const token = $('#accessToken').val().trim();
-            if (!token) { alert('토큰을 발급받아주세요.'); return; }
-            let url = listDocumentUrlMap[$('#envSelection').val()];
+            const baseUrl = getBaseUrl();
+
+            if (!token) { alert('Access Token을 먼저 발급받아주세요.'); return; }
+            if (!baseUrl) { alert('URL 설정이 올바르지 않습니다.'); return; }
+
+            let url = baseUrl + PATH_LIST;
+
             const qs = {
                 include_external_token: $('#include_external_token').is(':checked'),
                 include_fields: $('#include_fields').is(':checked'),
@@ -205,7 +465,9 @@
                 include_previous_status: $('#include_previous_status').is(':checked')
             };
             url += '?' + Object.entries(qs).map(([k, v]) => `${k}=${v}`).join('&');
-            $('#result').html(`<p>실행 URL: ${url}</p><p id="statusMessage">조회 중...</p>`);
+
+            $('#result').show().html(`<p>Request URL: ${url}</p><p id="statusMessage">조회 중...</p>`);
+
             const body = {
                 type: $('#docType').val(),
                 title_and_content: $('#titleAndContent').val().trim(),
@@ -215,33 +477,35 @@
                 outsider_expired: $('#outsider_expired').val(),
                 skip: $('#skip').val()
             };
+
             const fid = $('#formId').val().trim();
             if (fid) body.form_id = fid;
 
-            // ★★★★★★★★★★★★ batch_id 값 추가 로직 ★★★★★★★★★★★★
             const batchId = $('#batchId').val().trim();
             if (batchId) body.batch_id = batchId;
-            // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
 
             if ($('input[name="templateOption"]:checked').val() === 'used') {
                 const ids = $('#template_ids').val().split(',').map(s => s.trim()).filter(s => s);
                 if (ids.length) body.template_ids = ids;
             }
+
             fetch(url, {
-                method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify(body)
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify(body)
             })
-                .then(res => res.ok
-                    ? res.json()
-                    : res.text().then(t => { throw new Error(`네트워크 응답 문제 ${res.status}: ${t}`); })
-                )
-                .then(data => {
-                    $('#statusMessage').text('조회 완료');
-                    $('#result').append(`<pre>${JSON.stringify(data, null, 2)}</pre>`);
-                })
-                .catch(err => {
-                    $('#statusMessage').text('조회 실패');
-                    $('#result').append(`<pre>Error: ${err.message}</pre>`);
-                });
+            .then(res => res.ok
+                ? res.json()
+                : res.text().then(t => { throw new Error(`Status ${res.status}: ${t}`); })
+            )
+            .then(data => {
+                $('#statusMessage').text('조회 완료 (Success)');
+                $('#result').append(`<pre>${JSON.stringify(data, null, 2)}</pre>`);
+            })
+            .catch(err => {
+                $('#statusMessage').text('조회 실패 (Fail)');
+                $('#result').append(`<pre style="color:#ff6b6b">Error: ${err.message}</pre>`);
+            });
         }
     </script>
 </body>
