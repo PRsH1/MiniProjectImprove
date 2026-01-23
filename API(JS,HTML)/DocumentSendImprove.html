@@ -30,7 +30,7 @@
         .slider:before { position: absolute; content: ""; height: 22px; width: 22px; left: 2px; bottom: 2px; background-color: white; transition: .2s; border-radius: 50%; }
         .switch input:checked + .slider { background-color: #4CAF50; }
         .switch input:checked + .slider:before { transform: translateX(24px); }
-        .toggle-label { display: inline-flex; align-items: center; font-size: 0.95rem; margin: 1rem 0; }
+        .toggle-label { display: inline-flex; align-items: center; font-size: 0.95rem; margin: 0.5rem 0; }
         
         /* [수정] 커스텀 도메인 입력 필드 스타일 */
         #customDomainWrapper { display: none; margin-top: 0.5rem; padding: 0.5rem; background: #f0f8ff; border: 1px dashed #007bff; border-radius: 4px; }
@@ -151,8 +151,16 @@
                     <option value="07">07: 열람자</option>
                 </select>
             </label>
-            <div class="toggle-label"><label class="switch"><input type="checkbox" name="use_mail"><span class="slider"></span></label>메일 알림</div>
-            <div class="toggle-label"><label class="switch"><input type="checkbox" name="use_sms"><span class="slider"></span></label>SMS 알림</div>
+            <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
+                <div class="toggle-label"><label class="switch"><input type="checkbox" name="use_mail"><span class="slider"></span></label>메일 알림</div>
+                <div class="toggle-label"><label class="switch"><input type="checkbox" name="use_sms"><span class="slider"></span></label>SMS 알림</div>
+                
+                <div class="toggle-label" style="border-left: 2px solid #ddd; padding-left: 10px;">
+                    <label class="switch"><input type="checkbox" name="is_noti_ignore"><span class="slider"></span></label>
+                    <span style="color: #c00; font-weight: bold;">알림 차단 (is_noti_ignore)</span>
+                </div>
+            </div>
+
             <label>ID / 이메일:<input name="member_id" placeholder="ID 또는 이메일"/></label>
             <label>이름:<input name="member_name" placeholder="이름"/></label>
             <label>국가코드:<input name="country_code" placeholder="+82"/></label>
@@ -208,7 +216,7 @@
                 // 도메인 형식이 프로토콜을 포함하지 않았다면 경고 (선택사항)
                 if (!domain.startsWith('http')) {
                     // 편의를 위해 https 붙여줄 수도 있음
-                     domain = 'https://' + domain;
+                      domain = 'https://' + domain;
                 }
 
                 return {
@@ -258,6 +266,11 @@
                     const rec = { step_type: el.querySelector('[name=step_type]').value };
                     rec.use_mail = el.querySelector('[name=use_mail]').checked;
                     rec.use_sms  = el.querySelector('[name=use_sms]').checked;
+                    
+                    // [추가된 로직] is_noti_ignore 값 설정
+                    // 사용자가 체크하면 true로 전송, 체크 안 하면 false
+                    rec.is_noti_ignore = el.querySelector('[name=is_noti_ignore]').checked;
+
                     const mid = el.querySelector('[name=member_id]').value;
                     if (mid) {
                         rec.member = {
@@ -314,9 +327,8 @@
                 el.style.display = 'block';
             }
 
-            // [수정] getEndpoints() 함수 사용하여 API Base URL 획득
             try {
-                const endpoints = getEndpoints(); // 여기서 에러나면 catch로 이동
+                const endpoints = getEndpoints(); 
                 const apiBase = endpoints.apiBase;
                 
                 const url = `${apiBase}/documents?template_id=${encodeURIComponent(document.getElementById('templateId').value)}`;
@@ -389,7 +401,6 @@
             }
 
             try {
-                // [수정] getEndpoints() 함수를 사용하여 토큰 URL 획득
                 const endpoints = getEndpoints(); 
                 const url = endpoints.tokenUrl;
 
@@ -452,7 +463,6 @@
             }
 
             try {
-                // [수정] getEndpoints() 함수를 사용하여 API Base URL 획득
                 const endpoints = getEndpoints();
                 const base = endpoints.apiBase;
 
@@ -500,6 +510,10 @@
                     it.querySelector('[name=step_type]').value     = r.step_type;
                     it.querySelector('[name=use_mail]').checked    = !!r.use_mail;
                     it.querySelector('[name=use_sms]').checked     = !!r.use_sms;
+                    
+                    // [추가된 로직] 불러온 템플릿 정보에 is_noti_ignore가 있다면 반영
+                    it.querySelector('[name=is_noti_ignore]').checked = !!r.is_noti_ignore;
+
                     it.querySelector('[name=member_id]').value     = r.member.id || '';
                     it.querySelector('[name=member_name]').value   = r.member.name || '';
                     it.querySelector('[name=country_code]').value  = r.member.sms.country_code || '';
