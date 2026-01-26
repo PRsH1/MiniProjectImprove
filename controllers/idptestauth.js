@@ -4,7 +4,7 @@ const { parse } = require('cookie');
 
 module.exports = async function handler(req, res) {
   const cookies = parse(req.headers.cookie || '');
-  const authCookie = cookies['vercel-auth-apiautotest'];
+  const authCookie = cookies['vercel-auth-idp-test'];
 
   if (authCookie === process.env.AUTH_COOKIE_VALUE) {
     try {
