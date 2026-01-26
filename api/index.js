@@ -34,6 +34,8 @@ module.exports = async (req, res) => {
     controllerKey = 'ApiAutoTest';
   } else if (path === '/templatecopy') {
     controllerKey = 'templatecopy';
+  } else if (path === '/idptestauth') {
+    controllerKey = 'idptestauth';
   }
 
   // 2. 컨트롤러 로더 찾기
