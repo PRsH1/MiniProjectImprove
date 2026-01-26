@@ -16,6 +16,11 @@ const PAGE_CONFIG = {
     cookieName: 'vercel-auth-apiautotest',
     defaultNext: '/ApiAutoTest',
   },
+  idptestauth: {
+    passwordEnv: 'IDP_TEST_PAGE_PASSWORD',
+    cookieName: 'vercel-auth-idp-test',
+    defaultNext: '/idptestauth',
+  },
 };
 
 module.exports = async function handler(req, res) {

@@ -109,6 +109,7 @@
       if (s === 'templatecopy') return '템플릿 복제 페이지 접근';
       if (s === 'apiautotest') return 'API 자동 테스트 페이지 접근';
       if (s === 'member') return '멤버 페이지 접근';
+      if (s === 'idptestauth') return 'IDP 테스트 페이지 접근';
       return '보호 페이지 접근';
     };
     document.getElementById('title').textContent = prettyNameByScope(scope);

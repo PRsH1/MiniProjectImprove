@@ -15,7 +15,8 @@ const controllers = {
   'sso-login': () => require('../controllers/sso-login'),
   'templatecopy': () => require('../controllers/templatecopy'),
   'webhook-receiver': () => require('../controllers/webhook-receiver'),
-  
+  'idptestauth': () => require('../controllers/idptestauth'),
+
   // --- 페이지 엔드포인트 ---
   'ApiAutoTest': () => require('../controllers/ApiAutoTest'),
 };
