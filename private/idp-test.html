@@ -94,7 +94,7 @@
 
                     <div class="step">
                         <span class="step-num">4</span>
-                        <span>브라우저는 자바스크립트를 통해 이 폼을 <strong>이폼사인의 SAML Redirect URL</strong>로 자동 전송(POST)합니다.</span>
+                        <span>브라우저는 자바스크립트를 통해 이 폼을 <strong>이폼사인의 SAML Redirect URL( https://test-kr-service.eformsign.com/v1.0/saml_redirect)</strong>로 전송(POST)합니다.</span>
                     </div>
 
                     <div class="step">
@@ -139,12 +139,12 @@
 
                     <div class="step">
                         <span class="step-num">5</span>
-                        <span><strong>정보 전달 (Response):</strong> IdP는 전자 서명된 <strong>SAML Response</strong>를 생성하여 이폼사인으로 다시 보냅니다.</span>
+                        <span><strong>정보 전달 (Response):</strong> IdP는 전자 서명된 <strong>SAML Response</strong>를 생성하여 이폼사인(Redirect URL)으로 다시 보냅니다.</span>
                     </div>
 
                     <div class="step">
                         <span class="step-num">6</span>
-                        <span><strong>최종 로그인:</strong> eformsign은 전달받은 서명을 검증하고, 일치하는 멤버가 있으면 로그인을 완료합니다. (없으면 회원가입 이동)</span>
+                        <span><strong>최종 로그인:</strong> eformsign은 전달받은 saml response를 검증하고, NameId, Attribute의 email,name값을 비교하여 일치하는 멤버가 있으면 로그인을 완료합니다. (없으면 회원가입 이동)</span>
                     </div>
                 </div>
             </details>
