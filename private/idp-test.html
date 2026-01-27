@@ -5,45 +5,151 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>IdP Initiated SSO Test</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #f4f4f9; margin: 0; }
-        .card { background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); width: 100%; max-width: 400px; text-align: center; }
-        h2 { color: #333; margin-bottom: 1.5rem; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; background-color: #f4f4f9; margin: 0; padding: 20px; box-sizing: border-box; }
+        .card { background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); width: 100%; max-width: 800px; text-align: center; position: relative; }
+        h2 { color: #333; margin-bottom: 1.5rem; font-size: 1.4rem; word-break: keep-all; }
         .form-group { margin-bottom: 1rem; text-align: left; }
         label { display: block; margin-bottom: 0.5rem; color: #666; font-size: 0.9rem; }
         input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 1rem; }
-        button { width: 100%; padding: 12px; background-color: #0070f3; color: white; border: none; border-radius: 6px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+        button { width: 100%; padding: 12px; background-color: #0070f3; color: white; border: none; border-radius: 6px; font-size: 1rem; cursor: pointer; transition: background 0.2s; font-weight: bold; }
         button:hover { background-color: #0051a2; }
         .note { margin-top: 1rem; font-size: 0.8rem; color: #888; }
-        .notice { position: absolute; top: 15px; left: 50%; transform: translateX(-50%); background: #fffae6; color: #665c00; padding: 7px 10px; border: 1px solid #ffe58f; border-radius: 6px; font-size: 0.9rem; }
+        
+        /* 상단 공지 스타일 */
+        .notice { margin-bottom: 20px; background: #fffae6; color: #665c00; padding: 15px; border: 1px solid #ffe58f; border-radius: 8px; font-size: 0.85rem; text-align: left; line-height: 1.5; width: 100%; max-width: 700px; box-sizing: border-box; }
+        .notice p { margin: 5px 0; }
+        .notice strong { color: #d63031; }
+
+        /* 하단 설명(Accordion) 스타일 */
+        details { margin-top: 15px; text-align: left; border-top: 1px solid #eee; padding-top: 15px; }
+        summary { cursor: pointer; font-size: 0.9rem; font-weight: bold; color: #444; list-style: none; display: flex; align-items: center; justify-content: center; padding: 5px; }
+        summary:hover { background-color: #f8f9fa; border-radius: 5px; }
+        summary::after { content: " ▼"; font-size: 0.7rem; margin-left: 5px; }
+        details[open] summary::after { content: " ▲"; }
+        
+        .explanation { font-size: 0.85rem; color: #555; background: #f8f9fa; padding: 15px; border-radius: 8px; margin-top: 10px; line-height: 1.6; border: 1px solid #e9ecef; }
+        .step { display: flex; margin-bottom: 10px; align-items: flex-start; }
+        .step-num { flex-shrink: 0; background: #0070f3; color: white; width: 20px; height: 20px; border-radius: 50%; text-align: center; line-height: 20px; font-size: 0.75rem; margin-right: 10px; margin-top: 2px; font-weight: bold; }
+        
+        /* 다이어그램 이미지 스타일 */
+        .flow-image { width: 100%; border-radius: 8px; border: 1px solid #ddd; margin-bottom: 15px; }
+        
+        /* 링크 스타일 추가 */
+        .test-link { color: #0070f3; text-decoration: none; font-weight: bold; display: inline-block; margin-top: 4px; }
+        .test-link:hover { text-decoration: underline; }
     </style>
 </head>
 <body>
-    <div class="notice">
-
-
-        <p>해당 페이지는 eformsign test 서버로 연결되며 현재 @test.co.kr 도메인만 허용되도록 설정되었습니다. (실제 연동 시에는 원하시는 도메인으로 변경 가능합니다.)</p>
-        <p>바로가기를 누르시면 https://test-kr-service.eformsign.com/v1.0/saml_redirect 로 saml response가 전송되며 eformsign 로그인 페이지로 리다이렉트 됩니다.</p>
-        <p>로그인 시 <b>일시적인 오류가 발생했습니다</b> 팝업 발생 후 로그인이 되는데 이는 name attribute값을 전달 안하여 발생한 현상으로 자연스러운 현상이나 <strong>실제 연동 시에는 name attribute값을 반드시 전달해야 합니다.</strong></p>
-    </div>
-    <div class="card">
-        <h2>내 시스템 (그룹웨어)에서 eformsign saml 2.0 sso 로그인 테스트 페이지</h2>
-        <p>아래 버튼을 누르면 이폼사인으로<br>자동 로그인하여 이동합니다.</p>
-       
-
-        <form action="/api/idp-initiated-login" method="POST">
-            <div class="form-group">
-                <label>사용자 이메일 (ID)</label>
-                <input type="email" name="email" value="test@test.co.kr" required>
-            </div>
-            <div class="form-group">
-                <label>사용자 이름</label>
-                <input type="text" name="name" value="테스트유저" required>
-            </div>
-            
-            <button type="submit">eformsign 바로가기 🚀</button>
-        </form>
+    <div style="display:flex; flex-direction: column; align-items: center; width: 100%;">
         
-        <p class="note">※ IdP Initiated SSO (무검증 로그인) 테스트입니다.</p>
+        <div class="notice">
+            <p>ℹ️ 해당 페이지는 <b>eformsign test 서버</b>로 연결됩니다.</p>
+            <p>• 현재 <b>@test.co.kr</b> 도메인만 허용되도록 설정되었습니다. (실제 연동 시에는 원하는 도메인으로 설정하실 수 있습니다.)</p>
+            <p>• 바로가기를 누르시면 https://test-kr-service.eformsign.com/v1.0/saml_redirect 로 saml response가 전송되며 eformsign 로그인 페이지로 리다이렉트 됩니다.</p>
+            <p>• 로그인 시 <b>일시적인 오류가 발생했습니다</b> 팝업 발생 후 로그인이 되는데 이는 name attribute값을 전달 안하여 발생한 현상으로 자연스러운 현상이나 <strong>실제 연동 시에는 name attribute값을 반드시 전달해야 합니다.</strong></p>
+        </div>
+
+        <div class="card">
+            <h2>IdP → 이폼사인(SP)<br>SSO 로그인 테스트</h2>
+            <p style="color:#666; font-size: 0.9rem; margin-bottom: 20px;">
+                사용자가 별도 로그인 없이,<br>버튼 클릭 한 번으로 이폼사인에 접속합니다.
+            </p>
+            
+            <form action="/api/idp-initiated-login" method="POST">
+                <div class="form-group">
+                    <label>사용자 이메일 (ID)</label>
+                    <input type="email" name="email" value="test@test.co.kr" required>
+                </div>
+                <div class="form-group">
+                    <label>사용자 이름</label>
+                    <input type="text" name="name" value="테스트유저" required>
+                </div>
+                
+                <button type="submit">eformsign 바로가기 🚀</button>
+            </form>
+            
+            <p class="note">※ IdP Initiated SSO (무검증 로그인) 테스트입니다.</p>
+
+            <details>
+                <summary>🛠️ 이 페이지의 작동 원리가 궁금하신가요?</summary>
+                <div class="explanation">
+                    <p style="margin-top:0; font-weight:bold; color:#333; border-bottom:1px solid #ddd; padding-bottom:5px; margin-bottom:10px;">
+                        IdP Initiated SSO 프로세스 (즉시 실행)
+                    </p>
+                    
+                    <div class="step">
+                        <span class="step-num">1</span>
+                        <span>사용자가 버튼을 클릭하면 입력된 정보가 내부 서버 API(<code>/api/idp-initiated-login</code>)로 전송됩니다.</span>
+                    </div>
+                    
+                    <div class="step">
+                        <span class="step-num">2</span>
+                        <span>서버(IdP)는 비밀키(Private Key)를 사용해 사용자 정보를 암호화 서명한 <strong>SAML Response(XML)</strong>를 생성합니다.</span>
+                    </div>
+                    
+                    <div class="step">
+                        <span class="step-num">3</span>
+                        <span>서버는 생성된 데이터를 담은 <strong>숨겨진 폼(Hidden Form)</strong>을 브라우저에 응답으로 보냅니다.</span>
+                    </div>
+
+                    <div class="step">
+                        <span class="step-num">4</span>
+                        <span>브라우저는 자바스크립트를 통해 이 폼을 <strong>이폼사인의 SAML Redirect URL</strong>로 자동 전송(POST)합니다.</span>
+                    </div>
+
+                    <div class="step">
+                        <span class="step-num">5</span>
+                        <span>이폼사인은 서명을 검증하고, 유효한 경우 즉시 로그인을 처리합니다.</span>
+                    </div>
+                </div>
+            </details>
+
+            <details>
+                <summary>🔍 eformsign 전체 로그인 과정이 궁금하신가요?</summary>
+                <div class="explanation">
+                    <img src="/img/sso_flow.png" alt="eformsign SAML SSO Flow" class="flow-image" onerror="this.style.display='none'">
+                    
+                    <p style="margin-top:0; font-weight:bold; color:#333; border-bottom:1px solid #ddd; padding-bottom:5px; margin-bottom:10px;">
+                        eformsign SAML 2.0 SSO 로그인 흐름
+                    </p>
+
+                    <div class="step">
+                        <span class="step-num">1</span>
+                        <span>
+                            <strong>로그인 시도:</strong> 사용자가 eformsign 접속 후 로그인 창에 ID(이메일)를 입력합니다.<br>
+                            <a href="https://test.eformsign.com/login.html" target="_blank" class="test-link">👉 실제로 테스트해보기!</a>
+                            <br><span style="font-size:0.8rem; color:#888;">(새 창에서 ID에 <code>test@test.co.kr</code> 입력)</span>
+                        </span>
+                    </div>
+
+                    <div class="step">
+                        <span class="step-num">2</span>
+                        <span><strong>도메인 검증:</strong> eformsign은 입력된 ID의 도메인(@test.co.kr)을 확인하여 SSO 연동 여부를 판단합니다.</span>
+                    </div>
+
+                    <div class="step">
+                        <span class="step-num">3</span>
+                        <span><strong>리다이렉트:</strong> 연동된 도메인인 경우, 사용자를 고객사의 <strong>IdP 로그인 페이지</strong>로 이동시킵니다.</span>
+                    </div>
+
+                    <div class="step">
+                        <span class="step-num">4</span>
+                        <span><strong>인증 및 데이터 준비:</strong> 고객사 서버(IdP)에서 로그인을 수행하고, 사용자 정보(NameID, Email, Name)를 담은 데이터를 준비합니다.</span>
+                    </div>
+
+                    <div class="step">
+                        <span class="step-num">5</span>
+                        <span><strong>정보 전달 (Response):</strong> IdP는 전자 서명된 <strong>SAML Response</strong>를 생성하여 이폼사인으로 다시 보냅니다.</span>
+                    </div>
+
+                    <div class="step">
+                        <span class="step-num">6</span>
+                        <span><strong>최종 로그인:</strong> eformsign은 전달받은 서명을 검증하고, 일치하는 멤버가 있으면 로그인을 완료합니다. (없으면 회원가입 이동)</span>
+                    </div>
+                </div>
+            </details>
+
+        </div>
     </div>
 </body>
 </html>
