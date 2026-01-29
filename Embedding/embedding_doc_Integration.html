@@ -20,7 +20,7 @@
         box-sizing: border-box;
       }
       .left-panel {
-        width: 480px; /* 패널 너비 약간 확장 */
+        width: 480px;
         padding: 20px;
         background: #fff;
         border-radius: 8px;
@@ -87,7 +87,7 @@
         background: #f0f0f0;
         color: #666;
       }
-      /* 비활성화 스타일 추가 */
+      /* 비활성화 스타일 */
       .form-group input:disabled,
       .form-group select:disabled,
       .btn:disabled {
@@ -111,10 +111,6 @@
       }
       .btn:hover {
         background: #0056b3;
-      }
-      .btn:disabled {
-        background: #ccc;
-        cursor: not-allowed;
       }
 
       /* 라디오 그룹 */
@@ -367,7 +363,7 @@
     <script>
       let execution_time = "";
       let docOpt;
-      let isEventsBound = false; // UI 이벤트 중복 바인딩 방지용
+      let isEventsBound = false; // UI 이벤트 중복 바인딩 방지
 
       // 1. 환경별 설정 상수
       const ENV_CONFIG = {
@@ -375,7 +371,7 @@
           jquery: "https://www.eformsign.com/plugins/jquery/jquery.min.js",
           script: "https://www.eformsign.com/lib/js/efs_embedded_v2.js",
           apiUrl: "https://api.eformsign.com/v2.0/api_auth/access_token",
-          domain: "" // SaaS는 setDomain 불필요 (기본값)
+          domain: "" // SaaS는 setDomain 불필요
         },
         csap: {
           jquery: "https://www.gov-eformsign.com/plugins/jquery/jquery.min.js",
@@ -384,7 +380,6 @@
           domain: "https://www.gov-eformsign.com"
         },
         custom: {
-          // Custom은 UI 입력값을 따름
           jquery: "",
           script: "", 
           apiUrl: "",
@@ -429,7 +424,7 @@
       }
 
       // [수정됨] Custom 스크립트 로드 (도메인 기반 자동 생성)
-      function loadCustomScript() {
+      function loadCustomScriptTrigger() {
         let domain = document.getElementById("customDomainUrl").value.trim();
         let apiBase = document.getElementById("customApiUrl").value.trim();
 
@@ -566,13 +561,10 @@
         ).prop("disabled", manual);
       }
 
-      function loadCustomScriptTrigger() {
-          loadCustomScript();
-      }
-
-     // [수정됨] this.value 대신 ID로 직접 값을 가져오도록 변경
+      // [수정됨] updateTokenLabel 로직 수정 (초기 로드 버그 수정)
       function updateTokenLabel() {
-        const method = $("#tokenMethodSelect").val(); 
+        // this.value 대신 직접 DOM에서 값을 가져와서 초기 로드 시에도 정확한 값 반영
+        const method = $("#tokenMethodSelect").val();
 
         if (method === "signature") {
           $("#secretKeyLabel").text("Private Key Hex:");
@@ -582,6 +574,7 @@
           $("#privateKeyHex").attr("placeholder", "Bearer 토큰 입력");
         }
       }
+
       function toggleDocId() {
         const v = $("#modeTypeSelect").val();
         $("#docIdGroup")[v === "02" || v === "03" ? "show" : "hide"]();
@@ -610,8 +603,6 @@
       function getAccessToken() {
         execution_time = Date.now() + "";
         const env = $("#envSelect").val();
-        
-        // URL 결정
         let requestURL = ENV_CONFIG[env].apiUrl;
 
         if(!requestURL) { alert("API URL이 설정되지 않았습니다."); return; }
@@ -665,64 +656,7 @@
         });
       }
 
-      // --- 필드/수신자 추가 ---
-      function addFieldEntry() {
-        const entry = $(`
-        <div class="entry-item field-entry">
-          <button type="button" class="remove-entry" title="삭제">&times;</button>
-          <div class="form-group"><label>필드명 (id):</label><input type="text" class="field-id" placeholder="예: 고객명" /></div>
-          <div class="form-group"><label>값 (value):</label><input type="text" class="field-value" placeholder="예: 홍길동" /></div>
-          <div class="form-group">
-            <label>활성화 여부:</label>
-            <div class="switch-wrapper" style="justify-content:flex-start"><label class="switch"><input type="checkbox" class="field-enabled" checked /><span class="slider"></span></label></div>
-          </div>
-          <div class="form-group">
-            <label>필수 여부:</label>
-            <div class="switch-wrapper" style="justify-content:flex-start"><label class="switch"><input type="checkbox" class="field-required" checked /><span class="slider"></span></label></div>
-          </div>
-        </div>
-      `);
-        entry.find(".remove-entry").click(() => entry.remove());
-        $("#fieldsList").append(entry);
-      }
-
-      function addRecipientEntry() {
-        const entry = $(`
-        <div class="entry-item recipient-entry">
-          <button type="button" class="remove-entry" title="삭제">&times;</button>
-          <div class="form-group"><label>순서 (step_idx):</label><input type="text" class="rec-step-idx" placeholder="예: 2" /></div>
-          <div class="form-group"><label>종류 (step_type):</label><select class="rec-step-type"><option value="05">참여자</option><option value="06">검토자</option></select></div>
-          <div class="form-group"><label>이름 (name):</label><input type="text" class="rec-name" placeholder="예: 김테스트" /></div>
-          <div class="form-group"><label>ID/이메일 (id):</label><input type="text" class="rec-id" placeholder="예: test@forcs.com" /></div>
-          <div class="form-group"><label>핸드폰 (sms):</label><input type="text" class="rec-sms" placeholder="예: 01023456789" /></div>
-          
-          <div style="display:flex; gap:20px;">
-            <div class="form-group"><label>Mail 알림:</label><div class="switch-wrapper" style="justify-content:flex-start"><label class="switch"><input type="checkbox" class="rec-use-mail" checked /><span class="slider"></span></label></div></div>
-            <div class="form-group"><label>SMS 알림:</label><div class="switch-wrapper" style="justify-content:flex-start"><label class="switch"><input type="checkbox" class="rec-use-sms" checked /><span class="slider"></span></label></div></div>
-          </div>
-
-          <div style="background:#eee; padding:10px; border-radius:4px; margin-top:5px;">
-              <div class="form-group"><label>비밀번호 (auth.password):</label><input type="text" class="rec-auth-password" placeholder="선택 입력" /></div>
-              <div class="form-group"><label>비밀번호 힌트:</label><input type="text" class="rec-auth-hint" placeholder="선택 입력" /></div>
-              <div class="form-group"><label>전송 기한 (일):</label><input type="number" class="rec-valid-day" value="7" min="0" /></div>
-              <div class="form-group"><label>전송 기한 (시):</label><input type="number" class="rec-valid-hour" value="0" min="0" /></div>
-              <div class="form-group"><label>문서 링크 (URL):</label><input type="text" class="rec-document-link" placeholder="알림용 Link URL" /></div>
-          </div>
-        </div>
-      `);
-        entry.find(".remove-entry").click(() => entry.remove());
-        $("#recipientsList").append(entry);
-      }
-
-      function validateInputs() {
-        const cid = ($("#companyId").val() || "").trim();
-        if (!cid) {
-          alert("회사 ID가 필요합니다. 토큰을 발급받으세요.");
-          return false;
-        }
-        return true;
-      }
-
+      // [수정됨] buildDocOpt: Popup 및 Viewer Toolbar 옵션 반영
       function buildDocOpt() {
         const userType = $("#userTypeSelect").val();
         const modeType = $("#modeTypeSelect").val();
@@ -730,6 +664,7 @@
 
         let userObj;
         if (userType === "01") {
+          // 멤버 모드: 토큰 모드일 때 입력된 userId를 id 값으로 사용
           userObj = {
             type: "01",
             id: $("#userId").val(), // [중요] 토큰 모드여도 입력값 사용
@@ -755,10 +690,16 @@
           footer: $("#layoutFooter").is(":checked"),
           context_menu: $("#layoutContextMenu").is(":checked"),
           zoom: parseFloat($("#layoutZoom").val()) || 1.0,
+          // [추가됨] 뷰어 툴바 설정
           viewer_toolbar: {
             "toolbar.save": $("#layoutSave").is(":checked"),
             "toolbar.print": $("#layoutPrint").is(":checked"),
           },
+          // [추가됨] 팝업(Popup) 설정
+          popup: {
+            email: $("#layoutPopupEmail").is(":checked"),
+            sms: $("#layoutPopupSms").is(":checked")
+          }
         };
 
         const prefill = {
@@ -917,10 +858,71 @@
         );
       }
       
+      // --- Modal 제어 ---
       function closeModal() {
         $("#modalWrapper").fadeOut(200);
         $("#iframeActionContainer").append($("#actionControlArea"));
         $("#eformsign_modal_iframe").attr("src", "about:blank");
+      }
+
+      // --- Helper Functions ---
+      // [복구됨] 누락되었던 검증 함수
+      function validateInputs() {
+        const cid = ($("#companyId").val() || "").trim();
+        if (!cid) {
+          alert("회사 ID가 필요합니다. 토큰을 발급받으세요.");
+          return false;
+        }
+        return true;
+      }
+
+      // --- 필드/수신자 추가 (SaaS 코드 동일) ---
+      function addFieldEntry() {
+        const entry = $(`
+        <div class="entry-item field-entry">
+          <button type="button" class="remove-entry" title="삭제">&times;</button>
+          <div class="form-group"><label>필드명 (id):</label><input type="text" class="field-id" placeholder="예: 고객명" /></div>
+          <div class="form-group"><label>값 (value):</label><input type="text" class="field-value" placeholder="예: 홍길동" /></div>
+          <div class="form-group">
+            <label>활성화 여부:</label>
+            <div class="switch-wrapper" style="justify-content:flex-start"><label class="switch"><input type="checkbox" class="field-enabled" checked /><span class="slider"></span></label></div>
+          </div>
+          <div class="form-group">
+            <label>필수 여부:</label>
+            <div class="switch-wrapper" style="justify-content:flex-start"><label class="switch"><input type="checkbox" class="field-required" checked /><span class="slider"></span></label></div>
+          </div>
+        </div>
+      `);
+        entry.find(".remove-entry").click(() => entry.remove());
+        $("#fieldsList").append(entry);
+      }
+
+      function addRecipientEntry() {
+        const entry = $(`
+        <div class="entry-item recipient-entry">
+          <button type="button" class="remove-entry" title="삭제">&times;</button>
+          <div class="form-group"><label>순서 (step_idx):</label><input type="text" class="rec-step-idx" placeholder="예: 2" /></div>
+          <div class="form-group"><label>종류 (step_type):</label><select class="rec-step-type"><option value="05">참여자</option><option value="06">검토자</option></select></div>
+          <div class="form-group"><label>이름 (name):</label><input type="text" class="rec-name" placeholder="예: 김테스트" /></div>
+          <div class="form-group"><label>ID/이메일 (id):</label><input type="text" class="rec-id" placeholder="예: test@forcs.com" /></div>
+          <div class="form-group"><label>핸드폰 (sms):</label><input type="text" class="rec-sms" placeholder="예: 01023456789" /></div>
+          
+          <div style="display:flex; gap:20px;">
+            <div class="form-group"><label>Mail 알림:</label><div class="switch-wrapper" style="justify-content:flex-start"><label class="switch"><input type="checkbox" class="rec-use-mail" checked /><span class="slider"></span></label></div></div>
+            <div class="form-group"><label>SMS 알림:</label><div class="switch-wrapper" style="justify-content:flex-start"><label class="switch"><input type="checkbox" class="rec-use-sms" checked /><span class="slider"></span></label></div></div>
+          </div>
+
+          <div style="background:#eee; padding:10px; border-radius:4px; margin-top:5px;">
+              <div class="form-group"><label>비밀번호 (auth.password):</label><input type="text" class="rec-auth-password" placeholder="선택 입력" /></div>
+              <div class="form-group"><label>비밀번호 힌트:</label><input type="text" class="rec-auth-hint" placeholder="선택 입력" /></div>
+              <div class="form-group"><label>전송 기한 (일):</label><input type="number" class="rec-valid-day" value="7" min="0" /></div>
+              <div class="form-group"><label>전송 기한 (시):</label><input type="number" class="rec-valid-hour" value="0" min="0" /></div>
+              <div class="form-group"><label>문서 링크 (URL):</label><input type="text" class="rec-document-link" placeholder="알림용 Link URL" /></div>
+          </div>
+        </div>
+      `);
+        entry.find(".remove-entry").click(() => entry.remove());
+        $("#recipientsList").append(entry);
       }
     </script>
   </head>
@@ -943,7 +945,7 @@
     </div>
 
     <div class="left-panel">
-      <h2>이폼사인 문서 임베딩 (통합 환경)</h2>
+      <h2>통합 임베딩 테스트</h2>
 
       <div class="env-header">
         <div class="form-group" style="margin-bottom:5px;">
@@ -962,14 +964,14 @@
         <div id="customEnvFields" style="display:none; margin-top:10px; border-top:1px dashed #90caf9; padding-top:10px;">
            <div class="form-group">
               <label>Domain URL (JS & setDomain):</label>
-              <input id="customDomainUrl" placeholder="예: https://lib.your-domain.com">
+              <input id="customDomainUrl" placeholder="예: https://test-eform.com">
               <div style="font-size:0.8rem; color:#555; margin-top:3px;">
                  * <b>/lib/js/efs_embedded_v2.js</b> 및 <b>/plugins/jquery...</b> 가 자동 적용됩니다.
               </div>
            </div>
            <div class="form-group">
               <label>API Base URL:</label>
-              <input id="customApiUrl" placeholder="예: https://api.your-domain.com">
+              <input id="customApiUrl" placeholder="예: https://test-eformsign-service.com">
               <div style="font-size:0.8rem; color:#555; margin-top:3px;">
                 * <b>/v2.0/api_auth/access_token</b> 이 자동 적용됩니다.
              </div>
@@ -1161,6 +1163,25 @@
               ></label>
             </div>
           </div>
+          
+          <div class="form-group">
+            <label>뷰어 팝업 설정 (Popup):</label>
+            <div class="switch-wrapper" style="justify-content: flex-start; margin-bottom: 5px;">
+              <label class="switch">
+                <input type="checkbox" id="layoutPopupEmail" checked />
+                <span class="slider"></span>
+              </label>
+              <span style="margin-left: 8px;">이메일 표시 (popup.email)</span>
+            </div>
+            <div class="switch-wrapper" style="justify-content: flex-start;">
+              <label class="switch">
+                <input type="checkbox" id="layoutPopupSms" checked />
+                <span class="slider"></span>
+              </label>
+              <span style="margin-left: 8px;">SMS 표시 (popup.sms)</span>
+            </div>
+          </div>
+          
         </div>
 
         <div class="option-section">
