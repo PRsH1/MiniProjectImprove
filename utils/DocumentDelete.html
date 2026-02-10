@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>eformsign 대용량 문서 삭제 도구 (v3.1)</title>
+    <title>eformsign 대용량 문서 삭제 도구 (v3.2 Basic Auth)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jsrsasign/10.5.25/jsrsasign-all-min.js"></script>
@@ -20,7 +20,7 @@
         <div class="flex justify-between items-center border-b pb-4 mb-6">
             <h1 class="text-3xl font-bold text-indigo-700 flex items-center">
                 <i class="fas fa-robot mr-3"></i>eformsign 문서 삭제 도구
-                <span class="ml-3 text-sm font-normal text-white bg-indigo-600 px-3 py-1 rounded-full">v3.1 UI Fix</span>
+                <span class="ml-3 text-sm font-normal text-white bg-indigo-600 px-3 py-1 rounded-full">v3.2 Basic Auth</span>
             </h1>
             <div id="wakeLockStatus" class="hidden text-sm font-bold text-green-600 flex items-center animate-pulse">
                 <i class="fas fa-lightbulb mr-2"></i>화면 켜짐 유지 중
@@ -60,6 +60,7 @@
                 <div class="col-span-2">
                     <div class="flex items-center space-x-6 mb-3">
                         <label class="inline-flex items-center"><input type="radio" name="secretMethod" value="signature" checked onclick="toggleSecretPlaceholder()" class="mr-2">Signature</label>
+                        <label class="inline-flex items-center"><input type="radio" name="secretMethod" value="basic" onclick="toggleSecretPlaceholder()" class="mr-2">Basic Auth</label>
                         <label class="inline-flex items-center"><input type="radio" name="secretMethod" value="bearer" onclick="toggleSecretPlaceholder()" class="mr-2">Bearer Token</label>
                     </div>
                     <input type="password" id="secretKey" placeholder="Private Key (Hex)" class="w-full p-3 border rounded font-mono text-sm">
@@ -178,7 +179,14 @@
 
         function toggleSecretPlaceholder() {
             const method = document.querySelector('input[name="secretMethod"]:checked').value;
-            document.getElementById('secretKey').placeholder = method === 'signature' ? "Private Key (Hex)" : "Bearer Token";
+            const input = document.getElementById('secretKey');
+            if (method === 'signature') {
+                input.placeholder = "Private Key (Hex)";
+            } else if (method === 'basic') {
+                input.placeholder = "Basic Auth Value";
+            } else {
+                input.placeholder = "Bearer Token";
+            }
         }
 
         function setButtonState(mode) {
@@ -264,6 +272,8 @@
                     sig.init(keyObj);
                     sig.updateString(execTime.toString());
                     signature = sig.sign();
+                } else if (method === 'basic') {
+                    signature = 'Basic ' + secretKeyInput;
                 } else {
                     signature = 'Bearer ' + secretKeyInput;
                 }
