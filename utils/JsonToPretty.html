@@ -3,7 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JSON & XML Formatter with Tree View</title>
+    <title>JSON & XML Formatter</title>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/lint/lint.min.css">
     
     <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
 
@@ -18,8 +21,8 @@
             align-items: center;
         }
         .container {
-            width: 100%;
-            max-width: 1200px;
+            width: 98%; 
+            max-width: 1600px; 
             background: white;
             padding: 30px;
             border-radius: 8px;
@@ -54,7 +57,7 @@
         
         .error-msg {
             color: #d32f2f; font-size: 15px; font-weight: bold; text-align: center;
-            min-height: 24px; margin-bottom: 15px;
+            min-height: 24px; margin-bottom: 15px; white-space: pre-wrap;
         }
         
         .editor-container {
@@ -67,47 +70,70 @@
         .pane-header {
             display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;
         }
-        .pane-header h3 { margin: 0; font-size: 16px; color: #555; }
+        .pane-header h3 { margin: 0; font-size: 16px; color: #555; display: flex; align-items: center; gap: 10px; }
         
-        /* 탭 버튼 스타일 */
+        .copy-btn {
+            padding: 4px 12px; font-size: 12px; border-radius: 4px; background-color: #4caf50; 
+            color: white; border: none; cursor: pointer; display: none;
+        }
+        .copy-btn:hover { background-color: #45a049; }
+
         .tabs { display: flex; gap: 5px; }
         .tab-btn {
-            padding: 5px 10px; font-size: 13px; cursor: pointer;
+            padding: 5px 10px; font-size: 13px; cursor: pointer; border: none;
             background-color: #f0f0f0; color: #555; border-radius: 4px;
         }
         .tab-btn.active { background-color: #333; color: white; }
 
-        textarea {
-            width: 100%; height: 500px; padding: 15px; border: 1px solid #ccc;
-            border-radius: 6px; font-family: 'Courier New', Courier, monospace;
-            font-size: 14px; line-height: 1.5; resize: vertical; box-sizing: border-box; background-color: #fafafa;
+        /* 새로 교체된 입력창(CodeMirror) 스타일 */
+        #editorWrapper {
+            width: 100%; 
+            height: 70vh; 
+            min-height: 500px; 
+            border: 1px solid #ccc;
+            border-radius: 6px; 
+            box-sizing: border-box; 
+            overflow: hidden;
         }
-        textarea:focus { outline: none; border-color: #0070f3; background-color: #fff; }
+        .CodeMirror {
+            height: 100%;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 14px;
+            background-color: #fafafa;
+        }
+        .CodeMirror-focused { background-color: #fff; border-color: #0070f3; }
 
-        /* 결과창 영역 (코드 & 트리) */
+        /* 결과창 영역 */
         .output-wrapper {
-            height: 500px; border: 1px solid #ccc; border-radius: 6px; overflow: auto;
-            background-color: #1d1f21; /* Prism 테마 배경색과 일치 */
+            height: 70vh; 
+            min-height: 500px; 
+            border: 1px solid #ccc; border-radius: 6px; overflow: auto;
+            background-color: #1d1f21; 
+            position: relative;
         }
         #codeView pre { margin: 0; padding: 15px; background: transparent; }
         
         /* 트리 뷰 스타일 */
         #treeView {
-            padding: 15px; color: #c5c8c6; font-family: 'Courier New', Courier, monospace; font-size: 14px;
-            display: none; /* 기본은 숨김 */
-            background-color: #ffffff; color: #333; height: 100%; box-sizing: border-box;
+            padding: 15px; font-family: 'Courier New', Courier, monospace; font-size: 14px;
+            display: none; background-color: #ffffff; color: #333; min-height: 100%; box-sizing: border-box;
         }
         details { margin-left: 15px; }
-        summary { cursor: pointer; font-weight: bold; color: #0070f3; outline: none; }
-        summary:hover { color: #005bb5; }
+        summary { cursor: pointer; outline: none; display: flex; align-items: center; padding: 2px 0; }
+        summary:hover { background-color: #f5f5f5; }
+        summary::marker { color: #888; }
+        
         .tree-key { color: #d32f2f; font-weight: bold; }
+        .tree-count { color: #888; font-size: 13px; margin-left: 5px; }
         .tree-value-string { color: #2e7d32; }
         .tree-value-number { color: #1565c0; }
-        ul.tree-list { margin: 0; padding-left: 10px; list-style-type: none; border-left: 1px dashed #ccc; }
+        .tree-link { color: #2e7d32; text-decoration: underline; }
+        ul.tree-list { margin: 0; padding-left: 15px; list-style-type: none; border-left: 1px dashed #ddd; }
+        .tree-bracket { color: #555; }
 
         @media (max-width: 768px) {
             .editor-container { flex-direction: column; }
-            textarea, .output-wrapper { height: 350px; }
+            #editorWrapper, .output-wrapper { height: 50vh; min-height: 350px; }
         }
     </style>
 </head>
@@ -127,14 +153,17 @@
     <div class="editor-container">
         <div class="editor-pane">
             <div class="pane-header">
-                <h3>Input (Raw)</h3>
+                <h3>Input (Auto Detect & Linting)</h3>
             </div>
-            <textarea id="inputArea" placeholder="여기에 원본 JSON 또는 XML 코드를 붙여넣으세요..."></textarea>
+            <div id="editorWrapper"></div>
         </div>
 
         <div class="editor-pane">
             <div class="pane-header">
-                <h3>Output</h3>
+                <h3>
+                    Output 
+                    <button id="copyBtn" class="copy-btn" onclick="copyOutput()">Copy</button>
+                </h3>
                 <div class="tabs">
                     <button id="btnCode" class="tab-btn active" onclick="switchTab('code')">Formatted</button>
                     <button id="btnTree" class="tab-btn" onclick="switchTab('tree')">Tree View</button>
@@ -151,33 +180,105 @@
     </div>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsonlint/1.6.0/jsonlint.min.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/javascript/javascript.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/xml/xml.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/lint/lint.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/lint/json-lint.min.js"></script>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
 
 <script>
-    const inputArea = document.getElementById('inputArea');
+    // ==========================================
+    // CodeMirror 커스텀 XML Linter (빨간 밑줄 기능)
+    // ==========================================
+    CodeMirror.registerHelper("lint", "xml", function(text) {
+        var found = [];
+        if (!text.trim()) return found;
+        try {
+            const parser = new DOMParser();
+            const xmlDoc = parser.parseFromString(text, "application/xml");
+            const parserError = xmlDoc.getElementsByTagName("parsererror");
+            
+            if (parserError.length > 0) {
+                const errorText = parserError[0].textContent;
+                let line = 1, ch = 0;
+                
+                // 브라우저마다 파싱 에러 메시지 포맷이 다르므로 정규식으로 라인 추출
+                let lineMatch = errorText.match(/line\s+(\d+)/i) || errorText.match(/Line Number\s+(\d+)/i);
+                let colMatch = errorText.match(/column\s+(\d+)/i) || errorText.match(/Column\s+(\d+)/i);
+                
+                if (lineMatch) line = parseInt(lineMatch[1], 10);
+                if (colMatch) ch = parseInt(colMatch[1], 10);
+
+                // CodeMirror에 에러 위치 전달
+                found.push({
+                    from: CodeMirror.Pos(line - 1, Math.max(0, ch - 2)),
+                    to: CodeMirror.Pos(line - 1, ch + 2),
+                    message: errorText.split('\n')[0] || "XML Parsing Error",
+                    severity: "error"
+                });
+            }
+        } catch (e) {
+            console.error(e);
+        }
+        return found;
+    });
+
+    // ==========================================
+    // CodeMirror 초기화
+    // ==========================================
+    const editor = CodeMirror(document.getElementById("editorWrapper"), {
+        lineNumbers: true, // 줄 번호 표시
+        mode: "application/json",
+        lint: true, // 실시간 에러 밑줄 활성화
+        gutters: ["CodeMirror-lint-markers"], // 에러 마크 영역 확보
+        lineWrapping: true,
+        placeholder: "여기에 원본 JSON 또는 XML 코드를 붙여넣으세요..."
+    });
+
+    // 입력 내용 변경 시 JSON/XML 자동 감지 및 모드 전환
+    editor.on("change", function() {
+        const val = editor.getValue().trim();
+        let currentMode = editor.getOption("mode");
+        
+        if (val.startsWith("<") && currentMode !== "xml") {
+            editor.setOption("mode", "xml"); // XML 문법 검사기로 자동 전환
+        } else if ((val.startsWith("{") || val.startsWith("[")) && currentMode !== "application/json") {
+            editor.setOption("mode", "application/json"); // JSON 문법 검사기로 자동 전환
+        }
+    });
+
+    // ==========================================
+    // 기존 UI 로직 연동
+    // ==========================================
     const outputCode = document.getElementById('outputCode');
     const treeView = document.getElementById('treeView');
     const codeView = document.getElementById('codeView');
     const errorMessage = document.getElementById('errorMessage');
+    const copyBtn = document.getElementById('copyBtn');
+    let currentFormattedText = "";
 
     function showError(msg) { errorMessage.textContent = msg; }
     function clearError() { errorMessage.textContent = ''; }
 
     function clearAll() {
-        inputArea.value = '';
+        editor.setValue(''); // 에디터 초기화
+        currentFormattedText = '';
         outputCode.textContent = '결과가 여기에 표시됩니다...';
         outputCode.className = 'language-json';
         treeView.innerHTML = '';
+        copyBtn.style.display = 'none';
         Prism.highlightElement(outputCode);
         clearError();
     }
 
-    // 탭 전환 로직
     function switchTab(tab) {
         document.getElementById('btnCode').classList.remove('active');
         document.getElementById('btnTree').classList.remove('active');
-        
         if (tab === 'code') {
             document.getElementById('btnCode').classList.add('active');
             codeView.style.display = 'block';
@@ -189,91 +290,93 @@
         }
     }
 
-    // ==========================================
-    // 1. JSON 처리부
-    // ==========================================
+    function copyOutput() {
+        if (!currentFormattedText) return;
+        navigator.clipboard.writeText(currentFormattedText).then(() => {
+            copyBtn.textContent = "Copied!";
+            copyBtn.style.backgroundColor = "#2e7d32";
+            setTimeout(() => {
+                copyBtn.textContent = "Copy";
+                copyBtn.style.backgroundColor = "#4caf50";
+            }, 2000);
+        }).catch(err => alert("복사에 실패했습니다."));
+    }
+
     function formatJSON() {
         clearError();
-        const rawValue = inputArea.value.trim();
+        const rawValue = editor.getValue().trim(); // 에디터에서 값 가져오기
         if (!rawValue) return showError("입력창에 JSON 코드를 입력해 주세요.");
 
         try {
             const parsedObj = JSON.parse(rawValue);
-            
-            // 코드 뷰 업데이트
+            currentFormattedText = JSON.stringify(parsedObj, null, 4);
             outputCode.className = 'language-json';
-            outputCode.textContent = JSON.stringify(parsedObj, null, 4);
+            outputCode.textContent = currentFormattedText;
             Prism.highlightElement(outputCode);
 
-            // 트리 뷰 업데이트
             treeView.innerHTML = '';
-            treeView.appendChild(buildJSONTree(parsedObj, "root"));
+            treeView.appendChild(buildJSONTree(parsedObj, "root", true));
             
-            switchTab('code'); // 기본적으로 코드 뷰를 먼저 보여줌
+            copyBtn.style.display = 'block';
+            switchTab('code');
         } catch (e) {
-            showError("유효하지 않은 JSON 형식입니다. 구문을 다시 확인해 주세요.");
+            showError(`유효하지 않은 JSON 형식입니다.\n${e.message}`);
         }
     }
 
-    // JSON 트리 생성 재귀 함수
-    function buildJSONTree(data, keyName = "") {
+    function isUrl(string) {
+        try { return Boolean(new URL(string)); }
+        catch(e) { return false; }
+    }
+
+    function buildJSONTree(data, keyName = "", isRoot = false) {
         const wrapper = document.createElement('div');
-        const keySpan = keyName ? `<span class="tree-key">"${keyName}"</span>: ` : "";
+        const keySpan = keyName ? `<span class="tree-key">${keyName}</span> : ` : "";
 
         if (data !== null && typeof data === 'object') {
             const isArray = Array.isArray(data);
+            const count = isArray ? data.length : Object.keys(data).length;
             const details = document.createElement('details');
-            details.open = true; // 기본적으로 열어두기
+            details.open = true;
             
             const summary = document.createElement('summary');
-            summary.innerHTML = `${keySpan}${isArray ? '[' : '{'}`;
+            const countLabel = `<span class="tree-count">${isArray ? '[' + count + ']' : '{' + count + '}'}</span>`;
+            summary.innerHTML = `${keySpan}<span class="tree-bracket">${isArray ? 'Array' : 'Object'}</span> ${countLabel}`;
             details.appendChild(summary);
 
             const ul = document.createElement('ul');
             ul.className = 'tree-list';
-            
             for (const key in data) {
                 const li = document.createElement('li');
-                li.appendChild(buildJSONTree(data[key], isArray ? "" : key));
+                li.appendChild(buildJSONTree(data[key], isArray ? key : `"${key}"`));
                 ul.appendChild(li);
             }
             details.appendChild(ul);
-            
-            const closingSpan = document.createElement('div');
-            closingSpan.textContent = isArray ? ']' : '}';
-            details.appendChild(closingSpan);
-            
             wrapper.appendChild(details);
         } else {
             let valueStr = "";
             if (typeof data === 'string') {
-                valueStr = `<span class="tree-value-string">"${data}"</span>`;
+                if(isUrl(data)) valueStr = `<a href="${data}" target="_blank" class="tree-link">"${data}"</a>`;
+                else valueStr = `<span class="tree-value-string">"${data}"</span>`;
             } else if (typeof data === 'number' || typeof data === 'boolean') {
                 valueStr = `<span class="tree-value-number">${data}</span>`;
-            } else {
-                valueStr = `<span class="tree-value-number">null</span>`;
-            }
-            wrapper.innerHTML = `${keySpan}${valueStr}`;
+            } else valueStr = `<span class="tree-value-number">null</span>`;
+            wrapper.innerHTML = `<div style="padding: 2px 0 2px 15px;">${keySpan}${valueStr}</div>`;
         }
         return wrapper;
     }
 
-    // ==========================================
-    // 2. XML 처리부
-    // ==========================================
     function formatXML() {
         clearError();
-        let xml = inputArea.value.trim();
+        let xml = editor.getValue().trim(); // 에디터에서 값 가져오기
         if (!xml) return showError("입력창에 XML 코드를 입력해 주세요.");
 
         try {
             const parser = new DOMParser();
             const xmlDoc = parser.parseFromString(xml, "application/xml");
-            if (xmlDoc.getElementsByTagName("parsererror").length > 0) {
-                throw new Error("XML 파싱 에러");
-            }
+            const parserError = xmlDoc.getElementsByTagName("parsererror");
+            if (parserError.length > 0) throw new Error(parserError[0].textContent);
 
-            // 코드 뷰 업데이트 (들여쓰기 로직)
             let formatted = '';
             let pad = 0;
             const reg = /(>)(<)(\/*)/g;
@@ -281,58 +384,57 @@
             
             xml.split('\r\n').forEach(function(node) {
                 let indent = 0;
-                if (node.match( /.+<\/\w[^>]*>$/ )) { indent = 0; } 
+                if (node.match( /.+<\/\w[^>]*>$/ )) indent = 0; 
                 else if (node.match( /^<\/\w/ )) { if (pad !== 0) pad -= 1; } 
-                else if (node.match( /^<\w[^>]*[^\/]>.*$/ )) { indent = 1; } 
-                else { indent = 0; }
+                else if (node.match( /^<\w[^>]*[^\/]>.*$/ )) indent = 1; 
+                else indent = 0;
 
                 formatted += '    '.repeat(pad) + node + '\r\n';
                 pad += indent;
             });
 
+            currentFormattedText = formatted.trim();
             outputCode.className = 'language-xml';
-            outputCode.textContent = formatted.trim();
+            outputCode.textContent = currentFormattedText;
             Prism.highlightElement(outputCode);
 
-            // 트리 뷰 업데이트
             treeView.innerHTML = '';
             Array.from(xmlDoc.childNodes).forEach(node => {
                 const treeNode = buildXMLTree(node);
                 if (treeNode) treeView.appendChild(treeNode);
             });
 
+            copyBtn.style.display = 'block';
             switchTab('code');
         } catch (e) {
-            showError("유효하지 않은 XML 형식입니다. 구문을 다시 확인해 주세요.");
+            showError(`유효하지 않은 XML 형식입니다.\n${e.message.split('\n')[0]}`);
         }
     }
 
-    // XML 트리 생성 재귀 함수
     function buildXMLTree(node) {
         if (node.nodeType === Node.TEXT_NODE) {
             const text = node.textContent.trim();
             if (!text) return null;
-            const span = document.createElement('span');
-            span.innerHTML = `<span class="tree-value-string">"${text}"</span>`;
-            return span;
+            const wrapper = document.createElement('div');
+            wrapper.innerHTML = `<div style="padding: 2px 0 2px 15px;"><span class="tree-value-string">"${text}"</span></div>`;
+            return wrapper;
         }
-
         if (node.nodeType === Node.ELEMENT_NODE) {
             const wrapper = document.createElement('div');
-            const hasElementChildren = Array.from(node.childNodes).some(n => n.nodeType === Node.ELEMENT_NODE);
+            const elementChildren = Array.from(node.childNodes).filter(n => n.nodeType === Node.ELEMENT_NODE);
+            const hasElementChildren = elementChildren.length > 0;
             const textContent = Array.from(node.childNodes).filter(n => n.nodeType === Node.TEXT_NODE).map(n => n.textContent.trim()).join('');
 
             if (hasElementChildren) {
                 const details = document.createElement('details');
                 details.open = true;
-                
                 const summary = document.createElement('summary');
-                summary.textContent = `<${node.nodeName}>`;
+                const countLabel = `<span class="tree-count">{${elementChildren.length}}</span>`;
+                summary.innerHTML = `<span class="tree-key">&lt;${node.nodeName}&gt;</span> ${countLabel}`;
                 details.appendChild(summary);
 
                 const ul = document.createElement('ul');
                 ul.className = 'tree-list';
-                
                 node.childNodes.forEach(child => {
                     const childNode = buildXMLTree(child);
                     if (childNode) {
@@ -342,14 +444,9 @@
                     }
                 });
                 details.appendChild(ul);
-                
-                const closingSpan = document.createElement('div');
-                closingSpan.textContent = `</${node.nodeName}>`;
-                details.appendChild(closingSpan);
-                
                 wrapper.appendChild(details);
             } else {
-                wrapper.innerHTML = `<span class="tree-key">&lt;${node.nodeName}&gt;</span> <span class="tree-value-string">${textContent}</span> <span class="tree-key">&lt;/${node.nodeName}&gt;</span>`;
+                wrapper.innerHTML = `<div style="padding: 2px 0 2px 15px;"><span class="tree-key">&lt;${node.nodeName}&gt;</span> <span class="tree-value-string">${textContent}</span> <span class="tree-key">&lt;/${node.nodeName}&gt;</span></div>`;
             }
             return wrapper;
         }
