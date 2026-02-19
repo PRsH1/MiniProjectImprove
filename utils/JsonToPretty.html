@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JSON & XML Formatter with Tree View</title>
+    
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            box-sizing: border-box;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-top: 0;
+        }
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        button {
+            padding: 10px 24px;
+            border: none;
+            border-radius: 6px;
+            background-color: #0070f3;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        button:hover { background-color: #005bb5; }
+        button.clear-btn { background-color: #e0e0e0; color: #333; }
+        button.clear-btn:hover { background-color: #c8c8c8; }
+        
+        .error-msg {
+            color: #d32f2f; font-size: 15px; font-weight: bold; text-align: center;
+            min-height: 24px; margin-bottom: 15px;
+        }
+        
+        .editor-container {
+            display: flex; gap: 20px; width: 100%;
+        }
+        .editor-pane {
+            flex: 1; display: flex; flex-direction: column; min-width: 0;
+        }
+        
+        .pane-header {
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;
+        }
+        .pane-header h3 { margin: 0; font-size: 16px; color: #555; }
+        
+        /* 탭 버튼 스타일 */
+        .tabs { display: flex; gap: 5px; }
+        .tab-btn {
+            padding: 5px 10px; font-size: 13px; cursor: pointer;
+            background-color: #f0f0f0; color: #555; border-radius: 4px;
+        }
+        .tab-btn.active { background-color: #333; color: white; }
+
+        textarea {
+            width: 100%; height: 500px; padding: 15px; border: 1px solid #ccc;
+            border-radius: 6px; font-family: 'Courier New', Courier, monospace;
+            font-size: 14px; line-height: 1.5; resize: vertical; box-sizing: border-box; background-color: #fafafa;
+        }
+        textarea:focus { outline: none; border-color: #0070f3; background-color: #fff; }
+
+        /* 결과창 영역 (코드 & 트리) */
+        .output-wrapper {
+            height: 500px; border: 1px solid #ccc; border-radius: 6px; overflow: auto;
+            background-color: #1d1f21; /* Prism 테마 배경색과 일치 */
+        }
+        #codeView pre { margin: 0; padding: 15px; background: transparent; }
+        
+        /* 트리 뷰 스타일 */
+        #treeView {
+            padding: 15px; color: #c5c8c6; font-family: 'Courier New', Courier, monospace; font-size: 14px;
+            display: none; /* 기본은 숨김 */
+            background-color: #ffffff; color: #333; height: 100%; box-sizing: border-box;
+        }
+        details { margin-left: 15px; }
+        summary { cursor: pointer; font-weight: bold; color: #0070f3; outline: none; }
+        summary:hover { color: #005bb5; }
+        .tree-key { color: #d32f2f; font-weight: bold; }
+        .tree-value-string { color: #2e7d32; }
+        .tree-value-number { color: #1565c0; }
+        ul.tree-list { margin: 0; padding-left: 10px; list-style-type: none; border-left: 1px dashed #ccc; }
+
+        @media (max-width: 768px) {
+            .editor-container { flex-direction: column; }
+            textarea, .output-wrapper { height: 350px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>JSON & XML Formatter</h1>
+    
+    <div class="controls">
+        <button onclick="formatJSON()">Format JSON</button>
+        <button onclick="formatXML()">Format XML</button>
+        <button onclick="clearAll()" class="clear-btn">Clear</button>
+    </div>
+
+    <div class="error-msg" id="errorMessage"></div>
+
+    <div class="editor-container">
+        <div class="editor-pane">
+            <div class="pane-header">
+                <h3>Input (Raw)</h3>
+            </div>
+            <textarea id="inputArea" placeholder="여기에 원본 JSON 또는 XML 코드를 붙여넣으세요..."></textarea>
+        </div>
+
+        <div class="editor-pane">
+            <div class="pane-header">
+                <h3>Output</h3>
+                <div class="tabs">
+                    <button id="btnCode" class="tab-btn active" onclick="switchTab('code')">Formatted</button>
+                    <button id="btnTree" class="tab-btn" onclick="switchTab('tree')">Tree View</button>
+                </div>
+            </div>
+            
+            <div class="output-wrapper">
+                <div id="codeView">
+                    <pre><code id="outputCode" class="language-json">결과가 여기에 표시됩니다...</code></pre>
+                </div>
+                <div id="treeView"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
+
+<script>
+    const inputArea = document.getElementById('inputArea');
+    const outputCode = document.getElementById('outputCode');
+    const treeView = document.getElementById('treeView');
+    const codeView = document.getElementById('codeView');
+    const errorMessage = document.getElementById('errorMessage');
+
+    function showError(msg) { errorMessage.textContent = msg; }
+    function clearError() { errorMessage.textContent = ''; }
+
+    function clearAll() {
+        inputArea.value = '';
+        outputCode.textContent = '결과가 여기에 표시됩니다...';
+        outputCode.className = 'language-json';
+        treeView.innerHTML = '';
+        Prism.highlightElement(outputCode);
+        clearError();
+    }
+
+    // 탭 전환 로직
+    function switchTab(tab) {
+        document.getElementById('btnCode').classList.remove('active');
+        document.getElementById('btnTree').classList.remove('active');
+        
+        if (tab === 'code') {
+            document.getElementById('btnCode').classList.add('active');
+            codeView.style.display = 'block';
+            treeView.style.display = 'none';
+        } else {
+            document.getElementById('btnTree').classList.add('active');
+            codeView.style.display = 'none';
+            treeView.style.display = 'block';
+        }
+    }
+
+    // ==========================================
+    // 1. JSON 처리부
+    // ==========================================
+    function formatJSON() {
+        clearError();
+        const rawValue = inputArea.value.trim();
+        if (!rawValue) return showError("입력창에 JSON 코드를 입력해 주세요.");
+
+        try {
+            const parsedObj = JSON.parse(rawValue);
+            
+            // 코드 뷰 업데이트
+            outputCode.className = 'language-json';
+            outputCode.textContent = JSON.stringify(parsedObj, null, 4);
+            Prism.highlightElement(outputCode);
+
+            // 트리 뷰 업데이트
+            treeView.innerHTML = '';
+            treeView.appendChild(buildJSONTree(parsedObj, "root"));
+            
+            switchTab('code'); // 기본적으로 코드 뷰를 먼저 보여줌
+        } catch (e) {
+            showError("유효하지 않은 JSON 형식입니다. 구문을 다시 확인해 주세요.");
+        }
+    }
+
+    // JSON 트리 생성 재귀 함수
+    function buildJSONTree(data, keyName = "") {
+        const wrapper = document.createElement('div');
+        const keySpan = keyName ? `<span class="tree-key">"${keyName}"</span>: ` : "";
+
+        if (data !== null && typeof data === 'object') {
+            const isArray = Array.isArray(data);
+            const details = document.createElement('details');
+            details.open = true; // 기본적으로 열어두기
+            
+            const summary = document.createElement('summary');
+            summary.innerHTML = `${keySpan}${isArray ? '[' : '{'}`;
+            details.appendChild(summary);
+
+            const ul = document.createElement('ul');
+            ul.className = 'tree-list';
+            
+            for (const key in data) {
+                const li = document.createElement('li');
+                li.appendChild(buildJSONTree(data[key], isArray ? "" : key));
+                ul.appendChild(li);
+            }
+            details.appendChild(ul);
+            
+            const closingSpan = document.createElement('div');
+            closingSpan.textContent = isArray ? ']' : '}';
+            details.appendChild(closingSpan);
+            
+            wrapper.appendChild(details);
+        } else {
+            let valueStr = "";
+            if (typeof data === 'string') {
+                valueStr = `<span class="tree-value-string">"${data}"</span>`;
+            } else if (typeof data === 'number' || typeof data === 'boolean') {
+                valueStr = `<span class="tree-value-number">${data}</span>`;
+            } else {
+                valueStr = `<span class="tree-value-number">null</span>`;
+            }
+            wrapper.innerHTML = `${keySpan}${valueStr}`;
+        }
+        return wrapper;
+    }
+
+    // ==========================================
+    // 2. XML 처리부
+    // ==========================================
+    function formatXML() {
+        clearError();
+        let xml = inputArea.value.trim();
+        if (!xml) return showError("입력창에 XML 코드를 입력해 주세요.");
+
+        try {
+            const parser = new DOMParser();
+            const xmlDoc = parser.parseFromString(xml, "application/xml");
+            if (xmlDoc.getElementsByTagName("parsererror").length > 0) {
+                throw new Error("XML 파싱 에러");
+            }
+
+            // 코드 뷰 업데이트 (들여쓰기 로직)
+            let formatted = '';
+            let pad = 0;
+            const reg = /(>)(<)(\/*)/g;
+            xml = xml.replace(reg, '$1\r\n$2$3');
+            
+            xml.split('\r\n').forEach(function(node) {
+                let indent = 0;
+                if (node.match( /.+<\/\w[^>]*>$/ )) { indent = 0; } 
+                else if (node.match( /^<\/\w/ )) { if (pad !== 0) pad -= 1; } 
+                else if (node.match( /^<\w[^>]*[^\/]>.*$/ )) { indent = 1; } 
+                else { indent = 0; }
+
+                formatted += '    '.repeat(pad) + node + '\r\n';
+                pad += indent;
+            });
+
+            outputCode.className = 'language-xml';
+            outputCode.textContent = formatted.trim();
+            Prism.highlightElement(outputCode);
+
+            // 트리 뷰 업데이트
+            treeView.innerHTML = '';
+            Array.from(xmlDoc.childNodes).forEach(node => {
+                const treeNode = buildXMLTree(node);
+                if (treeNode) treeView.appendChild(treeNode);
+            });
+
+            switchTab('code');
+        } catch (e) {
+            showError("유효하지 않은 XML 형식입니다. 구문을 다시 확인해 주세요.");
+        }
+    }
+
+    // XML 트리 생성 재귀 함수
+    function buildXMLTree(node) {
+        if (node.nodeType === Node.TEXT_NODE) {
+            const text = node.textContent.trim();
+            if (!text) return null;
+            const span = document.createElement('span');
+            span.innerHTML = `<span class="tree-value-string">"${text}"</span>`;
+            return span;
+        }
+
+        if (node.nodeType === Node.ELEMENT_NODE) {
+            const wrapper = document.createElement('div');
+            const hasElementChildren = Array.from(node.childNodes).some(n => n.nodeType === Node.ELEMENT_NODE);
+            const textContent = Array.from(node.childNodes).filter(n => n.nodeType === Node.TEXT_NODE).map(n => n.textContent.trim()).join('');
+
+            if (hasElementChildren) {
+                const details = document.createElement('details');
+                details.open = true;
+                
+                const summary = document.createElement('summary');
+                summary.textContent = `<${node.nodeName}>`;
+                details.appendChild(summary);
+
+                const ul = document.createElement('ul');
+                ul.className = 'tree-list';
+                
+                node.childNodes.forEach(child => {
+                    const childNode = buildXMLTree(child);
+                    if (childNode) {
+                        const li = document.createElement('li');
+                        li.appendChild(childNode);
+                        ul.appendChild(li);
+                    }
+                });
+                details.appendChild(ul);
+                
+                const closingSpan = document.createElement('div');
+                closingSpan.textContent = `</${node.nodeName}>`;
+                details.appendChild(closingSpan);
+                
+                wrapper.appendChild(details);
+            } else {
+                wrapper.innerHTML = `<span class="tree-key">&lt;${node.nodeName}&gt;</span> <span class="tree-value-string">${textContent}</span> <span class="tree-key">&lt;/${node.nodeName}&gt;</span>`;
+            }
+            return wrapper;
+        }
+        return null;
+    }
+</script>
+
+</body>
+</html>
