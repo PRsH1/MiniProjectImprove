@@ -53,11 +53,6 @@ ProjectImprove/
 │   └── saml.js                   # SAML IDP/SP 설정
 ├── auth/
 │   └── login.html                # 로그인 UI
-├── private/                      # 인증 필요 보호 페이지
-│   ├── Member.html
-│   ├── ApiAutoTest.html
-│   ├── idp-test.html
-│   └── templatecopy.html
 ├── API(JS,HTML)/                 # eformsign API 연동 프론트엔드 템플릿
 ├── Embedding/                    # 문서/템플릿 임베딩 도구
 ├── utils/                        # 공개 유틸리티 도구
@@ -95,14 +90,6 @@ ProjectImprove/
 |-----------|--------|------|
 | `POST /api/webhook-receiver` | POST | 웹훅 이벤트 수신 및 Pusher 브로드캐스팅 |
 | `POST /api/send` | POST | SMTP 이메일 테스트 발송 |
-
-### 보호된 페이지
-
-| 경로 | 설명 |
-|------|------|
-| `/ApiAutoTest` | API 자동화 테스트 도구 |
-| `/templatecopy` | 템플릿 복사 유틸리티 |
-| `/idptestauth` | SAML IDP 테스트 인터페이스 |
 
 ---
 
@@ -151,26 +138,7 @@ PUSHER_SECRET=
 PUSHER_CLUSTER=
 ```
 
----
 
-## 로컬 개발 환경 설정
-
-```bash
-# 1. 저장소 클론
-git clone <repository-url>
-cd ProjectImprove
-
-# 2. 의존성 설치
-npm install
-
-# 3. 환경 변수 설정
-# .env.local 파일을 생성하고 위의 환경 변수를 설정합니다.
-
-# 4. 개발 서버 실행
-npx vercel dev
-```
-
----
 
 ## 배포
 
